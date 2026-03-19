@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply font-sans text-charcoal bg-gray-50; }
+  h1, h2, h3 { @apply font-serif; }
+}
+
+@layer components {
+  .btn-primary { @apply bg-gold-600 text-white px-5 py-2.5 text-xs tracking-[0.15em] uppercase font-sans font-medium hover:bg-gold-700 transition-colors; }
+  .btn-danger { @apply bg-red-600 text-white px-4 py-2 text-xs tracking-wider uppercase font-sans font-medium hover:bg-red-700 transition-colors; }
+  .btn-outline { @apply border border-gray-300 text-gray-600 px-4 py-2 text-xs tracking-wider uppercase font-sans font-medium hover:border-charcoal hover:text-charcoal transition-colors; }
+  .input-field { @apply w-full border border-gray-200 px-4 py-2.5 text-sm font-sans focus:outline-none focus:border-gold-500 bg-white transition-colors rounded-sm; }
+  .card { @apply bg-white border border-gray-100 rounded-sm; }
+}

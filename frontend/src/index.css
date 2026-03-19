@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite linear;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* ============================================
+   BASE — Luxury Typography & Reset
+   ============================================ */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-800;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-gray-900 tracking-tight;
+    line-height: 1.2;
+  }
+
+  p { @apply text-gray-600; }
+  
+  a { @apply transition-all duration-300; }
+}
+
+/* ============================================
+   COMPONENTS — Premium UI Kit
+   ============================================ */
+@layer components {
+
+  /* ── PRIMARY BUTTON (Modern Blue) ── */
+  .btn-primary {
+    @apply inline-flex items-center px-8 py-3 bg-blue-600 text-white text-[12px] font-bold uppercase tracking-[0.1em] transition-all duration-300 rounded-xl shadow-lg;
+  }
+  .btn-primary:hover {
+    @apply bg-blue-700 -translate-y-0.5 shadow-blue-600/20 scale-105;
+  }
+  .btn-primary:active { @apply translate-y-0 scale-95; }
+
+  /* ── SECONDARY BUTTON (Outline) ── */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 2rem;
+    background-color: transparent;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* ── GHOST BUTTON ── */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors;
+  }
+
+  /* ── HIGHLIGHT TAG ── */
+  .highlight-tag {
+    @apply px-3 py-1 bg-blue-600/10 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-full;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    @apply inline-flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 mb-2;
+  }
+  .section-label::after {
+    content: "";
+    width: 2rem;
+    height: 1px;
+    @apply bg-blue-600 opacity-30;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    @apply font-serif text-3xl md:text-5xl font-bold text-gray-900 leading-tight tracking-tight mb-4;
+  }
+
+  /* ── LUXURY CARD (Light) ── */
+  .card-premium {
+    @apply relative bg-white border border-gray-100 overflow-hidden transition-all duration-500 rounded-xl hover:border-blue-100 hover:shadow-2xl;
+  }
+
+  /* ── INPUT FIELD (Light) ── */
+  .input-field {
+    @apply w-full px-5 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 outline-none transition-all duration-200 focus:border-blue-600/50 rounded-xl;
+  }
+  .input-field::placeholder { @apply text-gray-400; }
+
+  /* ── IMAGE PULSE EFFECT ── */
+  .pulse-photo {
+    animation: photo-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes photo-pulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.9; filter: brightness(1.1); }
+}
+
+/* ============================================
+   SCROLLBAR — Clean Light
+   ============================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-gray-50; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 border-2 border-transparent bg-clip-padding rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+
+/* ============================================
+   TEXT SELECTION ── */
+::selection {
+  @apply bg-blue-600 text-white;
+}
+
+/* ============================================
+   SCROLL-TRIGGERED FADE-IN
+   ============================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   IMAGE HOVER EFFECTS
+   ============================================ */
+.img-hover-scale {
+  @apply overflow-hidden;
+}
+.img-hover-scale img {
+  @apply transition-transform duration-700;
+}
+.img-hover-scale:hover img {
+  @apply scale-105;
+}
+
+/* ============================================
+   DIVIDER WITH TEXT
+   ============================================ */
+.divider {
+  @apply flex items-center gap-4 text-gray-500 text-[10px] font-bold uppercase tracking-widest;
+}
+.divider::before, .divider::after {
+  content: "";
+  @apply flex-1 h-px bg-gray-200;
+}

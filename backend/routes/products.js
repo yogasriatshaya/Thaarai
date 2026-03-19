@@ -1,0 +1,129 @@
+const express = require('express');
+const router = express.Router();
+const Product = require('../models/Product');
+const { adminMiddleware, authMiddleware } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+// Get all products with filters
+router.get('/', async (req, res) => {
+  try {
+    const { category, subcategory, material, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12 } = req.query;
+    const query = {};
+
+    if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+    if (subcategory) query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
+    if (material) query.material = { $regex: material, $options: 'i' };
+    if (bestseller === 'true') query.bestseller = true;
+
+    // Only apply price filter if values are explicitly provided
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.price = {};
+      if (minPrice !== undefined) query.price.$gte = Number(minPrice);
+      if (maxPrice !== undefined) query.price.$lte = Number(maxPrice);
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortObj = {};
+    if (sort === 'price_asc') sortObj.price = 1;
+    else if (sort === 'price_desc') sortObj.price = -1;
+    else if (sort === 'rating') sortObj.averageRating = -1;
+    else sortObj.createdAt = -1; // default: newest
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await Product.countDocuments(query);
+    const products = await Product.find(query).sort(sortObj).skip(skip).limit(Number(limit));
+
+    res.json({ success: true, products, total, pages: Math.ceil(total / Number(limit)), currentPage: Number(page) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Get single product
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Add product (admin)
+router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) => {
+  try {
+    const { name, description, category, subcategory, price, sizes, colors, stock, bestseller, label, material, heritage } = req.body;
+    const images = req.files?.map(f => `/uploads/${f.filename}`) || [];
+
+    const product = await Product.create({
+      name, description, category, subcategory,
+      price: Number(price),
+      sizes: sizes ? JSON.parse(sizes) : [],
+      colors: colors ? JSON.parse(colors) : [],
+      images,
+      stock: Number(stock) || 0,
+      bestseller: bestseller === 'true',
+      label: label || '',
+      material, heritage
+    });
+    res.status(201).json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Update product (admin)
+router.put('/:id', adminMiddleware, upload.array('images', 6), async (req, res) => {
+  try {
+    const { name, description, category, subcategory, price, sizes, colors, stock, bestseller, label, material, heritage } = req.body;
+    const updateData = { name, description, category, subcategory, price: Number(price), material, heritage };
+
+    if (sizes) updateData.sizes = JSON.parse(sizes);
+    if (colors) updateData.colors = JSON.parse(colors);
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (bestseller !== undefined) updateData.bestseller = bestseller === 'true';
+    if (label !== undefined) updateData.label = label;
+    if (req.files?.length > 0) updateData.images = req.files.map(f => `/uploads/${f.filename}`);
+
+    const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete product (admin)
+router.delete('/:id', adminMiddleware, async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Product deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Add review
+router.post('/:id/reviews', authMiddleware, async (req, res) => {
+  try {
+    const { rating, comment, name } = req.body;
+    const product = await Product.findById(req.params.id);
+    const review = { userId: req.user.id, name: name || 'Customer', rating: Number(rating), comment };
+    product.reviews.push(review);
+    product.reviewCount = product.reviews.length;
+    product.averageRating = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
+    await product.save();
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+module.exports = router;
