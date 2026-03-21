@@ -62,7 +62,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) => {
   try {
     const { name, description, category, subcategory, price, originalPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage } = req.body;
-    const images = req.files?.map(f => `/uploads/${f.filename}`) || [];
+    const images = req.files?.map(f => f.path) || [];
 
     const product = await Product.create({
       name, description, category, subcategory,
@@ -107,7 +107,7 @@ router.put('/:id', adminMiddleware, upload.array('images', 6), async (req, res) 
 
     // Handle images: combine existing (not removed) with new uploads
     const keptImages = existingImages ? JSON.parse(existingImages) : [];
-    const newImages = req.files?.map(f => `/uploads/${f.filename}`) || [];
+    const newImages = req.files?.map(f => f.path) || [];
     updateData.images = [...keptImages, ...newImages];
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
