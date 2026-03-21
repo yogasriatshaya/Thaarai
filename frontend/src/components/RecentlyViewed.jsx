@@ -9,11 +9,19 @@ export default function RecentlyViewed() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const raw = localStorage.getItem('thaarai_recently_viewed');
+    const raw = localStorage.getItem('aara_recently_viewed');
     if (raw) {
       try { setItems(JSON.parse(raw)); } catch {}
     }
   }, []);
+
+  // Auto-hide after 5 seconds
+  useEffect(() => {
+    if (items.length > 0) {
+      const timer = setTimeout(() => setVisible(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [items]);
 
   const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
 

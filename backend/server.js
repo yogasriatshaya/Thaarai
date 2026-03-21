@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const connectDB = require('./config/db');
 
-dotenv.config();
+dotenv.config({ override: true });
 connectDB();
 
 const app = express();
@@ -19,7 +19,7 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/users', require('./routes/users'));
 
-app.get('/', (req, res) => res.send('Thaarai API Running'));
+app.get('/', (req, res) => res.send('Aara Designer Studio API Running'));
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,403 +1,517 @@
 /**
- * THAARAI — Professional Mock Product Data
+ * AARA THE DESIGNER STUDIO — Product Data
  * ─────────────────────────────────────────────────────────────────────────────
- * Supplementing sparse API results with curated luxury pieces.
+ * Products from the official Aara Designer Studio collection
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const BASE = 'https://images.unsplash.com';
-const Q = 'auto=format,compress&q=85&fm=webp&fit=crop';
+const AARA_BASE = 'https://aaradesigner.com/wp-content/uploads';
 
 export const MOCK_PRODUCTS = [
-  // EVENING & RED CARPET (Couture)
+  // KURTI COLLECTION
+  {
+    _id: 'mock_k1',
+    name: 'Chanderi Dress Suits Readymades',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Chanderi',
+    images: [
+      `${AARA_BASE}/2026/02/exported_9F3B6D10-489F-45EF-B080-B039A4A30F67-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_9F3B6D10-489F-45EF-B080-B039A4A30F67-300x450.jpeg`
+    ],
+    description: 'Elegant Chanderi dress suits in readymade format. Perfect blend of tradition and comfort.',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Blue', 'Pink'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k2', 'mock_k3', 'mock_k4']
+  },
+  {
+    _id: 'mock_k2',
+    name: 'Peacock Green Raw Silk 3 Piece Set',
+    price: 1899,
+    category: 'Kurti',
+    subcategory: 'Raw Silk',
+    images: [
+      `${AARA_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`
+    ],
+    description: 'Luxurious peacock green raw silk 3 piece set with exquisite detailing.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Peacock Green'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k1', 'mock_k5', 'mock_m4']
+  },
+  {
+    _id: 'mock_k3',
+    name: 'Mangalagiri Cotton 3 Piece Set',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2026/01/IMG_9685-300x450.jpeg`,
+      `${AARA_BASE}/2026/01/IMG_9685-300x450.jpeg`
+    ],
+    description: 'Traditional Mangalagiri cotton 3 piece set with beautiful zari border.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Green', 'Cream'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k1', 'mock_k6', 'mock_k4']
+  },
+  {
+    _id: 'mock_k4',
+    name: 'Chennuri Silk Nijam Border 2 Piece',
+    price: 2299,
+    category: 'Kurti',
+    subcategory: 'Silk',
+    images: [
+      `${AARA_BASE}/2026/02/exported_7555D2B7-195D-4DC8-9E27-204E29218C1E-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_7555D2B7-195D-4DC8-9E27-204E29218C1E-300x450.jpeg`
+    ],
+    description: 'Premium Chennuri silk with signature Nijam border detailing.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Maroon', 'Navy Blue'],
+    bestSeller: false,
+    relatedProductIds: ['mock_k3', 'mock_k6', 'mock_a3']
+  },
+  {
+    _id: 'mock_k5',
+    name: 'PONGAL 2K25 Chettinadu Cotton',
+    price: 2499,
+    category: 'Kurti',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2026/01/exported_0616C501-0F2C-4EDA-BB0E-0D51E818DE9F-300x450.jpeg`,
+      `${AARA_BASE}/2026/01/exported_0616C501-0F2C-4EDA-BB0E-0D51E818DE9F-300x450.jpeg`
+    ],
+    description: 'Special Pongal collection - Authentic Chettinadu cotton with traditional design.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Red', 'Yellow'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k1', 'mock_k2', 'mock_m2']
+  },
+  {
+    _id: 'mock_k6',
+    name: 'PONGAL 2K25 Red Raw Silk 3 Piece',
+    price: 1899,
+    category: 'Kurti',
+    subcategory: 'Raw Silk',
+    images: [
+      `${AARA_BASE}/2026/01/exported_2A89B1B1-DCD6-40FB-ADD6-3C3C32A365F4-300x450.jpeg`,
+      `${AARA_BASE}/2026/01/exported_2A89B1B1-DCD6-40FB-ADD6-3C3C32A365F4-300x450.jpeg`
+    ],
+    description: 'Festive red raw silk 3 piece set from Pongal special collection.',
+    sizes: ['S', 'M'],
+    colors: ['Red'],
+    bestSeller: false,
+    relatedProductIds: ['mock_k1', 'mock_k4', 'mock_a4']
+  },
+  {
+    _id: 'mock_k7',
+    name: 'PONGAL 2K25 Raw Silk Pink',
+    price: 899,
+    category: 'Kurti',
+    subcategory: 'Raw Silk',
+    images: [
+      `${AARA_BASE}/2026/01/IMG_0753-300x450.jpeg`,
+      `${AARA_BASE}/2026/01/IMG_0753-300x450.jpeg`
+    ],
+    description: 'Elegant pink raw silk kurti from Pongal collection at affordable price.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Pink'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k1', 'mock_k2', 'mock_k3']
+  },
+  {
+    _id: 'mock_k8',
+    name: 'Pure Handloom Cotton 3 Piece Set',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2026/02/exported_C3402EFE-4C02-4D9F-A878-4681E257873F-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_C3402EFE-4C02-4D9F-A878-4681E257873F-300x450.jpeg`
+    ],
+    description: 'Pure handloom cotton 3 piece set with traditional weaving patterns.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Cream', 'Beige'],
+    bestSeller: false,
+    relatedProductIds: ['mock_k3', 'mock_k5', 'mock_m2']
+  },
+  {
+    _id: 'mock_k9',
+    name: 'Jaipur Cotton 3 Piece Set Black',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2026/02/exported_C77D9D4A-379F-459A-B221-F5891DF41216-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_C77D9D4A-379F-459A-B221-F5891DF41216-300x450.jpeg`
+    ],
+    description: 'Classic Jaipur cotton 3 piece set in elegant black color.',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Black'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k8', 'mock_k3', 'mock_m1']
+  },
+  {
+    _id: 'mock_k10',
+    name: 'Pure Cotton Black Suits',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2026/02/exported_047EE1AA-660D-4926-A842-EE961A00E187-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_047EE1AA-660D-4926-A842-EE961A00E187-300x450.jpeg`
+    ],
+    description: 'Pure cotton suits in classic black - perfect for any occasion.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Black'],
+    bestSeller: false,
+    relatedProductIds: ['mock_k9', 'mock_k8', 'mock_c1']
+  },
+  {
+    _id: 'mock_k11',
+    name: 'Mul Chanderi White Suits',
+    price: 1899,
+    category: 'Kurti',
+    subcategory: 'Chanderi',
+    images: [
+      `${AARA_BASE}/2026/02/exported_3644AD40-0046-4E14-AF64-6E8522616926-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_3644AD40-0046-4E14-AF64-6E8522616926-300x450.jpeg`
+    ],
+    description: 'Elegant Mul Chanderi suits in pristine white color.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['White'],
+    bestSeller: true,
+    relatedProductIds: ['mock_k1', 'mock_k12', 'mock_a2']
+  },
+  {
+    _id: 'mock_k12',
+    name: 'Mul Chanderi Green Suits',
+    price: 1699,
+    category: 'Kurti',
+    subcategory: 'Chanderi',
+    images: [
+      `${AARA_BASE}/2026/02/exported_AB2BDE39-A4F1-42FA-B3F6-A206DC1B0FF3-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/exported_AB2BDE39-A4F1-42FA-B3F6-A206DC1B0FF3-300x450.jpeg`
+    ],
+    description: 'Beautiful Mul Chanderi suits in vibrant green shade.',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Green'],
+    bestSeller: false,
+    relatedProductIds: ['mock_k11', 'mock_k1', 'mock_m3']
+  },
+
+  // MAXI COLLECTION
+  {
+    _id: 'mock_m1',
+    name: 'Golden Maxi Dress',
+    price: 1899,
+    category: 'Maxi',
+    subcategory: 'Party Wear',
+    images: [
+      `${AARA_BASE}/2025/08/IMG_0173-300x450.jpg`,
+      `${AARA_BASE}/2025/08/IMG_0173-300x450.jpg`
+    ],
+    description: 'Stunning golden maxi dress perfect for parties and celebrations.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Golden'],
+    bestSeller: true,
+    relatedProductIds: ['mock_m3', 'mock_m4', 'mock_m6']
+  },
+  {
+    _id: 'mock_m2',
+    name: 'A Line Maxi with Dupatta',
+    price: 1499,
+    category: 'Maxi',
+    subcategory: 'Casual',
+    images: [
+      `${AARA_BASE}/2025/11/IMG_5375-300x450.jpeg`,
+      `${AARA_BASE}/2025/11/IMG_5375-300x450.jpeg`
+    ],
+    description: 'Elegant A-line maxi dress with matching dupatta.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Blue', 'Green'],
+    bestSeller: true,
+    relatedProductIds: ['mock_m5', 'mock_m4', 'mock_k1']
+  },
+  {
+    _id: 'mock_m3',
+    name: 'White Flux Cotton Maxi',
+    price: 1299,
+    originalPrice: 1499,
+    category: 'Maxi',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2025/07/AD004-White-flux-cotton-MAXI-5-300x450.webp`,
+      `${AARA_BASE}/2025/07/AD004-White-flux-cotton-MAXI-1.webp`
+    ],
+    description: 'Comfortable white flux cotton maxi for summer days.',
+    sizes: ['S', 'M'],
+    colors: ['White'],
+    bestSeller: false,
+    label: 'SALE',
+    relatedProductIds: ['mock_m1', 'mock_m4', 'mock_a5']
+  },
+  {
+    _id: 'mock_m4',
+    name: 'Ikkat Blue Maxi',
+    price: 1299,
+    category: 'Maxi',
+    subcategory: 'Printed',
+    images: [
+      `${AARA_BASE}/2025/08/IKKAT-BLUE-img-3-300x450.webp`,
+      `${AARA_BASE}/2025/08/IKKAT-BLUE-img-3-300x450.webp`
+    ],
+    description: 'Traditional Ikkat print maxi in beautiful blue color.',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Blue'],
+    bestSeller: true,
+    relatedProductIds: ['mock_m1', 'mock_m2', 'mock_c6']
+  },
+  {
+    _id: 'mock_m5',
+    name: 'Black Floral Maxi',
+    price: 1599,
+    category: 'Maxi',
+    subcategory: 'Printed',
+    images: [
+      `${AARA_BASE}/2025/07/AD003-Black-Floral-MAXI-3.webp`,
+      `${AARA_BASE}/2025/07/AD003-Black-Floral-MAXI-3.webp`
+    ],
+    description: 'Elegant black maxi with beautiful floral prints.',
+    sizes: ['S', 'M'],
+    colors: ['Black'],
+    bestSeller: false,
+    relatedProductIds: ['mock_m1', 'mock_m2', 'mock_a6']
+  },
+  {
+    _id: 'mock_m6',
+    name: 'Brown Cotton Maxi',
+    price: 1499,
+    category: 'Maxi',
+    subcategory: 'Cotton',
+    images: [
+      `${AARA_BASE}/2025/07/AD002-Brown-cotton-MAXI-3.webp`,
+      `${AARA_BASE}/2025/07/AD002-Brown-cotton-MAXI-3.webp`
+    ],
+    description: 'Comfortable brown cotton maxi for casual outings.',
+    sizes: ['M', 'L'],
+    colors: ['Brown'],
+    bestSeller: false,
+    relatedProductIds: ['mock_m4', 'mock_m1', 'mock_k1']
+  },
+
+  // CO-ORDS COLLECTION
   {
     _id: 'mock_c1',
-    name: 'Midnight Velvet Gown',
-    price: 14850,
-    category: 'Couture',
-    subcategory: 'Evening Wear',
+    name: 'CO-ORD SET (HA)',
+    price: 1299,
+    category: 'Co-ords',
+    subcategory: 'Cotton',
     images: [
-      '/generated/couture_gown_1_1773912946615.png',
-      '/generated/couture_gown_1_1773912946615.png'
+      `${AARA_BASE}/2024/06/aara-designer-studio-product-img6-300x450.webp`,
+      `${AARA_BASE}/2024/06/aara-designer-studio-product-img6-300x450.webp`
     ],
-    description: 'A masterwork of midnight velvet, hand-tailored for the most prestigious galas. Featuring a floor-sweeping silhouette and delicate boning.',
+    description: 'Stylish co-ord set with matching top and bottom.',
     sizes: ['S', 'M', 'L'],
-    colors: ['Midnight Blue', 'Signature Black'],
+    colors: ['Multi'],
     bestSeller: true,
-    relatedProductIds: ['mock_c2', 'mock_c3', 'mock_c4']
+    relatedProductIds: ['mock_c3', 'mock_c6', 'mock_k6']
   },
   {
     _id: 'mock_c2',
-    name: 'Atelier Silk Ensemble',
-    price: 13200,
-    category: 'Couture',
-    subcategory: 'Luxury Sets',
+    name: 'Onam Dress Kurti with Pant',
+    price: 1199,
+    category: 'Co-ords',
+    subcategory: 'Festive',
     images: [
-      `${BASE}/photo-1549433193-424a13824344?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1539106604051-bd128229b13c?w=800&h=1000&${Q}`
+      `${AARA_BASE}/2025/08/Co-Ords-Set-all-sizes-img-3-300x450.webp`,
+      `${AARA_BASE}/2025/08/Co-Ords-Set-all-sizes-img-3-300x450.webp`
     ],
-    description: 'Fluid silk movements captured in a two-piece ensemble that defines modern grace. Unlined for a natural, liquid-like drape.',
-    sizes: ['M', 'L'],
-    colors: ['Oatmeal', 'Pearl'],
-    bestSeller: false,
-    relatedProductIds: ['mock_c1', 'mock_c5', 'mock_he4']
+    description: 'Special Onam collection co-ord set with kurti and pant.',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['White', 'Gold'],
+    bestSeller: true,
+    relatedProductIds: ['mock_c4', 'mock_c5', 'mock_k2']
   },
   {
     _id: 'mock_c3',
-    name: 'Celestial Tulle Dress',
-    price: 16400,
-    category: 'Couture',
-    subcategory: 'Evening Wear',
+    name: 'Summer Co-Ords Coffee Brown',
+    price: 1199,
+    category: 'Co-ords',
+    subcategory: 'Summer',
     images: [
-      '/generated/couture_gown_2_1773912978718.png',
-      '/generated/couture_gown_2_1773912978718.png'
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-COFFE-BROWN-img-2-300x450.webp`,
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-COFFE-BROWN-img-2-300x450.webp`
     ],
-    description: 'Ethereal layers of silk tulle embroidered with delicate glass beads, evoking a starlit night sky.',
-    sizes: ['S', 'M'],
-    colors: ['Pale Silver', 'Dusty Rose'],
-    bestSeller: true,
-    relatedProductIds: ['mock_c1', 'mock_c6', 'mock_c4']
+    description: 'Comfortable summer co-ords in rich coffee brown color.',
+    sizes: ['M', 'L', 'XL'],
+    colors: ['Coffee Brown'],
+    bestSeller: false,
+    relatedProductIds: ['mock_c1', 'mock_c6', 'mock_m6']
   },
   {
     _id: 'mock_c4',
-    name: 'Structured Satin Gown',
-    price: 12100,
-    category: 'Couture',
-    subcategory: 'Evening Wear',
+    name: 'Summer Co-Ords Red',
+    price: 1199,
+    category: 'Co-ords',
+    subcategory: 'Summer',
     images: [
-      `${BASE}/photo-1566174053879-31528523f8ae?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1568252542512-9fe8fe9c87bb?w=800&h=1000&${Q}`
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-RED-img-3-300x450.webp`,
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-RED-img-3-300x450.webp`
     ],
-    description: 'Architectural precision meets high-shine satin. A landmark piece for modern silhouettes.',
+    description: 'Vibrant red summer co-ords for a bold look.',
+    sizes: ['S', 'M'],
+    colors: ['Red'],
+    bestSeller: true,
+    relatedProductIds: ['mock_c2', 'mock_c5', 'mock_a2']
+  },
+  {
+    _id: 'mock_c5',
+    name: 'Summer Co-Ords Black',
+    price: 1199,
+    category: 'Co-ords',
+    subcategory: 'Summer',
+    images: [
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-BLACK-img-1-300x450.webp`,
+      `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-BLACK-img-1-300x450.webp`
+    ],
+    description: 'Classic black summer co-ords for everyday elegance.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Black'],
+    bestSeller: true,
+    relatedProductIds: ['mock_c2', 'mock_c4', 'mock_a2']
+  },
+  {
+    _id: 'mock_c6',
+    name: 'Green Co-Ords Set',
+    price: 1699,
+    category: 'Co-ords',
+    subcategory: 'Casual',
+    images: [
+      `${AARA_BASE}/2025/08/green-co-ords-img-2-300x450.webp`,
+      `${AARA_BASE}/2025/08/green-co-ords-img-2-300x450.webp`
+    ],
+    description: 'Fresh green co-ords set perfect for casual occasions.',
     sizes: ['M', 'L', 'XL'],
-    colors: ['Emerald', 'Ruby'],
+    colors: ['Green'],
     bestSeller: false,
-    relatedProductIds: ['mock_c3', 'mock_c6', 'mock_he3']
+    relatedProductIds: ['mock_c1', 'mock_c3', 'mock_k6']
   },
   {
-     _id: 'mock_c5',
-     name: 'Liquid Gold Slip',
-     price: 11450,
-     category: 'Couture',
-     subcategory: 'Evening Wear',
-     images: [
-       `${BASE}/photo-1496747611176-843222e1e57c?w=800&h=1000&${Q}`,
-       `${BASE}/photo-1502429892517-9969c608447f?w=800&h=1000&${Q}`
-     ],
-     description: 'Bias-cut metallic silk that clings and flows with every movement. The ultimate statement in luxury.',
-     sizes: ['S', 'M', 'L'],
-     colors: ['Gold', 'Bronze'],
-     bestSeller: true,
-     relatedProductIds: ['mock_c1', 'mock_s6', 'mock_s2']
-  },
-  {
-     _id: 'mock_c6',
-     name: 'Opal Organza Column',
-     price: 13800,
-     category: 'Couture',
-     subcategory: 'Red Carpet',
-     images: [
-       `${BASE}/photo-1533089860892-a7c6f0a88666?w=800&h=1000&${Q}`,
-       `${BASE}/photo-1533089456534-192532454558?w=800&h=1000&${Q}`
-     ],
-     description: 'Luminous organza with a structured bodice and a sleek, modern column skirt.',
-     sizes: ['S', 'M'],
-     colors: ['Opal', 'Champagne'],
-     bestSeller: false,
-     relatedProductIds: ['mock_c1', 'mock_c4', 'mock_he4']
+    _id: 'mock_c7',
+    name: 'Chettinadu 2-in-1 Ethnic Wear',
+    price: 2999,
+    category: 'Co-ords',
+    subcategory: 'Premium',
+    images: [
+      `${AARA_BASE}/2026/03/collage_export_DEE40455-B925-4FC1-A549-08BA059913DC-300x450.jpeg`,
+      `${AARA_BASE}/2026/03/collage_export_DEE40455-B925-4FC1-A549-08BA059913DC-300x450.jpeg`
+    ],
+    description: 'Premium Chettinadu 2-in-1 ethnic wear - versatile and elegant.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Multi'],
+    bestSeller: true,
+    label: 'NEW',
+    relatedProductIds: ['mock_c1', 'mock_c2', 'mock_k5']
   },
 
-  // HANDBAGS (Restored)
+  // ANARKALI COLLECTION
   {
-    _id: 'mock_h1',
-    name: 'Signature Box Bag',
-    price: 34000,
-    category: 'Handbags',
-    subcategory: 'Clutches',
+    _id: 'mock_a1',
+    name: 'PONGAL 2K25 Narayanpet Anarkali',
+    price: 2199,
+    category: 'Anarkali',
+    subcategory: 'Festive',
     images: [
-      '/generated/handbag_leather_1_1773912993183.png',
-      '/generated/handbag_leather_1_1773912993183.png'
+      `${AARA_BASE}/2026/01/IMG_0761-300x450.jpeg`,
+      `${AARA_BASE}/2026/01/IMG_0761-300x450.jpeg`
     ],
-    description: 'Crafted from full-grain calfskin with brushed gold hardware. A architectural masterpiece that defines evening elegance.',
-    sizes: ['OS'],
-    colors: ['Tan', 'Bordeaux'],
+    description: 'Grand Narayanpet Anarkali from Pongal special collection.',
+    sizes: ['S', 'M'],
+    colors: ['Multi'],
     bestSeller: true,
-    relatedProductIds: ['mock_h3', 'mock_h4', 'mock_h6']
+    relatedProductIds: ['mock_a2', 'mock_a3', 'mock_k5']
   },
   {
-    _id: 'mock_h2',
-    name: 'Lambskin Quilted Tote',
-    price: 42000,
-    category: 'Handbags',
-    subcategory: 'Day Bags',
+    _id: 'mock_a2',
+    name: 'PONGAL 2K25 Mangalagiri Anarkali',
+    price: 1699,
+    category: 'Anarkali',
+    subcategory: 'Cotton',
     images: [
-      '/generated/handbag_shoulder_1_1773913011954.png',
-      '/generated/handbag_shoulder_1_1773913011954.png'
+      `${AARA_BASE}/2026/02/IMG_0653-300x450.jpeg`,
+      `${AARA_BASE}/2026/02/IMG_0653-300x450.jpeg`
     ],
-    description: 'The ultimate daily companion, spacious yet impeccably elegant. Featuring the signature Thaarai quilting.',
-    sizes: ['OS'],
-    colors: ['Raven Black', 'Deep Forest'],
+    description: 'Beautiful Mangalagiri 3 piece Anarkali from Pongal collection.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Cream', 'Green'],
     bestSeller: true,
-    relatedProductIds: ['mock_h5', 'mock_h4', 'mock_he1']
+    relatedProductIds: ['mock_a1', 'mock_a4', 'mock_k3']
   },
   {
-    _id: 'mock_h3',
-    name: 'Miniature Jewel Pochette',
-    price: 18500,
-    category: 'Handbags',
-    subcategory: 'Clutches',
+    _id: 'mock_a3',
+    name: 'Raw Silk Kurti Anarkali Style',
+    price: 1599,
+    category: 'Anarkali',
+    subcategory: 'Raw Silk',
     images: [
-      `${BASE}/photo-1566150905458-1bf1fd111c36?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1566150905458-1bf1fd111c36?w=800&h=1000&${Q}`
+      `${AARA_BASE}/2025/07/AD004-Raw-Silk-KURTI-img-1.webp`,
+      `${AARA_BASE}/2025/07/Raw-Silk-KURTI-1.webp`
     ],
-    description: 'A compact masterpiece designed to carry only the essentials for the night. Adorned with hand-placed glass crystals.',
-    sizes: ['OS'],
-    colors: ['Emerald', 'Ruby Red'],
+    description: 'Elegant raw silk kurti in Anarkali style.',
+    sizes: ['S', 'M'],
+    colors: ['Pink', 'Purple'],
     bestSeller: false,
-    relatedProductIds: ['mock_h1', 'mock_h4', 'mock_h5']
+    relatedProductIds: ['mock_a1', 'mock_a4', 'mock_m6']
   },
   {
-    _id: 'mock_h4',
-    name: 'Exotic Skin Satchel',
-    price: 89000,
-    category: 'Handbags',
-    subcategory: 'Luxury Edition',
+    _id: 'mock_a4',
+    name: 'Vichitra Silk Mirror Work Anarkali',
+    price: 1499,
+    category: 'Anarkali',
+    subcategory: 'Silk',
     images: [
-      `${BASE}/photo-1590739225287-bd26514ca929?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1548036328-c9fa89d128fa?w=800&h=1000&${Q}`
+      `${AARA_BASE}/2025/09/IMG_1867-1-300x450.jpg`,
+      `${AARA_BASE}/2025/09/IMG_1867-1-300x450.jpg`
     ],
-    description: 'Responsibly sourced exotic leather paired with heirloom-quality stitching. A true collector\'s piece.',
-    sizes: ['OS'],
-    colors: ['Cognac', 'Steel'],
+    description: 'Gorgeous Vichitra silk Anarkali with mirror work detailing.',
+    sizes: ['S', 'M', 'L'],
+    colors: ['Red'],
+    bestSeller: false,
+    relatedProductIds: ['mock_a2', 'mock_a5', 'mock_c4']
+  },
+  {
+    _id: 'mock_a5',
+    name: 'Classic Anarkali Set',
+    price: 1799,
+    category: 'Anarkali',
+    subcategory: 'Traditional',
+    images: [
+      `${AARA_BASE}/2025/09/IMG_1225.jpeg`,
+      `${AARA_BASE}/2025/09/IMG_1225.jpeg`
+    ],
+    description: 'Classic traditional Anarkali set for special occasions.',
+    sizes: ['S', 'M'],
+    colors: ['Yellow', 'Orange'],
     bestSeller: true,
-    relatedProductIds: ['mock_h1', 'mock_h2', 'mock_h6']
+    relatedProductIds: ['mock_a4', 'mock_a1', 'mock_k1']
   },
   {
-    _id: 'mock_h5',
-    name: 'Woven Leather Bucket',
-    price: 24000,
-    category: 'Handbags',
-    subcategory: 'Summer Series',
+    _id: 'mock_a6',
+    name: 'Silk Cotton Green Anarkali',
+    price: 1699,
+    category: 'Anarkali',
+    subcategory: 'Silk Cotton',
     images: [
-      `${BASE}/photo-1594223274512-ad4803739b7c?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1548861216-2092c7102008?w=800&h=1000&${Q}`
+      `${AARA_BASE}/2025/07/Silk-Cotton-with-Duppata-5-300x450.webp`,
+      `${AARA_BASE}/2025/07/Silk-Cotton-with-Duppata-5-300x450.webp`
     ],
-    description: 'Hand-woven strips of nappa leather create a flexible, textured masterpiece. Perfect for resort getaways.',
-    sizes: ['OS'],
-    colors: ['Cream', 'Tan'],
-    bestSeller: false,
-    relatedProductIds: ['mock_h1', 'mock_h2', 'mock_s6']
-  },
-  {
-    _id: 'mock_h6',
-    name: 'Structured Top Handle',
-    price: 52000,
-    category: 'Handbags',
-    subcategory: 'Boardroom',
-    images: [
-      `${BASE}/photo-1564419323145-35c8402c7db4?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1564419323145-35c8402c7db4?w=800&h=1000&${Q}`
-    ],
-    description: 'A professional statement piece with hidden magnetic closures and a refined structured frame.',
-    sizes: ['OS'],
-    colors: ['Mahogany', 'Night Shade'],
-    bestSeller: false,
-    relatedProductIds: ['mock_h4', 'mock_h1', 'mock_he1']
-  },
-
-  // CLASSIC & WORKWEAR (Heritage)
-  {
-    _id: 'mock_he1',
-    name: 'Wool Shift Dress',
-    price: 8600,
-    category: 'Heritage',
-    subcategory: 'Workwear',
-    images: [
-      '/generated/couture_coat_1_1773912963302.png',
-      '/generated/couture_coat_1_1773912963302.png'
-    ],
-    description: 'Tailored from the finest merino wool with a minimalist, clean-lined silhouette for the office.',
+    description: 'Elegant silk cotton Anarkali in green with dupatta.',
     sizes: ['M', 'L', 'XL'],
-    colors: ['Grey Marl', 'Navy'],
-    bestSeller: true,
-    relatedProductIds: ['mock_he3', 'mock_he6', 'mock_h6']
-  },
-  {
-    _id: 'mock_he2',
-    name: 'Classic Tweed Midi',
-    price: 7200,
-    category: 'Heritage',
-    subcategory: 'Classics',
-    images: [
-      `${BASE}/photo-1539533018447-63fcce2678e3?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1539532918447-63fcce2678e3?w=800&h=1000&${Q}`
-    ],
-    description: 'Heirloom-quality tweed weave with fringed edges and antique gold buttons.',
-    sizes: ['S', 'M', 'L'],
-    colors: ['Black/White', 'Camel'],
-    bestSeller: true,
-    relatedProductIds: ['mock_he4', 'mock_he5', 'mock_c2']
-  },
-  {
-    _id: 'mock_he3',
-    name: 'Tailored Midi Sheath',
-    price: 6900,
-    category: 'Heritage',
-    subcategory: 'Workwear',
-    images: [
-      `${BASE}/photo-1549060279-7e168fcee0c2?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1549060290-7e168fcee0c2?w=800&h=1000&${Q}`
-    ],
-    description: 'Polished tailoring with a flattering cinched waist and elegant split neckline.',
-    sizes: ['38', '40', '42'],
-    colors: ['Deep Forest', 'Noir'],
+    colors: ['Green'],
     bestSeller: false,
-    relatedProductIds: ['mock_he1', 'mock_he6', 'mock_h6']
-  },
-  {
-    _id: 'mock_he4',
-    name: 'Heritage Wrap Gown',
-    price: 11950,
-    category: 'Heritage',
-    subcategory: 'Classics',
-    images: [
-      `${BASE}/photo-1551488831-00ddcb6c6bd3?w=800&h=1000&${Q}`,
-      `${BASE}/photo-155148841-00ddcb6c6bd3?w=800&h=1000&${Q}`
-    ],
-    description: 'A timeless silhouette that celebrates the female form in premium heavy silk.',
-    sizes: ['M', 'L', 'XL'],
-    colors: ['Sand', 'Olive'],
-    bestSeller: false,
-    relatedProductIds: ['mock_he2', 'mock_he5', 'mock_c2']
-  },
-  {
-    _id: 'mock_he5',
-    name: 'Pleated A-Line Midi',
-    price: 6650,
-    category: 'Heritage',
-    subcategory: 'Classics',
-    images: [
-      `${BASE}/photo-1581044777550-4cfa60707c03?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1581044799550-4cfa60707c03?w=800&h=1000&${Q}`
-    ],
-    description: 'Sharp knife pleats that maintain their shape, paired with a fitted bodice.',
-    sizes: ['S', 'M', 'L'],
-    colors: ['Crimson', 'Grey'],
-    bestSeller: true,
-    relatedProductIds: ['mock_he2', 'mock_he4', 'mock_h2']
-  },
-  {
-    _id: 'mock_he6',
-    name: 'Belted Shirtdress',
-    price: 5850,
-    category: 'Heritage',
-    subcategory: 'Workwear',
-    images: [
-      `${BASE}/photo-1596462502278-27bfaf41011f?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1596462512278-27bfaf41011f?w=800&h=1000&${Q}`
-    ],
-    description: 'Supremely soft pima cotton with a structured belt for a professional finish.',
-    sizes: ['30', '32', '34', '36'],
-    colors: ['Navy', 'Khaki'],
-    bestSeller: false,
-    relatedProductIds: ['mock_he1', 'mock_he3', 'mock_h6']
-  },
-
-  // PARTY & COCKTAIL (Silk Scarves -> New Mapping)
-  {
-    _id: 'mock_s1',
-    name: 'Sequin Mini Dress',
-    price: 8550,
-    category: 'Silk Scarves',
-    subcategory: 'Party Wear',
-    images: [
-      `${BASE}/photo-1469334031218-e382a71b716b?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1469334031258-e382a71b716b?w=800&h=1000&${Q}`
-    ],
-    description: 'Hand-sewn micro sequins that catch the light from every angle. Guaranteed to turn heads.',
-    sizes: ['S', 'M'],
-    colors: ['Multi Platinum', 'Disco Noir'],
-    bestSeller: true,
-    relatedProductIds: ['mock_s2', 'mock_s3', 'mock_c5']
-  },
-  {
-    _id: 'mock_s2',
-    name: 'Asymmetric Satin Mini',
-    price: 7280,
-    category: 'Silk Scarves',
-    subcategory: 'Cocktail',
-    images: [
-      `${BASE}/photo-1551232864-3f0890e580d9?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1551232874-3f0890e580d9?w=800&h=1000&${Q}`
-    ],
-    description: 'Contemporary draping meets high-shine satin in this statement-making mini dress.',
-    sizes: ['S', 'M'],
-    colors: ['Monochrome', 'Azure'],
-    bestSeller: false,
-    relatedProductIds: ['mock_s1', 'mock_s4', 'mock_c5']
-  },
-  {
-    _id: 'mock_s3',
-    name: 'Ruffled Tulle Party',
-    price: 11200,
-    category: 'Silk Scarves',
-    subcategory: 'Party Wear',
-    images: [
-      `${BASE}/photo-1515886657613-9f3515b0c78f?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1515886667613-9f3515b0c78f?w=800&h=1000&${Q}`
-    ],
-    description: 'Playful ruffles and sheer panels create a light and lively party silhouette.',
-    sizes: ['S', 'M'],
-    colors: ['Sunset Pink', 'Cloud White'],
-    bestSeller: true,
-    relatedProductIds: ['mock_s1', 'mock_s4', 'mock_s6']
-  },
-  {
-    _id: 'mock_s4',
-    name: 'Lace Overlay Midi',
-    price: 9580,
-    category: 'Silk Scarves',
-    subcategory: 'Cocktail',
-    images: [
-      `${BASE}/photo-1620799140408-edc6dcb6d633?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1620799130408-edc6dcb6d633?w=800&h=1000&${Q}`
-    ],
-    description: 'Intricate French lace meticulously layered over a nude silk lining.',
-    sizes: ['S', 'M', 'L'],
-    colors: ['Noir', 'Champagne'],
-    bestSeller: false,
-    relatedProductIds: ['mock_s2', 'mock_s5', 'mock_c4']
-  },
-  {
-    _id: 'mock_s5',
-    name: 'Velvet Devoré Wrap',
-    price: 10490,
-    category: 'Silk Scarves',
-    subcategory: 'Cocktail',
-    images: [
-      `${BASE}/photo-1582142306909-195724d33ffc?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1582142316909-195724d33ffc?w=800&h=1000&${Q}`
-    ],
-    description: 'An archive paisley pattern burned into rich velvet for a textured, vintage feel.',
-    sizes: ['S', 'M', 'L'],
-    colors: ['Ochre', 'Crimson'],
-    bestSeller: false,
-    relatedProductIds: ['mock_s4', 'mock_s1', 'mock_c1']
-  },
-  {
-    _id: 'mock_s6',
-    name: 'Reversible Silk Stole Dress',
-    price: 15800,
-    category: 'Silk Scarves',
-    subcategory: 'Party Wear',
-    images: [
-      `${BASE}/photo-1539106604051-bd128229b13c?w=800&h=1000&${Q}`,
-      `${BASE}/photo-1539106614051-bd128229b13c?w=800&h=1000&${Q}`
-    ],
-    description: 'Two layers of heavy silk allow for multiple styling options and reversible colors.',
-    sizes: ['S'],
-    colors: ['Gold/Black', 'Silver/Grey'],
-    bestSeller: true,
-    relatedProductIds: ['mock_s1', 'mock_s3', 'mock_c1']
+    relatedProductIds: ['mock_a1', 'mock_a3', 'mock_k12']
   }
 ];

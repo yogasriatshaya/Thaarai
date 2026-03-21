@@ -6,11 +6,8 @@ const { authMiddleware } = require('../middleware/auth');
 // Get cart
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate({
-      path: 'cartData',
-      model: 'Product'
-    });
-    res.json({ success: true, cartData: user.cartData });
+    const user = await User.findById(req.user.id);
+    res.json({ success: true, cartData: user.cartData || {} });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

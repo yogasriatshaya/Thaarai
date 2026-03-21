@@ -35,7 +35,7 @@ export default function Dashboard() {
     { label: 'Total Products', value: stats.products, icon: '◈', color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Orders', value: stats.orders, icon: '◎', color: 'text-gold-600', bg: 'bg-gold-50' },
     { label: 'Customers', value: stats.customers, icon: '◉', color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: '◐', color: 'text-purple-600', bg: 'bg-purple-50' }
+    { label: 'Revenue', value: `₹${stats.revenue.toLocaleString()}`, icon: '◐', color: 'text-purple-600', bg: 'bg-purple-50' }
   ];
 
   const statusColors = { processing: 'text-yellow-700 bg-yellow-50', shipped: 'text-blue-700 bg-blue-50', delivered: 'text-green-700 bg-green-50', cancelled: 'text-red-700 bg-red-50' };
@@ -74,7 +74,7 @@ export default function Dashboard() {
                 <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="py-3 pr-4 text-xs font-sans text-charcoal">#{order._id.slice(-8).toUpperCase()}</td>
                   <td className="py-3 pr-4 text-xs font-sans text-gray-600">{order.userId?.name || 'Guest'}</td>
-                  <td className="py-3 pr-4 text-xs font-sans font-medium">${order.totalAmount?.toLocaleString()}</td>
+                  <td className="py-3 pr-4 text-xs font-sans font-medium">₹{order.totalAmount?.toLocaleString()}</td>
                   <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
                   <td className="py-3 pr-4">
                     <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>

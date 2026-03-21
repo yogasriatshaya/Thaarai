@@ -1,84 +1,81 @@
 /**
- * THAARAI — Premium Image Library
+ * AARA THE DESIGNER STUDIO — Premium Image Library
  * ─────────────────────────────────────────────────────────────────────────────
- * All image URLs are sourced from Unsplash with:
- *  - High resolution (w=1920 for hero, w=800 for sections, w=600 for cards)
- *  - WebP auto-conversion via `&fm=webp` and `&auto=format,compress`
- *  - Sharp cropping via `&fit=crop`
- *  - Quality optimized via `&q=85`
+ * All image URLs are sourced from the official Aara Designer Studio website
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const BASE = 'https://images.unsplash.com';
-const Q    = 'auto=format,compress&q=85&fm=webp&fit=crop';
+const AARA_BASE = 'https://aaradesigner.com/wp-content/uploads';
 
-// ── Hero ──────────────────────────────────────────────────────────────────────
-export const HERO_BG = `${BASE}/photo-1469334031218-e382a71b716b?w=1920&h=1080&${Q}`;
-export const HERO_2  = `${BASE}/photo-1490481651871-ab68de25d43d?w=1920&h=1080&${Q}`;
-export const HERO_3  = `${BASE}/photo-1539109132271-383bc5374ce0?w=1920&h=1080&${Q}`;
+// ── Hero / Banner ──────────────────────────────────────────────────────────────
+export const HERO_BG = '/aara/hero-model.jpg';  // Local hero image
+export const HERO_BG_REMOTE = `${AARA_BASE}/2025/10/backgrop.png`;
+export const HERO_2  = `${AARA_BASE}/2025/08/IMG_0173-300x450.jpg`;
+export const HERO_3  = `${AARA_BASE}/2025/07/AD004-White-flux-cotton-MAXI-1.webp`;
 
 // ── Category Feature Panels ───────────────────────────────────────────────────
-export const CAT_COUTURE  = `${BASE}/photo-1490481651871-ab68de25d43d?w=900&h=1200&${Q}`;
-export const CAT_HANDBAGS = `${BASE}/photo-1548036328-c9fa89d128fa?w=900&h=1200&${Q}`;
-export const CAT_HERITAGE = `${BASE}/photo-1516762689617-e1cffcef479d?w=900&h=1200&${Q}`;
-export const BANNER_SILK  = `${BASE}/photo-1469334031218-e382a71b716b?w=1600&h=500&${Q}`;
+export const CAT_COUTURE  = `${AARA_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`; // Kurti
+export const CAT_HANDBAGS = `${AARA_BASE}/2025/08/IMG_0173-300x450.jpg`; // Maxi - Golden Maxi
+export const CAT_HERITAGE = `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-RED-img-3-300x450.webp`; // Co-ords
+export const CAT_ANARKALI = `${AARA_BASE}/2025/09/IMG_1225.jpeg`; // Anarkali
+export const BANNER_SILK  = `${AARA_BASE}/2025/10/backgrop.png`;
 
 // ── Brand Story / Atelier ─────────────────────────────────────────────────────
-export const BRAND_STORY = `${BASE}/photo-1441986300917-64674bd600d8?w=900&h=1100&${Q}`;
+export const BRAND_STORY = `${AARA_BASE}/2025/07/aara-designer-studio-main-logo.jpg`;
 
 // ── Auth / Login / Register ───────────────────────────────────────────────────
-export const AUTH_LOGIN    = `${BASE}/photo-1469334031218-e382a71b716b?w=900&h=1200&${Q}`;
-export const AUTH_REGISTER = `${BASE}/photo-1558618666-fcd25c85cd64?w=900&h=1200&${Q}`;
+export const AUTH_LOGIN    = `${AARA_BASE}/2025/07/AD004-Raw-Silk-KURTI-img-1.webp`;
+export const AUTH_REGISTER = `${AARA_BASE}/2025/07/Raw-Silk-KURTI-1.webp`;
 
 // ── Newsletter Section ────────────────────────────────────────────────────────
-export const NEWSLETTER_BG = `${BASE}/photo-1558769132-cb1aea458c5e?w=1920&h=600&${Q}`;
+export const NEWSLETTER_BG = `${AARA_BASE}/2025/10/backgrop.png`;
 
 // ── Fallback Product Image ────────────────────────────────────────────────────
-export const PRODUCT_FALLBACK = `${BASE}/photo-1558618666-fcd25c85cd64?w=600&h=750&${Q}`;
-export const CART_FALLBACK    = `${BASE}/photo-1558618666-fcd25c85cd64?w=300&h=400&${Q}`;
+export const PRODUCT_FALLBACK = `${AARA_BASE}/2025/07/AD003-Black-Floral-MAXI-3.webp`;
+export const CART_FALLBACK    = `${AARA_BASE}/2025/07/AD003-Black-Floral-MAXI-3.webp`;
 
 // ── Demo / Placeholder Products ───────────────────────────────────────────────
 export const DEMO_PRODUCTS = [
   {
-    name: 'The Atelier Coat',
-    category: 'Couture',
-    price: 1850,
+    name: 'Chanderi Dress Suits',
+    category: 'Kurti',
+    price: 1699,
     label: 'NEW',
-    image: `${BASE}/photo-1539533018447-63fcce2678e3?w=600&h=750&${Q}`,
+    image: `${AARA_BASE}/2026/02/exported_9F3B6D10-489F-45EF-B080-B039A4A30F67-300x450.jpeg`,
   },
   {
-    name: 'Signature Tote',
-    category: 'Handbags',
-    price: 3200,
-    label: 'ICONIC',
-    image: `${BASE}/photo-1548036328-c9fa89d128fa?w=600&h=750&${Q}`,
+    name: 'Golden Maxi Dress',
+    category: 'Maxi',
+    price: 1899,
+    label: 'BESTSELLER',
+    image: `${AARA_BASE}/2025/08/IMG_0173-300x450.jpg`,
   },
   {
-    name: 'Silk Radiance Wrap',
-    category: 'Silk Scarves',
-    price: 450,
+    name: 'Summer Co-Ords Red',
+    category: 'Co-ords',
+    price: 1199,
     label: '',
-    image: `${BASE}/photo-1551232864-3f0890e580d9?w=600&h=750&${Q}`,
+    image: `${AARA_BASE}/2025/08/SUMMER-CO-ORDS-RED-img-3-300x450.webp`,
   },
   {
-    name: 'Heritage Blazer',
-    category: 'Heritage',
-    price: 2400,
-    label: 'LIMITED EDITION',
-    image: `${BASE}/photo-1487222477894-8943e31ef7b2?w=600&h=750&${Q}`,
+    name: 'Narayanpet Anarkali',
+    category: 'Anarkali',
+    price: 2199,
+    label: 'PONGAL SPECIAL',
+    image: `${AARA_BASE}/2026/01/IMG_0761-300x450.jpeg`,
   },
   {
-    name: 'Velvet Evening Gown',
-    category: 'Couture',
-    price: 5800,
+    name: 'Peacock Green Raw Silk',
+    category: 'Kurti',
+    price: 1899,
     label: 'EXCLUSIVE',
-    image: `${BASE}/photo-1496747611176-843222e1e57c?w=600&h=750&${Q}`,
+    image: `${AARA_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`,
   },
   {
-    name: 'Lambskin Mini Bag',
-    category: 'Handbags',
-    price: 1950,
+    name: 'Ikkat Blue Maxi',
+    category: 'Maxi',
+    price: 1299,
     label: '',
-    image: `${BASE}/photo-1584370848010-d7fe6bc767ec?w=600&h=750&${Q}`,
+    image: `${AARA_BASE}/2025/08/IKKAT-BLUE-img-3-300x450.webp`,
   },
 ];

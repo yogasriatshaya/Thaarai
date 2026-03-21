@@ -27,7 +27,7 @@ export default function Checkout() {
             const mock = MOCK_PRODUCTS.find(p => p._id === item.productId);
             if (mock) items.push({ ...mock, ...item });
           } else if (item.productId.startsWith('local_')) {
-            const localData = localStorage.getItem('thaarai_local_products');
+            const localData = localStorage.getItem('aara_local_products');
             const locals = localData ? JSON.parse(localData) : [];
             const local = locals.find(p => p._id === item.productId);
             if (local) items.push({ ...local, ...item });
@@ -90,7 +90,7 @@ export default function Checkout() {
         const { razorpayOrderId, orderId, key } = res.data;
         const options = {
           key, amount: Math.round(total * 100), currency: 'INR',
-          name: 'Thaarai Luxury', description: 'Luxury Fashion Purchase',
+          name: 'Aara', description: 'Luxury Fashion Purchase',
           order_id: razorpayOrderId,
           handler: async (response) => {
             const verify = await API.post('/orders/razorpay/verify', {

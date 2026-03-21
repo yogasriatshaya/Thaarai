@@ -88,12 +88,15 @@
    ============================================ */
 @layer components {
 
-  /* ── PRIMARY BUTTON (Modern Blue) ── */
+  /* ── PRIMARY BUTTON (Aara Purple) ── */
   .btn-primary {
-    @apply inline-flex items-center px-8 py-3 bg-blue-600 text-white text-[12px] font-bold uppercase tracking-[0.1em] transition-all duration-300 rounded-xl shadow-lg;
+    @apply inline-flex items-center px-8 py-3 text-white text-[12px] font-bold uppercase tracking-[0.1em] transition-all duration-300 rounded-xl shadow-lg;
+    background-color: #aba0e3;
   }
   .btn-primary:hover {
-    @apply bg-blue-700 -translate-y-0.5 shadow-blue-600/20 scale-105;
+    @apply -translate-y-0.5 scale-105;
+    background-color: #9589d4;
+    box-shadow: 0 10px 25px rgba(171, 160, 227, 0.3);
   }
   .btn-primary:active { @apply translate-y-0 scale-95; }
 
@@ -106,7 +109,7 @@
     padding: 0.75rem 2rem;
     background-color: transparent;
     color: #111827;
-    font-family: "Inter", sans-serif;
+    font-family: "Albert Sans", sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -129,18 +132,22 @@
 
   /* ── HIGHLIGHT TAG ── */
   .highlight-tag {
-    @apply px-3 py-1 bg-blue-600/10 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-full;
+    @apply px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full;
+    background-color: rgba(171, 160, 227, 0.1);
+    color: #aba0e3;
   }
 
   /* ── SECTION LABEL ── */
   .section-label {
-    @apply inline-flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 mb-2;
+    @apply inline-flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] mb-2;
+    color: #aba0e3;
   }
   .section-label::after {
     content: "";
     width: 2rem;
     height: 1px;
-    @apply bg-blue-600 opacity-30;
+    background-color: #aba0e3;
+    opacity: 0.3;
   }
 
   /* ── SECTION TITLE ── */
@@ -150,12 +157,18 @@
 
   /* ── LUXURY CARD (Light) ── */
   .card-premium {
-    @apply relative bg-white border border-gray-100 overflow-hidden transition-all duration-500 rounded-xl hover:border-blue-100 hover:shadow-2xl;
+    @apply relative bg-white border border-gray-100 overflow-hidden transition-all duration-500 rounded-xl hover:shadow-2xl;
+  }
+  .card-premium:hover {
+    border-color: rgba(171, 160, 227, 0.3);
   }
 
   /* ── INPUT FIELD (Light) ── */
   .input-field {
-    @apply w-full px-5 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 outline-none transition-all duration-200 focus:border-blue-600/50 rounded-xl;
+    @apply w-full px-5 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 outline-none transition-all duration-200 rounded-xl;
+  }
+  .input-field:focus {
+    border-color: rgba(171, 160, 227, 0.5);
   }
   .input-field::placeholder { @apply text-gray-400; }
 
@@ -181,7 +194,8 @@
 /* ============================================
    TEXT SELECTION ── */
 ::selection {
-  @apply bg-blue-600 text-white;
+  background-color: #aba0e3;
+  color: white;
 }
 
 /* ============================================

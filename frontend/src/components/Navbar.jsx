@@ -43,7 +43,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
-      const filtered = products.filter(p => 
+      const filtered = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.category.toLowerCase().includes(searchQuery.toLowerCase())
       ).slice(0, 5);
@@ -55,10 +55,9 @@ export default function Navbar() {
 
   const navLinks = [
     { to: '/', label: 'Home' },
-    { to: '/collection?category=Couture', label: 'Couture' },
-    { to: '/collection?category=Handbags', label: 'Handbags' },
-    { to: '/collection?category=Silk+Scarves', label: 'Silk Scarves' },
-    { to: '/collection?category=Heritage', label: 'Heritage' },
+    { to: '/collection', label: 'Shop' },
+    { to: '/about', label: 'About' },
+    { to: '/contact', label: 'Contact' },
   ];
 
   const handleSearch = (e) => {
@@ -79,47 +78,42 @@ export default function Navbar() {
       }`}
     >
       {/* Announcement Bar */}
-      <div className="bg-blue-600 text-white py-1 px-6 text-center">
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em]">
-          Free Express Delivery on Orders Over ₹500 &nbsp;·&nbsp; Limited Editions Available
+      <div className="py-1 px-4 text-center" style={{ backgroundColor: '#aba0e3' }}>
+        <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-white">
+          Fashion Frenzy: Up to 60% off on all styles &nbsp;·&nbsp; Free Shipping Over ₹500
         </p>
       </div>
 
-      <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between gap-8 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
         {/* Logo */}
         <Link to="/" className="shrink-0 flex items-center gap-3 group">
           <div className="relative">
-            <img 
-              src={logo} 
-              alt="Thaarai" 
-              className="h-8 w-auto object-contain transition-all duration-500" 
+            <img
+              src="/aara-logo.png"
+              alt="Aara"
+              className="h-6 sm:h-7 md:h-8 w-auto object-contain transition-all duration-500"
             />
           </div>
           <div>
-            <span className="font-serif text-lg font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
-            <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-blue-600">Atelier</span>
+            <span className="font-serif text-base sm:text-lg font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#aba0e3' }}>The Designer Studio</span>
           </div>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-8">
           {navLinks.map(({ to, label }) => {
-            const isHome = to === '/';
-            const targetCategory = to.includes('category=') ? to.split('category=')[1] : null;
-            const currentCategory = new URLSearchParams(location.search).get('category');
-            
-            const isActive = isHome 
-              ? location.pathname === '/' 
-              : location.pathname === '/collection' && currentCategory === targetCategory;
+            const isActive = location.pathname === to;
 
             return (
               <Link key={label} to={to}
                 className={`uppercase tracking-[0.1em] transition-all duration-300 relative group ${
-                  isActive ? 'text-blue-600 font-semibold text-[12px] border-b-2 border-blue-600 pb-1' : 'text-gray-600 font-normal text-[11px] hover:text-gray-900'
+                  isActive ? 'font-semibold text-[12px] pb-1' : 'text-gray-600 font-normal text-[11px] hover:text-gray-900'
                 }`}
+                style={isActive ? { color: '#aba0e3', borderBottom: '2px solid #aba0e3' } : {}}
               >
                 {label}
-                {!isActive && <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full" />}
+                {!isActive && <span className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full" style={{ backgroundColor: '#aba0e3' }} />}
               </Link>
             );
           })}
@@ -130,13 +124,14 @@ export default function Navbar() {
           {/* Search */}
           <button
             onClick={() => setSearchOpen(!searchOpen)}
-            className={`p-2.5 transition-all ${searchOpen ? 'text-blue-600' : 'text-gray-400 hover:text-gray-900'}`}
+            className={`p-2.5 transition-all ${searchOpen ? 'text-gray-400 hover:text-gray-900' : 'text-gray-400 hover:text-gray-900'}`}
+            style={searchOpen ? { color: '#aba0e3' } : {}}
           >
             <SearchIcon />
           </button>
 
           {/* User */}
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setUserDropdown(!userDropdown)}
               className="p-2.5 text-gray-400 hover:text-gray-900 transition-all"
@@ -156,7 +151,9 @@ export default function Navbar() {
                       My Orders
                     </Link>
                     <button onClick={() => { logout(); setUserDropdown(false); }}
-                      className="block w-full text-left px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50/50 transition-colors">
+                      className="block w-full text-left px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors" style={{ color: '#aba0e3' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(171, 160, 227, 0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
                       Sign Out
                     </button>
                   </>
@@ -167,7 +164,9 @@ export default function Navbar() {
                       Sign In
                     </Link>
                     <Link to="/register" onClick={() => setUserDropdown(false)}
-                      className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50/50 transition-colors">
+                      className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors" style={{ color: '#aba0e3' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(171, 160, 227, 0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
                       Create Account
                     </Link>
                   </>
@@ -177,10 +176,10 @@ export default function Navbar() {
           </div>
 
           {/* Wishlist */}
-          <Link to="/wishlist" className="relative p-2.5 text-gray-400 hover:text-blue-500 transition-all">
+          <Link to="/wishlist" className="relative hidden sm:block p-2.5 text-gray-400 transition-all" style={{ '--hover-color': '#aba0e3' }} onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'} onMouseLeave={e => e.currentTarget.style.color = ''}>
             <WishlistIcon />
             {wishlist.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 bg-blue-600 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-lg animate-pulse-subtle">
+              <span className="absolute top-1.5 right-1.5 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-lg animate-pulse-subtle" style={{ backgroundColor: '#aba0e3' }}>
                 {wishlist.length}
               </span>
             )}
@@ -221,8 +220,11 @@ export default function Navbar() {
                   autoFocus
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search for luxury items, categories..."
-                  className="w-full text-2xl font-serif text-gray-900 placeholder-gray-300 outline-none border-b-2 border-gray-100 focus:border-blue-600 pb-3 bg-transparent transition-all"
+                  placeholder="Search for kurtis, maxi, co-ords..."
+                  className="w-full text-2xl font-serif text-gray-900 placeholder-gray-300 outline-none border-b-2 border-gray-100 pb-3 bg-transparent transition-all"
+                  style={{ '--focus-color': '#aba0e3' }}
+                  onFocus={e => e.target.style.borderColor = '#aba0e3'}
+                  onBlur={e => e.target.style.borderColor = ''}
                 />
                 {searchQuery && (
                   <button 
@@ -258,17 +260,18 @@ export default function Navbar() {
                         />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{p.name}</h4>
+                        <h4 className="text-sm font-bold text-gray-900 group-hover:text-gray-600 transition-colors" style={{ '--hover-color': '#aba0e3' }}>{p.name}</h4>
                         <p className="text-[10px] text-gray-400 uppercase tracking-tighter">{p.category}</p>
                       </div>
                     </Link>
                   ))}
                 </div>
                 <div className="bg-gray-50 p-6 flex flex-col justify-center rounded-sm">
-                  <p className="text-sm text-gray-600 mb-4 italic">"Looking for something specific? Our couture collection is updated weekly."</p>
-                  <button 
+                  <p className="text-sm text-gray-600 mb-4 italic">"Looking for something specific? Our collection is updated weekly with new designs."</p>
+                  <button
                     onClick={handleSearch}
-                    className="text-[10px] font-bold uppercase tracking-widest text-blue-600 flex items-center gap-2 hover:gap-3 transition-all"
+                    className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+                    style={{ color: '#aba0e3' }}
                   >
                     View All Results <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </button>
@@ -276,7 +279,7 @@ export default function Navbar() {
               </div>
             ) : searchQuery.length > 1 ? (
               <div className="py-10 text-center animate-fade-in">
-                <p className="text-gray-400 italic">No exact matches found. Try searching for "Couture" or "Handbags".</p>
+                <p className="text-gray-400 italic">No exact matches found. Try searching for "Kurti" or "Maxi".</p>
               </div>
             ) : null}
           </div>
@@ -284,35 +287,68 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Mobile Nav */}
-      {mobileOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-100 animate-fade-in">
-          <div className="px-6 py-4 space-y-1">
-            {navLinks.map(({ to, label }) => {
-              const isHome = to === '/';
-              const targetCategory = to.includes('category=') ? to.split('category=')[1] : null;
-              const currentCategory = new URLSearchParams(location.search).get('category');
-              
-              const isActive = isHome 
-                ? location.pathname === '/' 
-                : location.pathname === '/collection' && currentCategory === targetCategory;
+      {/* Mobile Nav Drawer */}
+      <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-300 ${mobileOpen ? 'visible' : 'invisible pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setMobileOpen(false)}
+        />
+        
+        {/* Panel */}
+        <div className={`absolute top-0 right-0 w-72 h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 flex items-center justify-between border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-lg font-bold text-gray-900">Menu</span>
+            </div>
+            <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400 hover:text-gray-900">
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
 
-              return (
-                <Link key={label} to={to} onClick={() => setMobileOpen(false)}
-                  className={`block py-3 uppercase tracking-widest border-b border-gray-50 transition-colors ${
-                    isActive ? 'text-[12px] font-semibold text-blue-600' : 'text-[11px] font-normal text-gray-600 hover:text-gray-900'
-                  }`}>
-                  {label}
-                </Link>
-              );
-            })}
-            <Link to="/wishlist" onClick={() => setMobileOpen(false)}
-              className="block py-3 text-[11px] font-semibold uppercase tracking-widest text-gray-500 hover:text-blue-500 border-b border-gray-50 transition-colors">
-              Wishlist ({wishlist.length})
-            </Link>
+          <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+            <nav className="divide-y divide-gray-50 mb-8">
+              {navLinks.map(({ to, label }) => {
+                const isActive = location.pathname === to;
+                return (
+                  <Link key={label} to={to} onClick={() => setMobileOpen(false)}
+                    className={`block py-3.5 uppercase tracking-widest text-xs font-bold transition-all ${
+                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    style={isActive ? { color: '#aba0e3' } : {}}>
+                    {label}
+                  </Link>
+                );
+              })}
+              <Link to="/wishlist" onClick={() => setMobileOpen(false)}
+                className="block py-3.5 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
+                style={{ '--hover-color': '#aba0e3' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
+                onMouseLeave={e => e.currentTarget.style.color = ''}>
+                Wishlist ({wishlist.length})
+              </Link>
+            </nav>
+
+            <div className="pt-6 border-t border-gray-100 space-y-4">
+              {user ? (
+                <>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
+                  <p className="text-sm font-bold text-gray-900 truncate mb-4">{user.name}</p>
+                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-primary w-full text-center py-3 text-xs">My Orders</Link>
+                  <button onClick={() => { logout(); setMobileOpen(false); }} className="w-full text-center py-3 text-xs font-bold border border-gray-200 rounded-xl text-gray-600">Sign Out</button>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary text-center py-3 text-xs">Sign In</Link>
+                  <Link to="/register" onClick={() => setMobileOpen(false)} className="border border-gray-200 text-center py-3 text-xs font-bold rounded-xl text-gray-900">Join</Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
     </header>
   );

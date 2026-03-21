@@ -5,31 +5,30 @@ const footerSections = [
   {
     title: 'Collections',
     links: [
-      { label: 'Couture', href: '/collection?category=Couture' },
-      { label: 'Handbags', href: '/collection?category=Handbags' },
-      { label: 'Silk Scarves', href: '/collection?category=Silk+Scarves' },
-      { label: 'Heritage', href: '/collection?category=Heritage' },
+      { label: 'Kurti', href: '/collection?category=Kurti' },
+      { label: 'Maxi', href: '/collection?category=Maxi' },
+      { label: 'Co-ords', href: '/collection?category=Co-ords' },
+      { label: 'Anarkali', href: '/collection?category=Anarkali' },
       { label: 'New Arrivals', href: '/collection' },
     ],
   },
   {
-    title: 'Client Services',
+    title: 'Customer Service',
     links: [
       { label: 'Contact Us', href: '#' },
       { label: 'Shipping & Returns', href: '#' },
       { label: 'Size Guide', href: '#' },
-      { label: 'Care Instructions', href: '#' },
+      { label: 'Order Tracking', href: '#' },
       { label: 'FAQ', href: '#' },
     ],
   },
   {
-    title: 'The Maison',
+    title: 'About Us',
     links: [
       { label: 'Our Story', href: '#' },
-      { label: 'Sustainability', href: '#' },
-      { label: 'The Atelier', href: '#' },
-      { label: 'Press', href: '#' },
-      { label: 'Careers', href: '#' },
+      { label: 'Privacy Policy', href: '#' },
+      { label: 'Terms & Conditions', href: '#' },
+      { label: 'Returns + Exchanges', href: '#' },
     ],
   },
 ];
@@ -44,31 +43,37 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
-              <img src={logo} alt="Thaarai" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
+              <img src="/aara-logo.png" alt="Aara" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
               <div>
-                <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
-                <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-blue-600">Atelier de Luxe</span>
+                <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
+                <span className="text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#aba0e3' }}>The Designer Studio</span>
               </div>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-8 font-light">
-              Redefining luxury through artisanal craftsmanship and timeless design. Every piece is a testament to the pursuit of perfection.
+            <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6 font-light">
+              Style, innovation, and individuality. We blend inspiration from culture and creativity with bold ideas and timeless aesthetics.
             </p>
-            {/* Social */}
-            <div className="flex gap-2">
-              {['In', 'Tw', 'Pt', 'Fb'].map((s, i) => (
-                <a key={i} href="#"
-                  className="w-10 h-10 border border-gray-100 flex items-center justify-center text-[9px] font-bold text-gray-400 hover:border-blue-600/30 hover:text-blue-600 hover:bg-gray-50 transition-all duration-500 rounded-xl">
-                  {s}
-                </a>
-              ))}
+
+            {/* Contact Info */}
+            <div className="space-y-2 mb-6">
+              <p className="text-xs text-gray-500">
+                <span className="font-bold">Email:</span> aarathedesignerstudio@gmail.com
+              </p>
+              <p className="text-xs text-gray-500">
+                <span className="font-bold">Phone:</span> +91 8072842781
+              </p>
+              <p className="text-xs text-gray-500">
+                <span className="font-bold">WhatsApp:</span> +91 8300519544
+              </p>
             </div>
+
+            {/* Social Placeholder Removed */}
           </div>
 
           {/* Nav Columns */}
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-10">
             {footerSections.map(section => (
               <div key={section.title}>
-                <h5 className="text-[9px] font-bold uppercase tracking-[0.3em] text-blue-600 mb-6 font-serif">
+                <h5 className="text-[9px] font-bold uppercase tracking-[0.3em] mb-6 font-serif" style={{ color: '#aba0e3' }}>
                   {section.title}
                 </h5>
                 <ul className="space-y-3">
@@ -76,7 +81,10 @@ export default function Footer() {
                     <li key={link.label}>
                       <Link
                         to={link.href}
-                        className="text-xs text-gray-500 hover:text-blue-600 transition-all duration-300 hover:translate-x-1 inline-block uppercase tracking-widest font-medium"
+                        className="text-xs text-gray-500 transition-all duration-300 hover:translate-x-1 inline-block uppercase tracking-widest font-medium"
+                        style={{ '--hover-color': '#aba0e3' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
+                        onMouseLeave={e => e.currentTarget.style.color = ''}
                       >
                         {link.label}
                       </Link>
@@ -91,11 +99,14 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-[8px] text-gray-400 uppercase tracking-[0.3em] font-bold">
-            © 2025 Thaarai Atelier. Crafted for Distinction.
+            © 2026 Aara The Designer Studio. All Rights Reserved.
           </p>
           <div className="flex items-center gap-6">
             {['Privacy Policy', 'Terms of Use', 'Cookie Preferences'].map(item => (
-              <Link key={item} to="#" className="text-[8px] text-gray-400 hover:text-blue-600 uppercase tracking-[0.2em] transition-colors font-bold">
+              <Link key={item} to="#" className="text-[8px] text-gray-400 uppercase tracking-[0.2em] transition-colors font-bold"
+                style={{ '--hover-color': '#aba0e3' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
+                onMouseLeave={e => e.currentTarget.style.color = ''}>
                 {item}
               </Link>
             ))}

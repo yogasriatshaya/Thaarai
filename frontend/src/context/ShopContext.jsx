@@ -29,7 +29,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const isWishlisted = (productId) => wishlist.includes(productId);
-  const BACKEND_URL = 'http://localhost:4000';
+  const BACKEND_URL = 'http://localhost:5001';
 
   useEffect(() => {
     if (token) {
@@ -118,7 +118,7 @@ export const ShopProvider = ({ children }) => {
           const mock = (await import('../data/mockProducts')).MOCK_PRODUCTS.find(p => p._id === item.productId);
           total += (mock?.price || 0) * item.quantity;
         } else if (item.productId.startsWith('local_')) {
-          const localData = localStorage.getItem('thaarai_local_products');
+          const localData = localStorage.getItem('aara_local_products');
           const locals = localData ? JSON.parse(localData) : [];
           const local = locals.find(p => p._id === item.productId);
           total += (local?.price || 0) * item.quantity;

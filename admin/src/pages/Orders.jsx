@@ -78,7 +78,7 @@ export default function Orders() {
                     <p className="text-[10px] font-sans text-gray-400">{order.userId?.email || ''}</p>
                   </td>
                   <td className="px-5 py-4 text-xs font-sans text-gray-500">{order.items?.length || 0} items</td>
-                  <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">${order.totalAmount?.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">₹{order.totalAmount?.toLocaleString()}</td>
                   <td className="px-5 py-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
                   <td className="px-5 py-4">
                     <select value={order.orderStatus} onChange={e => updateStatus(order._id, 'orderStatus', e.target.value)}

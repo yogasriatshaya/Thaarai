@@ -4,14 +4,21 @@ import Layout from '../components/Layout';
 import API, { BACKEND_URL } from '../api';
 import { toast } from 'react-toastify';
 
-const CATEGORIES = ['Couture', 'Handbags', 'Silk Scarves', 'Heritage', 'Accessories', 'Limited Edition'];
-const LABELS = ['', 'BESTSELLER', 'LIMITED EDITION', 'NEW', 'FINAL PIECES'];
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
+const CATEGORIES = ['Women', 'Kurti', 'Kurti with Dupatta', 'Anarkali', 'Maxi', 'Co-Ord Sets', 'Sarees', 'Dress Materials'];
+const LABELS = ['', 'Hot', 'New Arrival', 'Trending', 'Sold Out'];
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'];
+const FABRICS = [
+  'Chanderi', 'Chettinadu Cotton', 'Jaipur Cotton', 'Pure Handloom Cotton',
+  'Mul Chanderi', 'Raw Silk', 'Mangalagiri Cotton', 'Chennuri Silk',
+  'Vichitra Silk', 'Silk Cotton', 'Ikkat', 'Rayon', 'Georgette', 'Crepe'
+];
+const STYLES = ['Kurti', 'A-Line', 'Anarkali', 'Maxi', '2-Piece Set', '3-Piece Set', 'Co-Ord Set', 'Straight Cut'];
+const AVAILABILITY = ['Available', 'Limited Stock', 'Made to Order', 'Pre-Order'];
 
 const initialForm = {
-  name: '', description: '', category: 'Couture', subcategory: '', price: '',
-  stock: '', material: '', heritage: '', label: '', bestseller: false,
-  sizes: [], colors: []
+  name: '', description: '', category: 'Women', subcategory: '', price: '',
+  originalPrice: '', stock: '', fabric: '', style: '', label: '', bestseller: false,
+  availability: 'Available', sizes: [], colors: []
 };
 
 export default function ProductForm() {
@@ -31,9 +38,10 @@ export default function ProductForm() {
         const p = r.data.product;
         setForm({
           name: p.name, description: p.description, category: p.category,
-          subcategory: p.subcategory || '', price: p.price, stock: p.stock,
-          material: p.material || '', heritage: p.heritage || '',
+          subcategory: p.subcategory || '', price: p.price, originalPrice: p.originalPrice || '',
+          stock: p.stock, fabric: p.fabric || p.material || '', style: p.style || '',
           label: p.label || '', bestseller: p.bestseller || false,
+          availability: p.availability || 'Available',
           sizes: p.sizes || [], colors: p.colors || []
         });
         setExistingImages(p.images || []);
@@ -70,6 +78,11 @@ export default function ProductForm() {
       });
       images.forEach(img => data.append('images', img));
 
+      // Send existing images that weren't removed (for edit mode)
+      if (isEdit) {
+        data.append('existingImages', JSON.stringify(existingImages));
+      }
+
       if (isEdit) {
         await API.put(`/products/${id}`, data);
         toast.success('Product updated successfully');
@@ -97,11 +110,11 @@ export default function ProductForm() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Product Name *</label>
-                  <input name="name" value={form.name} onChange={handleChange} className="input-field" required placeholder="e.g. Royal Silk Trench" />
+                  <input name="name" value={form.name} onChange={handleChange} className="input-field" required placeholder="e.g. Chanderi Silk Anarkali Kurti" />
                 </div>
                 <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Description / The Story *</label>
-                  <textarea name="description" value={form.description} onChange={handleChange} className="input-field min-h-[100px] resize-none" required placeholder="Describe the artisanal story behind this piece..." />
+                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Description *</label>
+                  <textarea name="description" value={form.description} onChange={handleChange} className="input-field min-h-[100px] resize-none" required placeholder="Describe the product details, fabric quality, care instructions..." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -112,17 +125,23 @@ export default function ProductForm() {
                   </div>
                   <div>
                     <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Subcategory</label>
-                    <input name="subcategory" value={form.subcategory} onChange={handleChange} className="input-field" placeholder="e.g. Heritage Gold Collection" />
+                    <input name="subcategory" value={form.subcategory} onChange={handleChange} className="input-field" placeholder="e.g. Festive Collection" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Material</label>
-                    <input name="material" value={form.material} onChange={handleChange} className="input-field" placeholder="e.g. 100% Mulberry Silk" />
+                    <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Fabric / Material *</label>
+                    <select name="fabric" value={form.fabric} onChange={handleChange} className="input-field">
+                      <option value="">Select Fabric</option>
+                      {FABRICS.map(f => <option key={f}>{f}</option>)}
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Heritage Label</label>
-                    <input name="heritage" value={form.heritage} onChange={handleChange} className="input-field" placeholder="e.g. Heritage Gold Collection" />
+                    <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Style</label>
+                    <select name="style" value={form.style} onChange={handleChange} className="input-field">
+                      <option value="">Select Style</option>
+                      {STYLES.map(s => <option key={s}>{s}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -162,27 +181,61 @@ export default function ProductForm() {
             {/* Images */}
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Product Images</h3>
+
+              {/* Existing Images */}
               {existingImages.length > 0 && (
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {existingImages.map((img, i) => (
-                    <img key={i} src={img.startsWith('http') ? img : `${BACKEND_URL}${img}`} alt=""
-                      className="w-20 h-24 object-cover bg-gray-100" />
-                  ))}
-                  <p className="text-xs text-gray-400 font-sans self-end mb-1">Existing images. Upload new to replace.</p>
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Current Images</p>
+                  <div className="flex flex-wrap gap-3">
+                    {existingImages.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={img.startsWith('http') ? img : `${BACKEND_URL}${img}`} alt=""
+                          className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <label className="block border-2 border-dashed border-gray-200 rounded-sm p-8 text-center cursor-pointer hover:border-gold-400 transition-colors">
-                <input type="file" accept="image/*" multiple onChange={e => setImages(Array.from(e.target.files))} className="hidden" />
-                <p className="text-sm font-sans text-gray-400 mb-1">Click to upload images</p>
-                <p className="text-xs font-sans text-gray-300">PNG, JPG, WEBP up to 10MB each</p>
-              </label>
+
+              {/* New Images */}
               {images.length > 0 && (
-                <div className="flex flex-wrap gap-3 mt-3">
-                  {images.map((img, i) => (
-                    <img key={i} src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100" />
-                  ))}
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">New Images to Upload</p>
+                  <div className="flex flex-wrap gap-3">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Upload Area */}
+              <label className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 hover:bg-gold-50/30 transition-all">
+                <input type="file" accept="image/*" multiple onChange={e => setImages([...images, ...Array.from(e.target.files)])} className="hidden" />
+                <div className="flex flex-col items-center gap-2">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm font-sans text-gray-500">Click to upload images</p>
+                  <p className="text-xs font-sans text-gray-400">PNG, JPG, WEBP up to 10MB each</p>
+                </div>
+              </label>
             </div>
           </div>
 
@@ -192,12 +245,22 @@ export default function ProductForm() {
               <h3 className="font-serif text-lg text-charcoal mb-5">Pricing & Stock</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Price (USD) *</label>
-                  <input name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} className="input-field" required placeholder="0.00" />
+                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Sale Price (₹) *</label>
+                  <input name="price" type="number" min="0" step="1" value={form.price} onChange={handleChange} className="input-field" required placeholder="e.g. 1499" />
+                </div>
+                <div>
+                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Original Price (₹)</label>
+                  <input name="originalPrice" type="number" min="0" step="1" value={form.originalPrice} onChange={handleChange} className="input-field" placeholder="e.g. 1999 (leave empty if no discount)" />
                 </div>
                 <div>
                   <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Stock Quantity *</label>
                   <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} className="input-field" required placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Availability</label>
+                  <select name="availability" value={form.availability} onChange={handleChange} className="input-field">
+                    {AVAILABILITY.map(a => <option key={a}>{a}</option>)}
+                  </select>
                 </div>
               </div>
             </div>

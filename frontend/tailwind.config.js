@@ -8,10 +8,13 @@ export default {
     extend: {
       colors: {
         muted: '#9CA3AF',
+        primary: '#aba0e3',
+        'primary-dark': '#100835',
+        accent: '#aba0e3',
       },
       fontFamily: {
         serif: ['"Playfair Display"', "Georgia", "serif"],
-        sans: ['"Inter"', "system-ui", "sans-serif"],
+        sans: ['"Albert Sans"', "system-ui", "sans-serif"],
         display: ['"Playfair Display"', "Georgia", "serif"],
       },
       borderRadius: {

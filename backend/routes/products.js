@@ -7,12 +7,13 @@ const upload = require('../middleware/upload');
 // Get all products with filters
 router.get('/', async (req, res) => {
   try {
-    const { category, subcategory, material, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12 } = req.query;
+    const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12 } = req.query;
     const query = {};
 
     if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
     if (subcategory) query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
     if (material) query.material = { $regex: material, $options: 'i' };
+    if (fabric) query.fabric = { $regex: fabric, $options: 'i' };
     if (bestseller === 'true') query.bestseller = true;
 
     // Only apply price filter if values are explicitly provided
@@ -60,18 +61,22 @@ router.get('/:id', async (req, res) => {
 // Add product (admin)
 router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) => {
   try {
-    const { name, description, category, subcategory, price, sizes, colors, stock, bestseller, label, material, heritage } = req.body;
+    const { name, description, category, subcategory, price, originalPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage } = req.body;
     const images = req.files?.map(f => `/uploads/${f.filename}`) || [];
 
     const product = await Product.create({
       name, description, category, subcategory,
       price: Number(price),
+      originalPrice: originalPrice ? Number(originalPrice) : undefined,
       sizes: sizes ? JSON.parse(sizes) : [],
       colors: colors ? JSON.parse(colors) : [],
       images,
       stock: Number(stock) || 0,
       bestseller: bestseller === 'true',
       label: label || '',
+      fabric: fabric || material || '',
+      style: style || '',
+      availability: availability || 'Available',
       material, heritage
     });
     res.status(201).json({ success: true, product });
@@ -83,15 +88,27 @@ router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) =>
 // Update product (admin)
 router.put('/:id', adminMiddleware, upload.array('images', 6), async (req, res) => {
   try {
-    const { name, description, category, subcategory, price, sizes, colors, stock, bestseller, label, material, heritage } = req.body;
-    const updateData = { name, description, category, subcategory, price: Number(price), material, heritage };
+    const { name, description, category, subcategory, price, originalPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, existingImages } = req.body;
+    const updateData = {
+      name, description, category, subcategory,
+      price: Number(price),
+      fabric: fabric || material || '',
+      style: style || '',
+      availability: availability || 'Available',
+      material, heritage
+    };
 
+    if (originalPrice !== undefined && originalPrice !== '') updateData.originalPrice = Number(originalPrice);
     if (sizes) updateData.sizes = JSON.parse(sizes);
     if (colors) updateData.colors = JSON.parse(colors);
     if (stock !== undefined) updateData.stock = Number(stock);
     if (bestseller !== undefined) updateData.bestseller = bestseller === 'true';
     if (label !== undefined) updateData.label = label;
-    if (req.files?.length > 0) updateData.images = req.files.map(f => `/uploads/${f.filename}`);
+
+    // Handle images: combine existing (not removed) with new uploads
+    const keptImages = existingImages ? JSON.parse(existingImages) : [];
+    const newImages = req.files?.map(f => `/uploads/${f.filename}`) || [];
+    updateData.images = [...keptImages, ...newImages];
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json({ success: true, product });

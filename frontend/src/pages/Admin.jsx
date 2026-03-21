@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import logo from '../assets/logo.jpg';
 
 // ── Local Storage Helpers ───────────────────────────────────────────────────
-const LOCAL_STORAGE_KEY = 'thaarai_local_products';
+const LOCAL_STORAGE_KEY = 'aara_local_products';
 
 const getLocalProducts = () => {
   const data = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -50,8 +50,8 @@ export function AdminLogin() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10 border border-gray-100">
         <div className="text-center mb-10">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <img src={logo} alt="Thaarai" className="h-8 w-auto transition-all duration-500 rounded-sm" />
-            <span className="font-serif text-lg font-bold tracking-tight text-gray-900">THAARAI</span>
+            <img src="/aara-logo.png" alt="Aara" className="h-8 w-auto transition-all duration-500 rounded-sm" />
+            <span className="font-serif text-lg font-bold tracking-tight text-gray-900">AARA</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Admin Console</h1>
           <p className="text-gray-600 text-sm mt-2">Enter your credentials to manage properties</p>
@@ -153,8 +153,8 @@ export function AdminDashboard() {
       <aside className="w-72 bg-white border-r border-gray-100 flex flex-col pt-8">
         <div className="px-8 mb-12">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">T</div>
-            <span className="font-serif text-lg font-bold text-gray-900 tracking-tight">THAARAI <span className="text-[10px] text-blue-600 uppercase font-sans">Admin</span></span>
+            <img src="/aara-logo.png" alt="Aara" className="w-8 h-8 object-contain rounded-lg" />
+            <span className="font-serif text-lg font-bold text-gray-900 tracking-tight">AARA <span className="text-[10px] text-purple-600 uppercase font-sans">Admin</span></span>
           </div>
         </div>
 

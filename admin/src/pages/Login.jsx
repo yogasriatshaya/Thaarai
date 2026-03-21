@@ -17,7 +17,7 @@ export default function AdminLogin() {
       if (res.data.success) {
         localStorage.setItem('adminToken', res.data.token);
         navigate('/dashboard');
-        toast.success('Welcome to Thaarai Admin');
+        toast.success('Welcome to Aara Admin');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
@@ -31,7 +31,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <div className="flex justify-center mb-3">
-            <img src={logo} alt="Thaarai" className="h-12 w-auto object-contain brightness-0 invert" />
+            <img src={logo} alt="Aara" className="h-12 w-auto object-contain brightness-0 invert" />
           </div>
           <p className="text-[9px] tracking-[0.35em] uppercase text-gold-500 font-sans">Admin Portal</p>
         </div>
@@ -42,7 +42,7 @@ export default function AdminLogin() {
               <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-white/50 mb-2">Email</label>
               <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                 className="w-full bg-white/10 border border-white/20 text-white px-4 py-2.5 text-sm font-sans focus:outline-none focus:border-gold-500 transition-colors placeholder-white/30"
-                placeholder="admin@thaarai.com" required />
+                placeholder="admin@cube.com" required />
             </div>
             <div>
               <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-white/50 mb-2">Password</label>
@@ -56,7 +56,7 @@ export default function AdminLogin() {
             </button>
           </form>
           <p className="text-xs text-white/30 font-sans mt-5 text-center">
-            Default: admin@thaarai.com / Admin@123
+            Default: admin@cube.com / Admin@123
           </p>
         </div>
       </div>

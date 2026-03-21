@@ -61,7 +61,7 @@ export default function Collection() {
         let realProducts = r.data.products || [];
         
         // ── Local Storage Injection ──────────────────────────────────────
-        const localData = localStorage.getItem('thaarai_local_products');
+        const localData = localStorage.getItem('aara_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
         const filteredLocals = localProducts.filter(lp => {
           const matchesCat = !activeCategory || lp.category === activeCategory;
@@ -96,7 +96,7 @@ export default function Collection() {
       })
       .catch(() => {
         // Fallback to Local + Mock if API fails
-        const localData = localStorage.getItem('thaarai_local_products');
+        const localData = localStorage.getItem('aara_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
         const activeCategory = selectedCategory || urlCategory;
         
@@ -148,15 +148,13 @@ export default function Collection() {
   return (
     <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
       {/* Hero Banner */}
-      <div className="relative h-48 md:h-64 overflow-hidden bg-gray-50 border-b border-gray-100">
-        <div className="absolute inset-0 bg-gray-900/10 z-10" />
-        <img src={bannerImg} alt="Collection" className="absolute inset-0 w-full h-full object-cover opacity-60 brightness-110" loading="lazy" decoding="async" />
+      <div className="relative h-48 md:h-64 overflow-hidden border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #aba0e3 0%, #d4cdf7 100%)' }}>
         <div className="relative z-20 h-full flex flex-col justify-center items-center text-center px-6">
-          <span className="text-blue-600 font-bold text-[8px] uppercase tracking-[0.4em] mb-4">Curated Selections</span>
-          <h1 className="font-serif text-4xl md:text-6xl text-gray-900 font-bold tracking-tight">
+          <span className="font-bold text-[8px] uppercase tracking-[0.4em] mb-3 text-white/90">Curated Selections</span>
+          <h1 className="font-serif text-3xl md:text-5xl text-white font-bold tracking-tight drop-shadow-sm">
             {selectedCategory || urlCategory || 'The Collection'}
           </h1>
-          <div className="w-12 h-px bg-blue-600/30 mt-6" />
+          <div className="w-12 h-px mt-5 bg-white/40" />
         </div>
       </div>
 
@@ -181,8 +179,9 @@ export default function Collection() {
 
         <div className="flex flex-col lg:flex-row gap-12">
 
-          {/* Sidebar */}
-          <aside className="lg:w-64 shrink-0 space-y-8">
+          {/* Sidebar - Sticky */}
+          <aside className="lg:w-64 shrink-0">
+            <div className="lg:sticky lg:top-24 space-y-8">
 
             {/* Category filter */}
             <div className="bg-gray-50 p-8 border border-gray-100 shadow-sm relative overflow-hidden rounded-sm">
@@ -231,7 +230,7 @@ export default function Collection() {
                   <div>
                     <div className="flex justify-between items-center mb-6">
                       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400">Price Range</p>
-                      <span className="text-sm font-bold text-gray-900 tracking-tight">{maxPrice ? `$${Number(maxPrice).toLocaleString()}` : 'Maximum'}</span>
+                      <span className="text-sm font-bold text-gray-900 tracking-tight">{maxPrice ? `₹${Number(maxPrice).toLocaleString()}` : 'Maximum'}</span>
                     </div>
                     <div className="px-1">
                       <input
@@ -252,6 +251,7 @@ export default function Collection() {
                    <p className="text-gray-400 text-[11px] leading-relaxed mb-8 font-light tracking-wide italic">Join for exclusive arrivals & bespoke tailoring services.</p>
                    <Link to="/register" className="inline-block w-full py-4 bg-white text-gray-900 text-[9px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all text-center rounded-sm">Join Now</Link>
                 </div>
+            </div>
             </div>
           </aside>
 
@@ -281,7 +281,7 @@ export default function Collection() {
 
             {/* Grid */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {[1,2,3,4,5,6].map(i => (
                   <ProductSkeleton key={i} />
                 ))}
@@ -302,7 +302,7 @@ export default function Collection() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-10 gap-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
                 {products.map(p => <ProductCard key={p._id} product={p} />)}
               </div>
             )}

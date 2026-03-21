@@ -87,7 +87,7 @@ export default function Products() {
                     </div>
                   </td>
                   <td className="px-5 py-4 text-xs font-sans text-gray-500">{p.category}</td>
-                  <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">${p.price?.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">₹{p.price?.toLocaleString()}</td>
                   <td className="px-5 py-4 text-xs font-sans">
                     <span className={`${p.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>{p.stock}</span>
                   </td>
