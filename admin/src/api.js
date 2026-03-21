@@ -1,5 +1,5 @@
 import axios from 'axios';
-const API = axios.create({ baseURL: 'http://localhost:5001/api' });
+const API = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api' });
 
 API.interceptors.request.use(config => {
   const token = localStorage.getItem('adminToken');
@@ -19,4 +19,4 @@ API.interceptors.response.use(
 );
 
 export default API;
-export const BACKEND_URL = 'http://localhost:5001';
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';

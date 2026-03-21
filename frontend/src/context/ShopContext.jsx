@@ -29,7 +29,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const isWishlisted = (productId) => wishlist.includes(productId);
-  const BACKEND_URL = 'http://localhost:5001';
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
   useEffect(() => {
     if (token) {
