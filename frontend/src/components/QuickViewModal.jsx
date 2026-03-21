@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { PRODUCT_FALLBACK } from '../assets/images';
+import { createPortal } from 'react-dom';
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
   const { addToCart, BACKEND_URL, toggleWishlist, isWishlisted } = useShop();
@@ -26,14 +27,15 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     ? (product.images[0].startsWith('http') ? product.images[0] : `${BACKEND_URL}${product.images[0]}`)
     : PRODUCT_FALLBACK;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+      style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.55)' }}>
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 transition-opacity"
         onClick={onClose}
       ></div>
 
-      <div className="relative bg-white w-full max-w-full sm:max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl animate-fade-in flex flex-col md:flex-row gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 my-auto">
+      <div className="relative bg-white w-full max-w-full sm:max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl animate-fade-in flex flex-col md:flex-row gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 overflow-hidden transform scale-100">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 transition-colors z-10"
@@ -44,7 +46,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
         </button>
 
         {/* Product Image */}
-        <div className="w-full md:w-1/2 aspect-[3/4] bg-gray-50 overflow-hidden rounded-xl">
+        <div className="hidden md:block md:w-1/2 aspect-[3/4] bg-gray-50 overflow-hidden rounded-xl shrink-0">
           <img 
             src={imageUrl} 
             alt={product.name}
@@ -54,7 +56,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
         </div>
 
         {/* Product Info */}
-        <div className="w-full md:w-1/2 space-y-6">
+        <div className="w-full md:w-1/2 flex flex-col overflow-y-auto custom-scrollbar pr-2 space-y-4 sm:space-y-6 pb-2">
           <div>
             <p className="text-xs sm:text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">{product.category}</p>
             <h2 className="text-2xl sm:text-3xl font-bold font-serif text-gray-900 mb-2">{product.name}</h2>
@@ -67,7 +69,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
             </p>
           </div>
 
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-4">
+          <p className="hidden md:block text-gray-600 text-sm leading-relaxed line-clamp-4">
             {product.description || "Indulge in the finest craftsmanship with this exquisite piece. Designed for the modern connoisseur of luxury."}
           </p>
 
@@ -138,6 +140,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

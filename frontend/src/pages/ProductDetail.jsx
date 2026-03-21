@@ -220,7 +220,7 @@ export default function ProductDetail() {
                 <div className="flex-1 relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
                   <img src={getImg(images[selectedImage])} alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    fetchPriority="high" decoding="async"
+                    fetchpriority="high" decoding="async"
                     onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
                   <button
                     onClick={() => toggleWishlist(product._id)}

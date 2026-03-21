@@ -16,7 +16,7 @@ export default function Newsletter() {
   return (
     <section className="relative overflow-hidden border-t border-gray-100" style={{ background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 50%, #f9fafb 100%)' }}>
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-20 text-center">
-        <span className="font-bold text-[8px] uppercase tracking-[0.4em] mb-3 block" style={{ color: '#aba0e3' }}>
+        <span className="font-bold text-[8px] uppercase tracking-[0.4em] mb-3 block" style={{ color: '#8b7fc0' }}>
           Stay Connected
         </span>
         <h2 className="font-serif text-2xl md:text-4xl lg:text-5xl font-bold text-gray-900 mt-2 mb-4 tracking-tight">

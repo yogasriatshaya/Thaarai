@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import API from '../api';
 import { toast } from 'react-toastify';
@@ -7,7 +7,7 @@ import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 export default function Checkout() {
-  const { cartData, setCartData, token, BACKEND_URL } = useShop();
+  const { cartData, setCartData, token, BACKEND_URL, removeFromCart } = useShop();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -75,37 +75,18 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      if (paymentMethod === 'cod') {
-        const res = await API.post('/orders/create', { items: orderItems, address: form, totalAmount: total, paymentMethod: 'cod' });
-        if (res.data.success) {
-          setCartData({});
-          navigate('/order-success');
-          toast.success('Order placed successfully!');
-        }
-      } else if (paymentMethod === 'stripe') {
-        const res = await API.post('/orders/stripe', { items: orderItems, address: form, totalAmount: total });
-        if (res.data.url) window.location.href = res.data.url;
-      } else if (paymentMethod === 'razorpay') {
-        const res = await API.post('/orders/razorpay', { items: orderItems, address: form, totalAmount: total });
-        const { razorpayOrderId, orderId, key } = res.data;
-        const options = {
-          key, amount: Math.round(total * 100), currency: 'INR',
-          name: 'Aara', description: 'Luxury Fashion Purchase',
-          order_id: razorpayOrderId,
-          handler: async (response) => {
-            const verify = await API.post('/orders/razorpay/verify', {
-              ...response, orderId
-            });
-            if (verify.data.success) {
-              setCartData({});
-              navigate('/order-success');
-              toast.success('Payment successful!');
-            }
-          },
-          theme: { color: '#d4a017' }
-        };
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+      // Temporarily bypassing payment gateways to place orders directly
+      const res = await API.post('/orders/create', { 
+         items: orderItems, 
+         address: form, 
+         totalAmount: total, 
+         paymentMethod: paymentMethod // saves 'cod' or 'razorpay' as the method
+      });
+      
+      if (res.data.success) {
+        setCartData({});
+        navigate('/order-success');
+        toast.success('Order placed successfully (Payment Gateway bypassed for now)!');
       }
     } catch (err) {
       toast.error('Order failed. Please try again.');
@@ -115,135 +96,184 @@ export default function Checkout() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen text-gray-900 font-sans">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">Checkout</h1>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Left Column: Product Summary */}
-          <div className="bg-white p-6 rounded-xl shadow-md space-y-6">
-            <h2 className="text-xl font-bold border-b pb-4">Order Summary</h2>
-            <div className="space-y-6 max-h-[60vh] overflow-auto pr-2 custom-scrollbar">
-              {cartItems.map((item, i) => (
-                <div key={i} className="flex gap-4 items-center">
-                  <div className="w-20 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                    <img 
-                      src={item.images?.[0] ? (item.images[0].startsWith('http') ? item.images[0] : `${BACKEND_URL}${item.images[0]}`) : PRODUCT_FALLBACK} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                      onError={e => { e.target.src = PRODUCT_FALLBACK; }} 
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800 line-clamp-1">{item.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      Size: {item.size} | Color: {item.color}
-                    </p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm font-medium">Qty: {item.quantity}</span>
-                      <span className="font-bold text-gray-900">
-                        {(item.price * item.quantity).toLocaleString('en-IN', {
-                          style: 'currency',
-                          currency: 'INR',
-                          maximumFractionDigits: 0
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="border-t pt-4 space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>
-                  {subtotal.toLocaleString('en-IN', {
-                    style: 'currency',
-                    currency: 'INR',
-                    maximumFractionDigits: 0
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Delivery Charges</span>
-                <span className={delivery === 0 ? 'text-green-500 font-medium' : ''}>
-                  {delivery === 0 ? 'FREE' : delivery.toLocaleString('en-IN', {
-                    style: 'currency',
-                    currency: 'INR',
-                    maximumFractionDigits: 0
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t">
-                <span>Total Amount</span>
-                <span className="text-green-600">
-                  {total.toLocaleString('en-IN', {
-                    style: 'currency',
-                    currency: 'INR',
-                    maximumFractionDigits: 0
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
+    <div className="relative min-h-screen bg-gray-50/50 text-gray-900 font-sans overflow-hidden">
+      {/* Ambient backgrounds */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob" />
+      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-rose-200/20 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000" />
 
-          {/* Right Column: Delivery & Payment */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="relative max-w-5xl mx-auto px-4 py-12 md:py-16">
+        <div className="text-center mb-12">
+          <h1 className="font-serif text-4xl font-bold mb-2 text-gray-900 tracking-tight">Checkout</h1>
+          <p className="text-gray-500 text-sm font-medium tracking-wide uppercase text-[10px]">Secure & Seamless Purchase</p>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Delivery & Payment (7 cols) */}
+          <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-6">
             {/* Delivery Form */}
-            <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
-              <h2 className="text-xl font-bold border-b pb-4">Delivery Address</h2>
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-100/40 space-y-5">
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-2">
+                <span className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-sm">1</span>
+                <h2 className="text-lg font-bold text-gray-900">Delivery Address</h2>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full Name" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" required />
-                <input name="phone" value={form.phone} onChange={handleChange} placeholder="Mobile Number" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" required />
-                <div className="md:col-span-2">
-                  <input name="addressLine" value={form.addressLine} onChange={handleChange} placeholder="Complete Address" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" required />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Full Name</label>
+                  <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Sarah Jenkins" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
                 </div>
-                <input name="city" value={form.city} onChange={handleChange} placeholder="City" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" required />
-                <input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="Pincode" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" required />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Phone</label>
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="Mobile Number" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line</label>
+                  <input name="addressLine" value={form.addressLine} onChange={handleChange} placeholder="Flat/House No, Street, Landmark" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">City</label>
+                  <input name="city" value={form.city} onChange={handleChange} placeholder="City Name" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pincode</label>
+                  <input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="600001" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
               </div>
             </div>
 
             {/* Payment Section */}
-            <div className="bg-white p-6 rounded-xl shadow-md space-y-6">
-              <h2 className="text-xl font-bold border-b pb-4">Payment Method</h2>
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-100/40 space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                <span className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-sm">2</span>
+                <h2 className="text-lg font-bold text-gray-900">Payment Method</h2>
+              </div>
               
               <div className="flex flex-col gap-3">
-                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'hover:border-gray-300'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-xl font-bold">⚡</div>
+                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-center text-purple-500 text-lg">⚡</div>
                     <div>
-                      <p className="font-bold text-gray-800">PhonePe / GPay / UPI</p>
-                      <p className="text-xs text-gray-500">Instant & secure payment</p>
+                      <p className="font-bold text-gray-900 text-sm">UPI / Cards / NetBanking</p>
+                      <p className="text-[11px] text-gray-400">Instant & secure processing</p>
                     </div>
                   </div>
-                  <input type="radio" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} className="w-5 h-5 accent-green-600" />
+                  <input type="radio" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} className="w-4 h-4 accent-purple-600" />
                 </label>
 
-                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'hover:border-gray-300'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xl font-bold">🏠</div>
+                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-blue-500 text-lg">🏠</div>
                     <div>
-                      <p className="font-bold text-gray-800">Cash on Delivery</p>
-                      <p className="text-xs text-gray-500">Pay when you receive</p>
+                      <p className="font-bold text-gray-900 text-sm">Cash on Delivery</p>
+                      <p className="text-[11px] text-gray-400">Pay on doorstep handoff</p>
                     </div>
                   </div>
-                  <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-5 h-5 accent-green-600" />
+                  <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-4 h-4 accent-purple-600" />
                 </label>
               </div>
 
               <button
-                onClick={handlePlaceOrder}
-                className="w-full py-4 bg-green-500 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-green-600 transition-all active:scale-95 shadow-lg shadow-green-500/20 rounded-xl"
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 bg-purple-600 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-purple-700 transition-all active:scale-[0.98] shadow-lg shadow-purple-600/20 rounded-xl disabled:opacity-40"
               >
-                Buy Now
+                {loading ? 'Processing Order...' : 'Complete Purchase'}
               </button>
               
-              <p className="text-xs text-center text-gray-500 px-4">
-                By clicking "Buy Now", you agree to our terms and conditions.
+              <p className="text-[10px] text-center text-gray-400 px-4">
+                By clicking "Complete Purchase", you agree to our terms of service and shipping policies.
               </p>
             </div>
           </form>
+
+          {/* Right Column: Order Summary (5 cols) */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-100/40 space-y-6">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+                <Link to="/cart" className="text-[10px] font-bold uppercase tracking-widest text-[#8b7fc0] hover:text-[#7b6ea8] transition-colors bg-[#aba0e3]/10 hover:bg-[#aba0e3]/20 px-3 py-1.5 rounded-full">
+                  Edit Cart
+                </Link>
+              </div>
+              
+              <div className="space-y-4 max-h-[45vh] overflow-auto pr-2 custom-scrollbar">
+                {cartItems.map((item, i) => (
+                  <div key={i} className="flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                    <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100">
+                      <img 
+                        src={item.images?.[0] ? (item.images[0].startsWith('http') ? item.images[0] : `${BACKEND_URL}${item.images[0]}`) : PRODUCT_FALLBACK} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { e.target.src = PRODUCT_FALLBACK; }} 
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm truncate">{item.name}</h3>
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-0.5">
+                        {item.size} • {item.color}
+                      </p>
+                      <div className="flex justify-between items-center mt-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">Qty: {item.quantity}</span>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                                removeFromCart(item.productId, item.size, item.color);
+                                if (cartItems.length === 1) navigate('/cart');
+                            }}
+                            className="text-red-400 hover:text-red-500 p-1.5 bg-red-50 hover:bg-red-100 rounded-full transition-colors flex items-center justify-center opacity-70 hover:opacity-100"
+                            title="Remove Item"
+                          >
+                             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                        <span className="font-bold text-gray-900 text-sm">
+                          {(item.price * item.quantity).toLocaleString('en-IN', {
+                            style: 'currency',
+                            currency: 'INR',
+                            maximumFractionDigits: 0
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="border-t border-gray-100 pt-5 space-y-3 text-sm">
+                <div className="flex justify-between text-gray-500 font-medium">
+                  <span>Subtotal</span>
+                  <span>
+                    {subtotal.toLocaleString('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-500 font-medium">
+                  <span>Delivery Charges</span>
+                  <span className={delivery === 0 ? 'text-green-500 font-bold' : ''}>
+                    {delivery === 0 ? 'FREE' : delivery.toLocaleString('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-gray-900 pt-4 border-t border-gray-100">
+                  <span className="font-bold text-base">Total Amount</span>
+                  <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-rose-500 bg-clip-text text-transparent">
+                    {total.toLocaleString('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

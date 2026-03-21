@@ -12,7 +12,7 @@ export default function About() {
               Our Story
             </span>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Welcome to <span className="italic" style={{ color: '#aba0e3' }}>Aara</span>
+              Welcome to <span className="italic" style={{ color: '#8b7fc0' }}>Aara</span>
               <br />The Designer Studio
             </h1>
             <p className="text-gray-600 text-lg leading-relaxed">
@@ -47,7 +47,7 @@ export default function About() {
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">Meet The Founder</span>
               <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4 mb-8">
                 A Creative Force Driven by
-                <span className="italic block" style={{ color: '#aba0e3' }}>Passion & Innovation</span>
+                <span className="italic block" style={{ color: '#8b7fc0' }}>Passion & Innovation</span>
               </h2>
               <div className="space-y-6 text-gray-600 leading-relaxed">
                 <p>
@@ -72,7 +72,7 @@ export default function About() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#aba0e3' }}>Our Philosophy</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>Our Philosophy</span>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4">
               More Than Just Apparel
             </h2>

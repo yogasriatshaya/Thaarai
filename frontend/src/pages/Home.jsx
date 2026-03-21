@@ -69,13 +69,13 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-100 mb-6 rounded-full">
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#aba0e3' }} />
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-700">
-                New Collection 2024
+                New Collection 2026
               </p>
             </div>
 
             <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-gray-900 font-bold leading-[1.1] mb-6">
               Best Quality<br />
-              <span className="italic font-normal" style={{ color: '#aba0e3' }}>Fabrics.</span>
+              <span className="italic font-normal" style={{ color: '#8b7fc0' }}>Fabrics.</span>
             </h1>
 
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-10 max-w-lg">
@@ -245,7 +245,7 @@ export default function Home() {
               <span className="section-label">Our Philosophy</span>
               <h2 className="section-title mt-6">
                 Style, Innovation &<br />
-                <em className="italic font-normal" style={{ color: '#aba0e3' }}>Individuality</em>
+                <em className="italic font-normal" style={{ color: '#8b7fc0' }}>Individuality</em>
               </h2>
               <div className="w-12 h-px my-10" style={{ backgroundColor: 'rgba(171, 160, 227, 0.2)' }} />
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-12 italic">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import logo from '../assets/logo.jpg';
@@ -32,13 +32,33 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [visible, setVisible] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const scrollPosRef = useRef(window.scrollY);
+  const searchRef = useRef(null);
+  const userRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target)) {
+        setUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 40);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -70,13 +90,14 @@ export default function Navbar() {
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-xl'
-          : 'bg-white/40 backdrop-blur-md border-b border-gray-50'
-      }`}
-    >
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-xl'
+            : 'bg-white/40 backdrop-blur-md border-b border-gray-50'
+        }`}
+      >
       {/* Announcement Bar */}
       <div className="py-1 px-4 text-center" style={{ backgroundColor: '#aba0e3' }}>
         <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-white">
@@ -94,9 +115,9 @@ export default function Navbar() {
               className="h-6 sm:h-7 md:h-8 w-auto object-contain transition-all duration-500"
             />
           </div>
-          <div>
+          <div className={searchOpen ? 'hidden md:block' : 'block'}>
             <span className="font-serif text-base sm:text-lg font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
-            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#aba0e3' }}>The Designer Studio</span>
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
           </div>
         </Link>
 
@@ -122,16 +143,101 @@ export default function Navbar() {
         {/* Right Actions */}
         <div className="flex items-center gap-1">
           {/* Search */}
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className={`p-2.5 transition-all ${searchOpen ? 'text-gray-400 hover:text-gray-900' : 'text-gray-400 hover:text-gray-900'}`}
-            style={searchOpen ? { color: '#aba0e3' } : {}}
-          >
-            <SearchIcon />
-          </button>
+          <div ref={searchRef} className="flex items-center relative z-50">
+            <div className={`transition-all duration-300 overflow-hidden flex items-center bg-gray-50 rounded-full border border-gray-200 ${searchOpen ? 'w-48 sm:w-56 lg:w-64 opacity-100 px-4 py-1.5 mr-1' : 'w-0 opacity-0 p-0 mr-0 border-transparent'}`}>
+              <form onSubmit={handleSearch} className="w-full flex items-center gap-2">
+                <input
+                  autoFocus={searchOpen}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full text-xs text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-900 shrink-0">
+                     <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </form>
+            </div>
+            <button
+              onClick={() => {
+                setSearchOpen(!searchOpen);
+                if (searchOpen) setSearchQuery('');
+              }}
+              className={`p-2.5 transition-all rounded-full ${searchOpen ? 'text-[#8b7fc0] bg-gray-50' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              <SearchIcon />
+            </button>
+
+            {/* Live Inline Search Results Dropdown */}
+            {searchOpen && (
+              <div className="absolute top-[120%] right-0 w-[300px] sm:w-[360px] bg-white border border-gray-100 shadow-2xl rounded-2xl animate-fade-in overflow-hidden z-[100]">
+                {searchQuery.length <= 1 ? (
+                  <div className="p-4 flex flex-col gap-2 bg-gray-50/30">
+                     <p className="text-[9px] font-bold uppercase tracking-widest text-[#8b7fc0] px-2 py-1 mb-1">Suggested for you</p>
+                     {products.slice(0, 3).map(p => (
+                      <Link 
+                        key={p._id} 
+                        to={`/product/${p._id}`}
+                        onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+                        className="flex items-center gap-4 group p-2 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-gray-100"
+                      >
+                        <div className="w-10 h-10 bg-gray-100 overflow-hidden rounded-full shrink-0 shadow-sm border border-gray-100">
+                          <img 
+                            src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`} 
+                            alt={p.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={e => { e.target.src = logo; }}
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-900 transition-colors" style={{ '--hover-color': '#8b7fc0' }} onMouseEnter={e => e.currentTarget.style.color = '#8b7fc0'} onMouseLeave={e => e.currentTarget.style.color = ''}>{p.name}</h4>
+                          <p className="text-[9px] text-gray-400 mt-0.5">{p.category}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="p-4 flex flex-col gap-2">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 px-2 py-1">Products</p>
+                    {searchResults.map(p => (
+                      <Link 
+                        key={p._id} 
+                        to={`/product/${p._id}`}
+                        onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+                        className="flex items-center gap-4 group p-2 hover:bg-gray-50 rounded-xl transition-all"
+                      >
+                        <div className="w-12 h-16 bg-gray-100 overflow-hidden rounded-md shrink-0 shadow-sm border border-gray-100">
+                          <img 
+                            src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`} 
+                            alt={p.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={e => { e.target.src = logo; }}
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-900 transition-colors" style={{ '--hover-color': '#8b7fc0' }} onMouseEnter={e => e.currentTarget.style.color = '#8b7fc0'} onMouseLeave={e => e.currentTarget.style.color = ''}>{p.name}</h4>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5">{p.category}</p>
+                          <p className="text-[11px] font-semibold text-gray-900 mt-1">₹{p.price}</p>
+                        </div>
+                      </Link>
+                    ))}
+                    <button onClick={handleSearch} className="mt-2 w-full py-2.5 text-[10px] font-bold uppercase tracking-widest bg-[#8b7fc0] hover:bg-[#7b6ea8] text-white rounded-xl transition-colors shadow-sm">
+                      View All Results
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center bg-gray-50/50">
+                    <p className="text-gray-500 italic text-xs">No exact matches found.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* User */}
-          <div className="relative hidden sm:block">
+          <div ref={userRef} className="relative hidden sm:block">
             <button
               onClick={() => setUserDropdown(!userDropdown)}
               className="p-2.5 text-gray-400 hover:text-gray-900 transition-all"
@@ -186,7 +292,7 @@ export default function Navbar() {
           </Link>
 
           {/* Cart */}
-          <Link to="/cart" className="relative p-2.5 text-gray-400 hover:text-gray-900 transition-all">
+          <Link to="/cart" className="relative p-2.5 text-gray-400 hover:text-gray-900 transition-all hidden sm:block">
             <CartIcon />
             {cartCount > 0 && (
               <span className="absolute top-1 right-1 bg-gray-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">
@@ -210,85 +316,12 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Search Overlay & Live Results */}
-      {searchOpen && (
-        <div className="absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-2xl animate-fade-in z-[60]">
-          <div className="max-w-4xl mx-auto px-6 py-8">
-            <form onSubmit={handleSearch} className="flex gap-4 items-center mb-6">
-              <div className="flex-1 relative">
-                <input
-                  autoFocus
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search for kurtis, maxi, co-ords..."
-                  className="w-full text-2xl font-serif text-gray-900 placeholder-gray-300 outline-none border-b-2 border-gray-100 pb-3 bg-transparent transition-all"
-                  style={{ '--focus-color': '#aba0e3' }}
-                  onFocus={e => e.target.style.borderColor = '#aba0e3'}
-                  onBlur={e => e.target.style.borderColor = ''}
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
-                  >
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </form>
 
-            {/* Live Search Results */}
-            {searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Products</p>
-                  {searchResults.map(p => (
-                    <Link 
-                      key={p._id} 
-                      to={`/product/${p._id}`}
-                      onClick={() => setSearchOpen(false)}
-                      className="flex items-center gap-4 group"
-                    >
-                      <div className="w-12 h-16 bg-gray-50 overflow-hidden">
-                        <img 
-                          src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`} 
-                          alt={p.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          onError={e => { e.target.src = logo; }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 group-hover:text-gray-600 transition-colors" style={{ '--hover-color': '#aba0e3' }}>{p.name}</h4>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-tighter">{p.category}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <div className="bg-gray-50 p-6 flex flex-col justify-center rounded-sm">
-                  <p className="text-sm text-gray-600 mb-4 italic">"Looking for something specific? Our collection is updated weekly with new designs."</p>
-                  <button
-                    onClick={handleSearch}
-                    className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
-                    style={{ color: '#aba0e3' }}
-                  >
-                    View All Results <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </button>
-                </div>
-              </div>
-            ) : searchQuery.length > 1 ? (
-              <div className="py-10 text-center animate-fade-in">
-                <p className="text-gray-400 italic">No exact matches found. Try searching for "Kurti" or "Maxi".</p>
-              </div>
-            ) : null}
-          </div>
-          <div className="h-24 bg-gradient-to-b from-white to-transparent opacity-50"></div>
-        </div>
-      )}
+
+    </header>
 
       {/* Mobile Nav Drawer */}
-      <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-300 ${mobileOpen ? 'visible' : 'invisible pointer-events-none'}`}>
+      <div className={`fixed inset-0 z-[9999] lg:hidden transition-all duration-300 ${mobileOpen ? 'visible' : 'invisible pointer-events-none'}`}>
         {/* Backdrop */}
         <div 
           className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
@@ -296,8 +329,8 @@ export default function Navbar() {
         />
         
         {/* Panel */}
-        <div className={`absolute top-0 right-0 w-72 h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-6 flex items-center justify-between border-b border-gray-100">
+        <div className={`absolute top-0 right-0 w-72 h-[100dvh] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 flex items-center justify-between border-b border-gray-100 mt-2">
             <div className="flex items-center gap-2">
               <span className="font-serif text-lg font-bold text-gray-900">Menu</span>
             </div>
@@ -308,7 +341,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+          <div className="flex-1 overflow-y-auto px-6 py-6 bg-white custom-scrollbar pb-10">
             <nav className="divide-y divide-gray-50 mb-8">
               {navLinks.map(({ to, label }) => {
                 const isActive = location.pathname === to;
@@ -329,6 +362,13 @@ export default function Navbar() {
                 onMouseLeave={e => e.currentTarget.style.color = ''}>
                 Wishlist ({wishlist.length})
               </Link>
+              <Link to="/cart" onClick={() => setMobileOpen(false)}
+                className="block py-3.5 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
+                style={{ '--hover-color': '#aba0e3' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
+                onMouseLeave={e => e.currentTarget.style.color = ''}>
+                Cart ({cartCount})
+              </Link>
             </nav>
 
             <div className="pt-6 border-t border-gray-100 space-y-4">
@@ -341,8 +381,8 @@ export default function Navbar() {
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary text-center py-3 text-xs">Sign In</Link>
-                  <Link to="/register" onClick={() => setMobileOpen(false)} className="border border-gray-200 text-center py-3 text-xs font-bold rounded-xl text-gray-900">Join</Link>
+                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary flex justify-center items-center py-3 px-4 text-xs whitespace-nowrap">Sign In</Link>
+                  <Link to="/register" onClick={() => setMobileOpen(false)} className="border border-gray-200 py-3 px-4 text-xs font-bold rounded-xl text-gray-900 flex justify-center items-center whitespace-nowrap">Join</Link>
                 </div>
               )}
             </div>
@@ -350,7 +390,8 @@ export default function Navbar() {
         </div>
       </div>
 
-    </header>
+    <div className="h-[74px]" />
+    </>
   );
 }
 

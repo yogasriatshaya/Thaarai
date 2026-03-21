@@ -117,6 +117,25 @@ router.get('/my-orders', authMiddleware, async (req, res) => {
   }
 });
 
+// Cancel an order (user action)
+router.put('/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    
+    if (order.orderStatus === 'shipped' || order.orderStatus === 'delivered') {
+      return res.status(400).json({ success: false, message: 'Cannot cancel an order that is already shipped or delivered' });
+    }
+    
+    order.orderStatus = 'cancelled';
+    await order.save();
+    
+    res.json({ success: true, message: 'Order cancelled successfully', order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Get all orders (admin)
 router.get('/all', adminMiddleware, async (req, res) => {
   try {

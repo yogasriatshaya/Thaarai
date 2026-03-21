@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,11 +26,11 @@ const ProtectedRoute = ({ children }) => {
   return isAdmin ? children : <Navigate to="/admin" />;
 };
 
-export default function App() {
+function App() {
   return (
     <BrowserRouter>
       <ShopProvider>
-        <div className="flex flex-col min-h-screen overflow-x-hidden">
+        <div className="flex flex-col min-h-screen">
           <ScrollToTop />
           <Navbar />
           <main className="flex-1 transition-colors duration-500">
@@ -71,3 +72,58 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+// Global Effect to automatically observe all sections, text blocks and images for scroll reveals
+
+function useGlobalScrollReveal() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    const attachObservers = () => {
+      // Find elements you want to auto-reveal that haven't been tagged yet
+      const elements = document.querySelectorAll(
+        'section, h1, h2, h3, .card-premium, img:not(.no-reveal), .reveal'
+      );
+      elements.forEach((el) => {
+        if (!el.classList.contains('reveal')) {
+          el.classList.add('reveal');
+        }
+        observer.observe(el);
+      });
+    };
+
+    // Attach initially
+    attachObservers();
+
+    // Setup mutation observer to detect React navigation page changes and re-attach dynamically
+    const mutationObserver = new MutationObserver(() => {
+      attachObservers();
+    });
+
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
+  return null;
+}
+
+// Wrapper to inject it seamlessly into App root
+const AppRoot = () => {
+  useGlobalScrollReveal();
+  return <App />;
+};
+
+export default AppRoot;

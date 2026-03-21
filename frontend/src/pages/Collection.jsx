@@ -90,6 +90,15 @@ export default function Collection() {
           }
         }
         
+        // ── Local Sort Enforcement (API + Mocks) ──────────────────────────
+        if (sort === 'price_asc') {
+          combined.sort((a, b) => (a.price || 0) - (b.price || 0));
+        } else if (sort === 'price_desc') {
+          combined.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (sort === 'rating') {
+          combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
+        }
+
         setProducts(combined.slice(0, 9));
         setTotal(Math.max(r.data.total || 0, combined.length));
         setPages(Math.max(r.data.pages || 1, Math.ceil(combined.length / 9)));
@@ -112,9 +121,18 @@ export default function Collection() {
           return matchesCat && matchesSearch;
         });
 
-        const combined = [...filteredLocals, ...filteredMocks].slice(0, 9);
-        
-        setProducts(combined);
+        const combined = [...filteredLocals, ...filteredMocks];
+
+        // ── Local Sort Enforcement (Mocks) ──────────────────────────
+        if (sort === 'price_asc') {
+          combined.sort((a, b) => (a.price || 0) - (b.price || 0));
+        } else if (sort === 'price_desc') {
+          combined.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (sort === 'rating') {
+          combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
+        }
+
+        setProducts(combined.slice(0, 9));
         setTotal(combined.length);
         setPages(1);
       })
@@ -177,11 +195,10 @@ export default function Collection() {
           )}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12">
+        <div className="flex flex-col lg:flex-row gap-12 items-start">
 
           {/* Sidebar - Sticky */}
-          <aside className="lg:w-64 shrink-0">
-            <div className="lg:sticky lg:top-24 space-y-8">
+          <aside className="lg:w-64 shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar">
 
             {/* Category filter */}
             <div className="bg-gray-50 p-8 border border-gray-100 shadow-sm relative overflow-hidden rounded-sm">
@@ -241,18 +258,27 @@ export default function Collection() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-6">Sort by Selection</p>
+                    <div className="px-0">
+                      <select
+                        value={sort}
+                        onChange={e => { setSort(e.target.value); setCurrentPage(1); }}
+                        className="w-full text-[10px] uppercase tracking-widest font-bold text-gray-900 border border-gray-200 px-4 py-3 bg-white outline-none focus:border-blue-600 transition-all cursor-pointer rounded-sm"
+                      >
+                        <option value="newest">Recent Items</option>
+                        <option value="price_asc">Price: Low to High</option>
+                        <option value="price_desc">Price: High to Low</option>
+                        <option value="rating">Top Rated</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div className="hidden lg:block bg-gray-900 p-8 border border-gray-800 relative overflow-hidden group rounded-sm">
-                <div className="relative z-10">
-                   <h4 className="font-serif font-bold text-lg text-white mb-3 tracking-tight">Atelier Circle</h4>
-                   <p className="text-gray-400 text-[11px] leading-relaxed mb-8 font-light tracking-wide italic">Join for exclusive arrivals & bespoke tailoring services.</p>
-                   <Link to="/register" className="inline-block w-full py-4 bg-white text-gray-900 text-[9px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all text-center rounded-sm">Join Now</Link>
-                </div>
-            </div>
-            </div>
+
           </aside>
 
           {/* ── Product Grid ─────────────────────────────────────────────── */}
@@ -264,19 +290,6 @@ export default function Collection() {
                   <>Displaying <span className="text-gray-900">{total}</span> masterworks</>
                 )}
               </p>
-              <div className="flex items-center gap-6">
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Sort By</span>
-                <select
-                  value={sort}
-                  onChange={e => { setSort(e.target.value); setCurrentPage(1); }}
-                  className="text-[10px] uppercase tracking-widest font-bold text-gray-900 border border-gray-200 px-6 py-3 bg-white outline-none focus:border-blue-600 transition-all cursor-pointer rounded-xl"
-                >
-                  <option value="newest">Recent Items</option>
-                  <option value="price_asc">Price: Low to High</option>
-                  <option value="price_desc">Price: High to Low</option>
-                  <option value="rating">Top Rated</option>
-                </select>
-              </div>
             </div>
 
             {/* Grid */}

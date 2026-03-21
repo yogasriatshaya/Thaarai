@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import API from '../api';
 import { toast } from 'react-toastify';
+import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 const ShopContext = createContext();
 
@@ -37,6 +38,29 @@ export const ShopProvider = ({ children }) => {
       API.get('/cart').then(r => setCartData(r.data.cartData || {})).catch(() => {});
     }
   }, [token]);
+
+  // ── Preload Global Catalog for Immediate Search ─────────────────────
+  useEffect(() => {
+    const fetchGlobalCatalog = async () => {
+      try {
+        const res = await API.get('/products?limit=500');
+        const real = res.data.products || [];
+        const localData = localStorage.getItem('aara_local_products');
+        const locals = localData ? JSON.parse(localData) : [];
+        
+        // Remove duplicate mocks if they exist in real db
+        const combined = [...locals, ...real];
+        const uniqueMocks = MOCK_PRODUCTS.filter(m => !combined.some(c => c.name === m.name));
+        
+        setProducts([...combined, ...uniqueMocks]);
+      } catch (err) {
+        const localData = localStorage.getItem('aara_local_products');
+        const locals = localData ? JSON.parse(localData) : [];
+        setProducts([...locals, ...MOCK_PRODUCTS]);
+      }
+    };
+    fetchGlobalCatalog();
+  }, []);
 
   const login = (tokenVal, userData) => {
     localStorage.setItem('token', tokenVal);

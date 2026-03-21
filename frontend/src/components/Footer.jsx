@@ -46,7 +46,7 @@ export default function Footer() {
               <img src="/aara-logo.png" alt="Aara" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
               <div>
                 <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
-                <span className="text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#aba0e3' }}>The Designer Studio</span>
+                <span className="text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
               </div>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6 font-light">
@@ -73,7 +73,7 @@ export default function Footer() {
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-10">
             {footerSections.map(section => (
               <div key={section.title}>
-                <h5 className="text-[9px] font-bold uppercase tracking-[0.3em] mb-6 font-serif" style={{ color: '#aba0e3' }}>
+                <h5 className="text-[9px] font-bold uppercase tracking-[0.3em] mb-6 font-serif" style={{ color: '#8b7fc0' }}>
                   {section.title}
                 </h5>
                 <ul className="space-y-3">

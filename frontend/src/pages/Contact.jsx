@@ -34,7 +34,7 @@ export default function Contact() {
       <section className="relative py-20 bg-gradient-to-b from-[#aba0e3]/10 to-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto">
-            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.3em] mb-6" style={{ color: '#aba0e3' }}>
+            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.3em] mb-6" style={{ color: '#8b7fc0' }}>
               Get In Touch
             </span>
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
@@ -67,7 +67,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
-                    <a href="mailto:aarathedesignerstudio@gmail.com" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
+                    <a href="mailto:aarathedesignerstudio@gmail.com" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
                       aarathedesignerstudio@gmail.com
                     </a>
                   </div>
@@ -112,7 +112,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Follow Us</h3>
-                    <a href="https://instagram.com/aara_thedesignerstudio" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
+                    <a href="https://instagram.com/aara_thedesignerstudio" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
                       @aara_thedesignerstudio
                     </a>
                   </div>
@@ -120,7 +120,7 @@ export default function Contact() {
               </div>
 
               {/* Business Hours */}
-              <div className="mt-12 p-6 bg-gray-50 rounded-xl">
+              <div className="mt-12 p-6 bg-gray-100 rounded-xl">
                 <h3 className="font-bold text-gray-900 mb-4">Business Hours</h3>
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex justify-between">
@@ -136,7 +136,7 @@ export default function Contact() {
             </div>
 
             {/* Contact Form */}
-            <div className="bg-gray-50 p-8 md:p-10 rounded-2xl">
+            <div className="bg-gray-100 p-8 md:p-10 rounded-2xl">
               <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 Send Us a Message
               </h2>
@@ -246,7 +246,7 @@ export default function Contact() {
       <section className="py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-12">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#aba0e3' }}>FAQ</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>FAQ</span>
             <h2 className="font-serif text-3xl font-bold text-gray-900 mt-4">
               Frequently Asked Questions
             </h2>
