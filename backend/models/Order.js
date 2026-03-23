@@ -23,6 +23,8 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ['stripe', 'razorpay', 'cod'], required: true },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
   orderStatus: { type: String, enum: ['processing', 'shipped', 'delivered', 'cancelled'], default: 'processing' },
+  trackingId: { type: String, default: '' },
+  carrierName: { type: String, default: '' },
   stripeSessionId: String,
   razorpayOrderId: String
 }, { timestamps: true });

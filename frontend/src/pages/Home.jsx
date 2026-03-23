@@ -1,258 +1,131 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api';
 import ProductCard from '../components/ProductCard';
+import heroImage from '../assets/hero1.jpg';
 import Newsletter from '../components/Newsletter';
-import {
-  HERO_BG,
-  CAT_COUTURE, CAT_HANDBAGS, CAT_HERITAGE, CAT_ANARKALI,
-  BRAND_STORY,
-  DEMO_PRODUCTS,
-} from '../assets/images';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
-
-// Reusable fade-in hook
-function useReveal() {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { el.classList.add('visible'); observer.disconnect(); } },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  return ref;
-}
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    API.get('/products?bestSeller=true&limit=6').then(r => {
-      let realFeatured = r.data.products || [];
-
-      const localData = localStorage.getItem('aara_local_products');
-      const localProducts = localData ? JSON.parse(localData) : [];
-      let combined = [...localProducts, ...realFeatured];
-
-      if (combined.length < 6) {
-        const mocks = MOCK_PRODUCTS.filter(p => p.bestSeller && !combined.some(rp => rp.name === p.name)).slice(0, 6 - combined.length);
-        setFeaturedProducts([...combined, ...mocks]);
-      } else {
-        setFeaturedProducts(combined.slice(0, 6));
-      }
-    }).catch(() => {
-      const localData = localStorage.getItem('aara_local_products');
-      const localProducts = localData ? JSON.parse(localData) : [];
-      const mocks = MOCK_PRODUCTS.filter(p => p.bestSeller && !localProducts.some(lp => lp.name === p.name)).slice(0, 6 - localProducts.length);
-      setFeaturedProducts([...localProducts, ...mocks]);
+    API.get('/products?limit=6').then(r => {
+      setFeaturedProducts(r.data.products || []);
     }).finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
+    <div>
+      {/* Hero Section */}
+      <section className="relative h-screen min-h-[600px] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 z-10" />
+        <img
+          src={heroImage}
+          alt="The Royal Collection"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
 
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* HERO — Full Width Background */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden" 
-        style={{ 
-          background: 'radial-gradient(at 100% 0%, rgba(255, 244, 248, 0.8) 0px, transparent 40%), radial-gradient(at 0% 100%, rgba(171, 160, 227, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(245, 233, 218, 0.45) 0px, transparent 50%), #fff' 
-        }}>
-        {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-100 mb-6 rounded-full">
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#aba0e3' }} />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-700">
-                New Collection 2026
-              </p>
-            </div>
+        <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-6">
+          <p className="section-label text-gold-300 mb-4 tracking-[0.4em] drop-shadow-md">New Arrival</p>
+          <h1 className="font-serif text-5xl md:text-7xl text-white mb-2 leading-none drop-shadow-xl">The Royal</h1>
+          <h1 className="font-serif italic text-5xl md:text-7xl text-white mb-6 leading-none drop-shadow-xl">Collection</h1>
+          <p className="text-sm md:text-base text-white/90 font-sans font-light max-w-lg mb-10 leading-relaxed drop-shadow-sm">
+            Experience the pinnacle of luxury with our hand-woven silk gowns and regal silhouettes designed for the modern monarch.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link 
+              to="/collection" 
+              className="px-8 py-3 text-white text-[12px] font-bold uppercase tracking-[0.1em] transition-all duration-300 rounded-lg shadow-lg hover:scale-105"
+              style={{ backgroundColor: '#b08912' }}
+            >
+              Shop the Collection
+            </Link>
+            <Link 
+              to="/collection?category=Heritage" 
+              className="inline-block border-2 border-white text-white px-8 py-3 text-xs tracking-[0.2em] uppercase font-sans font-medium hover:bg-white hover:text-charcoal transition-all duration-300 shadow-xl"
+            >
+              View Lookbook
+            </Link>
+          </div>
+        </div>
+      </section>
 
-            <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-gray-900 font-bold leading-[1.1] mb-6">
-              Best Quality<br />
-              <span className="italic font-normal" style={{ color: '#8b7fc0' }}>Fabrics.</span>
-            </h1>
-
-            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-10 max-w-lg">
-              Classy designs at affordable pricing. Discover our exclusive collection of Indian ethnic wear crafted with love and tradition.
+      {/* Artisanal Craftsmanship */}
+      <section className="py-20 bg-ivory">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="section-label mb-3">The CubeAI Solutions Standard</p>
+            <h2 className="section-title mb-4">Artisanal Craftsmanship</h2>
+            <div className="w-12 h-px bg-gold-500 mx-auto mb-5" />
+            <p className="text-sm text-muted font-sans max-w-xl mx-auto leading-relaxed italic">
+              "Every stitch tells a story of heritage and precision. Discover our curated selection of tailored coats, hand-finished silks, and designer accessories."
             </p>
+          </div>
 
-            <div className="flex flex-wrap gap-4 items-center">
-              <Link to="/collection" className="btn-primary text-sm px-8 py-4">
-                Shop Collection
-              </Link>
-              <Link to="/collection?category=Kurti" className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 group">
-                Explore Kurtis
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </Link>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 rounded" style={{ aspectRatio: '3/4' }} />
+                  <div className="h-4 bg-gray-200 rounded mt-3 w-2/3" />
+                  <div className="h-3 bg-gray-200 rounded mt-2 w-1/2" />
+                </div>
+              ))}
             </div>
-          </div>
-
-          {/* Right side: Logo */}
-          <div className="flex justify-center lg:justify-end">
-            <img 
-              src="/aara-logo.png" 
-              alt="Aara Logo" 
-              className="w-full max-w-[420px] h-auto object-contain scale-105"
-            />
-          </div>
-        </div>
-
-        {/* Scroll Cue */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-400">
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em]">Scroll</p>
-          <div className="w-px h-8 bg-gray-300 animate-pulse" />
-        </div>
-      </section>
-
-      {/* Stats Bar */}
-      <section className="bg-white border-b border-gray-100 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-wrap justify-center md:justify-between items-center gap-8">
-            {[
-              { value: '49+', label: 'Products' },
-              { value: '100%', label: 'Quality' },
-              { value: '98%', label: 'Happy Customers' },
-              { value: '24/7', label: 'Support' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <p className="font-serif text-2xl md:text-3xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* PRODUCT SHOWCASE */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-24 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16">
-            <div className="max-w-xl">
-              <span className="section-label">Selected Works</span>
-              <h2 className="section-title">The Aara Edit</h2>
-              <p className="text-gray-600 leading-relaxed mt-6 text-sm font-light">
-                Discover our signature pieces crafted with the finest fabrics. Curated for those who appreciate style and elegance.
-              </p>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {featuredProducts.map(p => <ProductCard key={p._id} product={p} />)}
             </div>
-            <Link to="/collection" className="btn-ghost mb-4 md:mb-0">
-              View Collection
-            </Link>
-          </div>
-
-          <div className="max-w-5xl mx-auto">
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {[1,2,3].map(i => (
-                  <div key={i} className="animate-pulse">
-                    <div className="bg-gray-200 rounded-xl" style={{ aspectRatio: '3/4' }} />
-                    <div className="h-4 bg-gray-200 mt-4 w-2/3" />
-                    <div className="h-3 bg-gray-200 mt-2 w-1/3" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { name: 'Tailored Majesty', sub: 'Exquisite Merino Wool', price: '₹1,850', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4b4adc?w=400&h=500&fit=crop' },
+                { name: 'The Signature Bag', sub: 'Pure Russian Calfskin', price: '₹3,200', img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=500&fit=crop', label: 'ICONIC' },
+                { name: 'Silk Radiance', sub: 'Hand-painted Mulberry Silk', price: '₹450', img: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=400&h=500&fit=crop' }
+              ].map(p => (
+                <div key={p.name} className="product-card">
+                  <div className="relative product-img-wrap bg-gray-50 mb-3" style={{ aspectRatio: '3/4' }}>
+                    <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
+                    {p.label && <span className="absolute top-3 left-3 bg-gold-600 text-white text-[9px] tracking-[0.2em] uppercase px-2.5 py-1 font-sans">{p.label}</span>}
                   </div>
-                ))}
-              </div>
-            ) : featuredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {featuredProducts.map(p => <ProductCard key={p._id} product={p} />)}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {DEMO_PRODUCTS.slice(0, 3).map(p => (
-                  <ProductCard key={p.name} product={{
-                    _id: p.name, name: p.name, category: p.category,
-                    price: p.price, label: p.label, images: [p.image]
-                  }} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-20 border-t border-white/5 pt-12 flex justify-center">
-            <Link to="/collection" className="btn-secondary">
-              View All Collections
-            </Link>
-          </div>
+                  <p className="text-[10px] tracking-[0.2em] uppercase text-muted font-sans mb-1">{p.sub}</p>
+                  <h3 className="font-serif text-base text-charcoal mb-1">{p.name}</h3>
+                  <p className="text-sm font-sans font-medium">{p.price}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* CATEGORY FEATURE — GRID */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="bg-white py-12 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {[
-            { label: 'Kurti', title: 'Designer Kurtis', img: CAT_COUTURE, href: '/collection?category=Kurti', count: '34 Items' },
-            { label: 'Maxi', title: 'Maxi Dresses', img: CAT_HANDBAGS, href: '/collection?category=Maxi', count: '10 Items' },
-            { label: 'Co-ords', title: 'Co-ord Sets', img: CAT_HERITAGE, href: '/collection?category=Co-ords', count: '8 Items' },
-            { label: 'Anarkali', title: 'Anarkali Suits', img: CAT_ANARKALI, href: '/collection?category=Anarkali', count: '6 Items' },
-          ].map(cat => (
-            <Link key={cat.label} to={cat.href} className="group relative overflow-hidden block rounded-xl shadow-xl" style={{ aspectRatio: '3/4' }}>
+      {/* Mastery in Every Detail */}
+      <section className="py-20 bg-white">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div className="relative">
               <img
-                src={cat.img}
-                alt={cat.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=700&fit=crop"
+                alt="The Atelier"
+                className="w-full object-cover"
+                style={{ aspectRatio: '5/6' }}
               />
-              <div className="absolute inset-0 bg-gray-900/10 group-hover:bg-gray-900/5 transition-all duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent opacity-90" />
-              <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
-                <p className="text-[7px] md:text-[8px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: '#aba0e3' }}>{cat.count}</p>
-                <h3 className="font-serif text-sm md:text-lg text-white font-bold tracking-tight">{cat.title}</h3>
-                <div className="w-0 h-px bg-white/50 mt-2 group-hover:w-full transition-all duration-700" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* BRAND STORY */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-24 bg-white border-t border-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 items-center">
-            {/* Image */}
-            <div className="lg:col-span-6 relative">
-              <div className="relative group">
-                <div className="absolute inset-0 border border-gray-100 -translate-x-6 -translate-y-6 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-1000" />
-                <img
-                  src="/founder-subha.png"
-                  alt="Aara Designer Studio"
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover rounded-sm shadow-2xl"
-                  style={{ aspectRatio: '4/4' }}
-                />
-              </div>
-              <div className="absolute -bottom-8 -right-8 bg-white border border-gray-100 p-10 hidden lg:block shadow-2xl">
-                <p className="font-serif text-4xl font-bold text-gray-900 mb-1">Subha</p>
-                <p className="text-[9px] font-bold uppercase tracking-[0.4em]" style={{ color: '#aba0e3' }}>Founder</p>
+              <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 pb-6">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === 1 ? 'bg-white' : 'bg-white/40'}`} />
+                ))}
               </div>
             </div>
-
-            {/* Content */}
-            <div className="lg:col-span-6 lg:pl-10 text-gray-900">
-              <span className="section-label">Our Philosophy</span>
-              <h2 className="section-title mt-6">
-                Style, Innovation &<br />
-                <em className="italic font-normal" style={{ color: '#8b7fc0' }}>Individuality</em>
-              </h2>
-              <div className="w-12 h-px my-10" style={{ backgroundColor: 'rgba(171, 160, 227, 0.2)' }} />
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-12 italic">
-                We blend inspiration from culture and creativity with bold ideas and timeless aesthetics — crafting pieces that are elegant and affordable.
+            <div className="md:pl-8">
+              <p className="section-label mb-5">The Atelier</p>
+              <h2 className="font-serif text-4xl text-charcoal mb-2">Mastery in</h2>
+              <h2 className="font-serif italic text-4xl text-gold-600 mb-8">every detail</h2>
+              <p className="text-sm text-muted font-sans leading-relaxed mb-8">
+                Founded on the principles of timeless elegance and unparalleled quality, CubeAI Solutions brings together the world's finest artisans to create pieces that transcend seasons. Our atelier in the heart of the heritage district remains committed to sustainable luxury and ethical sourcing.
               </p>
-              <Link to="/collection" className="btn-primary">
-                Explore Collection
+              <Link to="/collection" className="inline-flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-sans text-charcoal hover:text-gold-600 transition-colors group">
+                Discover Our Story
+                <span className="text-lg group-hover:translate-x-1 transition-transform">→</span>
               </Link>
             </div>
           </div>

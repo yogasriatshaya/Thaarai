@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.jpg';
+import logo from '../assets/logo.png';
 
 const footerSections = [
   {
@@ -42,12 +42,8 @@ export default function Footer() {
 
           {/* Brand Column */}
           <div className="lg:col-span-4">
-            <Link to="/" className="flex items-center gap-3 mb-6 group">
-              <img src="/aara-logo.png" alt="Aara" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
-              <div>
-                <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
-                <span className="text-[8px] font-bold uppercase tracking-[0.4em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
-              </div>
+            <Link to="/" className="flex items-center mb-6 group">
+              <img src={logo} alt="Aara" className="h-12 w-auto object-contain transition-all duration-500 rounded-sm mix-blend-multiply" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6 font-light">
               Style, innovation, and individuality. We blend inspiration from culture and creativity with bold ideas and timeless aesthetics.
@@ -99,7 +95,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-[8px] text-gray-400 uppercase tracking-[0.3em] font-bold">
-            © 2026 Aara The Designer Studio. All Rights Reserved.
+            © 2026 Aara Luxury E-commerce. All Rights Reserved.
           </p>
           <div className="flex items-center gap-6">
             {['Privacy Policy', 'Terms of Use', 'Cookie Preferences'].map(item => (

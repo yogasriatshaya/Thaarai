@@ -38,4 +38,14 @@ router.get('/all', adminMiddleware, async (req, res) => {
   }
 });
 
+// Get abandoned carts (admin)
+router.get('/abandoned', adminMiddleware, async (req, res) => {
+  try {
+    const users = await User.find({ cartData: { $type: 'object', $ne: {} } }).select('-password').sort({ updatedAt: -1 });
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

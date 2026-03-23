@@ -14,7 +14,7 @@
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
-  
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -100,7 +100,7 @@
   }
 
   body {
-    @apply font-sans antialiased bg-gray-50 text-gray-800;
+    @apply font-sans antialiased bg-gray-50 text-gray-800 lining-nums;
   }
 
   h1,

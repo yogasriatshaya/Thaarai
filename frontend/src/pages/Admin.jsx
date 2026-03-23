@@ -124,7 +124,7 @@ export function AdminDashboard() {
       toast.error('Please fill all required fields');
       return;
     }
-    
+
     const newProduct = {
       ...form,
       price: parseFloat(form.price),
@@ -201,7 +201,7 @@ export function AdminDashboard() {
                   <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Identity Name</label>
                   <input
                     value={form.name}
-                    onChange={e => setForm({...form, name: e.target.value})}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
                     className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     placeholder="e.g. Silk Radiance Wrap"
                     required
@@ -212,7 +212,7 @@ export function AdminDashboard() {
                   <input
                     type="number"
                     value={form.price}
-                    onChange={e => setForm({...form, price: e.target.value})}
+                    onChange={e => setForm({ ...form, price: e.target.value })}
                     className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     placeholder="250"
                     required
@@ -224,7 +224,7 @@ export function AdminDashboard() {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Media URL</label>
                 <input
                   value={form.image}
-                  onChange={e => setForm({...form, image: e.target.value})}
+                  onChange={e => setForm({ ...form, image: e.target.value })}
                   className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                   placeholder="https://images.unsplash.com/..."
                   required
@@ -235,7 +235,7 @@ export function AdminDashboard() {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Classification</label>
                 <select
                   value={form.category}
-                  onChange={e => setForm({...form, category: e.target.value})}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
                   className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                 >
                   <option>Couture</option>
@@ -249,7 +249,7 @@ export function AdminDashboard() {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Description Archive</label>
                 <textarea
                   value={form.description}
-                  onChange={e => setForm({...form, description: e.target.value})}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
                   className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all min-h-[120px]"
                   placeholder="The details of the acquisition..."
                 />

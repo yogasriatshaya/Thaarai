@@ -1,92 +1,265 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import API from '../api';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
+import { ShoppingBag, TrendingUp, AlertTriangle, Users, DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0 });
+  const [stats, setStats] = useState({});
   const [recentOrders, setRecentOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [paymentSummary, setPaymentSummary] = useState([]);
+  const [shippingSummary, setShippingSummary] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Date Filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      let url = '/dashboard/stats';
+      const params = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      
+      const res = await API.get(url, { params });
+      if (res.data.success) {
+         setStats(res.data.stats || {});
+         setRecentOrders(res.data.recentOrders || []);
+         setTopProducts(res.data.topProducts || []);
+         setChartData(res.data.chartData || []);
+         setPaymentSummary(res.data.paymentSummary || []);
+         setShippingSummary(res.data.shippingSummary || []);
+         setAlerts(res.data.alerts || []);
+      }
+    } catch (err) {
+      console.error('Dashboard error:', err);
+      toast.error('Failed to load dashboard statistics.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [products, orders, customers] = await Promise.all([
-          API.get('/products?limit=1'),
-          API.get('/orders/all?limit=5'),
-          API.get('/users/all')
-        ]);
-        const revenue = orders.data.orders?.reduce((sum, o) => sum + (o.totalAmount || 0), 0) || 0;
-        setStats({
-          products: products.data.total || 0,
-          orders: orders.data.total || 0,
-          customers: customers.data.users?.length || 0,
-          revenue
-        });
-        setRecentOrders(orders.data.orders?.slice(0, 5) || []);
-      } catch (err) {
-        console.error('Dashboard load error:', err.response?.status, err.response?.data?.message);
-      }
-      setLoading(false);
-    };
-    load();
-  }, []);
+    loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
+
+  const COLORS = ['#D4AF37', '#22C55E', '#3B82F6', '#EF4444', '#8B5CF6'];
 
   const statCards = [
-    { label: 'Total Products', value: stats.products, icon: '◈', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Total Orders', value: stats.orders, icon: '◎', color: 'text-gold-600', bg: 'bg-gold-50' },
-    { label: 'Customers', value: stats.customers, icon: '◉', color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Revenue', value: `₹${stats.revenue.toLocaleString()}`, icon: '◐', color: 'text-purple-600', bg: 'bg-purple-50' }
+    { label: 'Total Sales', value: `₹${stats.totalSales?.toLocaleString() || 0}`, sub: `Today: ₹${stats.todaySales?.toLocaleString() || 0}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Total Orders', value: stats.totalOrders || 0, sub: `Today: ${stats.todayOrders || 0}`, icon: ShoppingBag, color: 'text-gold-600', bg: 'bg-gold-50' },
+    { label: 'Pending Orders', value: stats.pendingOrders || 0, sub: `Processing`, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+    { label: 'New Customers', value: stats.newCustomers || 0, sub: `Target interval`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' }
+  ];
+
+  const stockStats = [
+     { label: 'Low Stock', value: stats.lowStockCount || 0, icon: AlertTriangle, color: 'text-orange-500' },
+     { label: 'Out of Stock', value: stats.outOfStockCount || 0, icon: Package, color: 'text-red-500' },
+     { label: 'Delivered', value: stats.deliveredOrders || 0, icon: CheckCircle, color: 'text-green-500' }
   ];
 
   const statusColors = { processing: 'text-yellow-700 bg-yellow-50', shipped: 'text-blue-700 bg-blue-50', delivered: 'text-green-700 bg-green-50', cancelled: 'text-red-700 bg-red-50' };
 
   return (
     <Layout title="Dashboard">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
-        {statCards.map(card => (
-          <div key={card.label} className="card p-5">
-            <div className={`w-10 h-10 ${card.bg} rounded-full flex items-center justify-center mb-3`}>
-              <span className={`${card.color} text-lg`}>{card.icon}</span>
-            </div>
-            <p className="text-2xl font-serif text-charcoal mb-1">{loading ? '—' : card.value}</p>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-sans">{card.label}</p>
-          </div>
-        ))}
+      {/* Date Filter & Quick Actions */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3 bg-white p-2 rounded border border-gray-100 shadow-sm w-full md:w-auto">
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-600 focus:outline-none" />
+          <span className="text-gray-400 text-xs">to</span>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-600 focus:outline-none" />
+          <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-[10px] text-gray-400 hover:text-charcoal underline">Clear</button>
+        </div>
+        <div className="flex items-center gap-2">
+            <a href="/products" className="btn-outline text-xs py-1.5 flex items-center justify-center gap-1"><Package size={14}/> Products</a>
+            <a href="/orders" className="btn-primary text-xs py-1.5 flex items-center justify-center gap-1"><ShoppingBag size={14}/> Orders</a>
+        </div>
       </div>
 
-      <div className="card p-6">
-        <h2 className="font-serif text-lg text-charcoal mb-5">Recent Orders</h2>
-        {loading ? (
-          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}</div>
-        ) : recentOrders.length === 0 ? (
-          <p className="text-sm text-gray-400 font-sans py-6 text-center">No orders yet</p>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Order ID', 'Customer', 'Amount', 'Payment', 'Status', 'Date'].map(h => (
-                  <th key={h} className="text-left text-[10px] tracking-[0.2em] uppercase text-gray-400 font-sans pb-3 pr-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map(order => (
-                <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 pr-4 text-xs font-sans text-charcoal">#{order._id.slice(-8).toUpperCase()}</td>
-                  <td className="py-3 pr-4 text-xs font-sans text-gray-600">{order.userId?.name || 'Guest'}</td>
-                  <td className="py-3 pr-4 text-xs font-sans font-medium">₹{order.totalAmount?.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
-                  <td className="py-3 pr-4">
-                    <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>
-                      {order.orderStatus}
-                    </span>
-                  </td>
-                  <td className="py-3 text-xs font-sans text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* Alerts */}
+      {alerts.length > 0 && (
+         <div className="space-y-2 mb-6">
+           {alerts.map((alt, idx) => (
+             <div key={idx} className={`p-3 rounded-md border text-xs flex items-center gap-2 ${alt.type === 'danger' ? 'bg-red-50 text-red-700 border-red-100' : alt.type === 'warning' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+               <AlertTriangle size={14} /> <span>{alt.message}</span>
+             </div>
+           ))}
+         </div>
+      )}
+
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {statCards.map(card => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="card p-5 hover:shadow-md transition-all">
+              <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-sans mb-1">{card.label}</p>
+                    <h2 className="text-2xl font-sans font-bold text-charcoal">{loading ? '—' : card.value}</h2>
+                    <p className="text-[10px] text-gray-400 mt-1">{card.sub}</p>
+                  </div>
+                  <div className={`w-10 h-10 ${card.bg} rounded-full flex items-center justify-center`}>
+                    <Icon size={18} className={card.color} />
+                  </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+       {/* Sub Statistics & stock alert overview */}
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+         {stockStats.map(s => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="bg-white p-4 rounded border border-gray-100 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
+                 <div className="p-2 bg-gray-50 rounded-full"><Icon size={16} className={s.color} /></div>
+                 <div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wider scale-95 origin-left">{s.label}</div>
+                    <div className="text-lg font-bold font-serif text-charcoal">{loading ? '—' : s.value}</div>
+                 </div>
+              </div>
+            );
+         })}
+       </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+        <div className="card p-5 lg:col-span-2 shadow-sm">
+            <h3 className="font-serif text-charcoal mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-gold-600"/> Sales & Orders Trend</h3>
+            <div className="h-64">
+               {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                        <XAxis dataKey="_id" tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '4px', border: '1px solid #F3F4F6' }} />
+                        <Area type="monotone" dataKey="sales" name="Sales (₹)" stroke="#D4AF37" strokeWidth={1.5} fillOpacity={1} fill="url(#colorSales)" />
+                    </AreaChart>
+                </ResponsiveContainer>
+               ) : (
+                  <div className="flex items-center justify-center h-full text-xs text-gray-400">No chart data for this range</div>
+               )}
+            </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="card p-4 shadow-sm flex-1 flex flex-col justify-center">
+              <h3 className="font-serif text-xs text-gray-500 uppercase tracking-wider mb-2">Payment Methods</h3>
+              <div className="h-28 flex items-center justify-center">
+                 {paymentSummary.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                          <Pie data={paymentSummary} nameKey="_id" dataKey="count" cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={4} strokeWidth={0}>
+                              {paymentSummary.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                          </Pie>
+                          <Tooltip />
+                      </PieChart>
+                  </ResponsiveContainer>
+                 ) : <p className="text-xs text-gray-400">No data available</p>}
+              </div>
+              <div className="flex flex-col gap-1 w-full mt-2 text-[11px] max-h-16 overflow-y-auto px-1">
+                  {paymentSummary.map((p, i) => (
+                      <div key={p._id || i} className="flex items-center justify-between"><div className="flex items-center gap-1.2"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} /> <span className="capitalize text-gray-600 truncate max-w-[80px]">{p._id || 'Unknown'}</span></div> <span className="font-semibold text-charcoal">{p.count}</span></div>
+                  ))}
+              </div>
+          </div>
+
+          <div className="card p-4 shadow-sm flex-1 flex flex-col justify-center">
+              <h3 className="font-serif text-xs text-gray-500 uppercase tracking-wider mb-2">Shipping Summary</h3>
+              <div className="flex-1 flex flex-col justify-center gap-2">
+                 {shippingSummary.length > 0 ? shippingSummary.map((s, idx) => (
+                      <div key={s._id || idx}>
+                          <div className="flex justify-between items-center text-[11px] mb-1">
+                              <span className="capitalize text-gray-600">{s._id || 'Processing'}</span>
+                              <span className="font-medium text-charcoal">{s.count} orders</span>
+                          </div>
+                          <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (s.count / (stats.totalOrders || 1)) * 100)}%`, backgroundColor: COLORS[idx % COLORS.length] }} />
+                          </div>
+                      </div>
+                 )) : <p className="text-xs text-gray-400 text-center py-2">No shipping stats available</p>}
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Recent Orders List */}
+        <div className="card p-5 lg:col-span-2 shadow-sm">
+            <h2 className="font-serif text-lg text-charcoal mb-5 flex items-center gap-1"><ShoppingBag size={18} className="text-indigo-500" /> Recent Orders</h2>
+            {loading ? (
+            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}</div>
+            ) : recentOrders.length === 0 ? (
+            <p className="text-sm text-gray-400 font-sans py-6 text-center">No orders yet</p>
+            ) : (
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                <thead>
+                    <tr className="border-b border-gray-100">
+                    {['Order ID', 'Customer', 'Amount', 'Payment', 'Status', 'Date'].map(h => (
+                        <th key={h} className="text-left text-[10px] tracking-[0.18em] uppercase text-gray-400 font-sans pb-3 pr-4">{h}</th>
+                    ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {recentOrders.map(order => (
+                    <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 pr-4 text-xs font-sans text-charcoal">#{order._id.slice(-8).toUpperCase()}</td>
+                        <td className="py-3 pr-4 text-xs font-sans text-gray-600 truncate max-w-[100px]">{order.userId?.name || 'Guest'}</td>
+                        <td className="py-3 pr-4 text-xs font-sans font-medium">₹{order.totalAmount?.toLocaleString()}</td>
+                        <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
+                        <td className="py-3 pr-4">
+                        <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>
+                            {order.orderStatus}
+                        </span>
+                        </td>
+                        <td className="py-3 text-xs font-sans text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-GB')}</td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
+            )}
+        </div>
+
+         {/* Top Selling Products */}
+         <div className="card p-5 shadow-sm">
+             <h2 className="font-serif text-lg text-charcoal mb-4 flex items-center gap-1"><TrendingUp size={18} className="text-green-500" /> Top Selling</h2>
+             {topProducts.length === 0 ? <p className="text-sm text-gray-400 text-center py-6">No products sold yet</p> : (
+                 <div className="space-y-3">
+                     {topProducts.map((prod, index) => (
+                         <div key={prod._id} className="flex items-center gap-3 border-b border-gray-50 last:border-0 pb-3 hover:bg-gray-50 p-1 rounded-sm transition-colors">
+                            <div className="w-9 h-9 bg-gray-50 rounded overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center">
+                                {prod.image ? <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-charcoal truncate">{prod.name || 'Unnamed'}</p>
+                                <p className="text-[10px] text-gray-400">{prod.totalSales} units sold</p>
+                            </div>
+                            <div className="text-xs font-semibold text-charcoal">₹{prod.revenue?.toLocaleString()}</div>
+                         </div>
+                     ))}
+                 </div>
+             )}
+         </div>
       </div>
     </Layout>
   );

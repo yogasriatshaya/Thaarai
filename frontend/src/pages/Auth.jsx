@@ -78,7 +78,7 @@ export function Login() {
               <input
                 type="email"
                 value={form.email}
-                onChange={e => setForm({...form, email: e.target.value})}
+                onChange={e => setForm({ ...form, email: e.target.value })}
                 className="input-field"
                 placeholder="your@email.com"
                 required
@@ -89,7 +89,7 @@ export function Login() {
               <input
                 type="password"
                 value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
+                onChange={e => setForm({ ...form, password: e.target.value })}
                 className="input-field"
                 placeholder="••••••••"
                 required
@@ -192,7 +192,7 @@ export function Register() {
             <InputGroup label="Full Name">
               <input
                 value={form.name}
-                onChange={e => setForm({...form, name: e.target.value})}
+                onChange={e => setForm({ ...form, name: e.target.value })}
                 className="input-field"
                 placeholder="Your full name"
                 required
@@ -203,7 +203,7 @@ export function Register() {
               <input
                 type="email"
                 value={form.email}
-                onChange={e => setForm({...form, email: e.target.value})}
+                onChange={e => setForm({ ...form, email: e.target.value })}
                 className="input-field"
                 placeholder="your@email.com"
                 required
@@ -214,7 +214,7 @@ export function Register() {
               <input
                 type="password"
                 value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
+                onChange={e => setForm({ ...form, password: e.target.value })}
                 className="input-field"
                 placeholder="••••••••"
                 minLength={6}

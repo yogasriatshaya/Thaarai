@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Newsletter from '../components/Newsletter';
+import StatCounter from '../components/StatCounter';
 
 export default function About() {
   return (
@@ -125,13 +126,15 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: '49+', label: 'Unique Designs' },
-              { value: '1000+', label: 'Happy Customers' },
-              { value: '100%', label: 'Quality Promise' },
-              { value: '24/7', label: 'Customer Support' },
+              { target: 49, suffix: '+', label: 'Unique Designs' },
+              { target: 1000, suffix: '+', label: 'Happy Customers' },
+              { target: 100, suffix: '%', label: 'Quality Promise' },
+              { target: 24, suffix: '/7', label: 'Customer Support' },
             ].map((stat, i) => (
               <div key={i} className="text-center">
-                <p className="font-serif text-4xl md:text-5xl font-bold" style={{ color: '#aba0e3' }}>{stat.value}</p>
+                <p className="font-serif text-4xl md:text-5xl font-bold" style={{ color: '#aba0e3' }}>
+                  <StatCounter target={stat.target} suffix={stat.suffix} />
+                </p>
                 <p className="text-sm text-gray-500 mt-2 uppercase tracking-wider">{stat.label}</p>
               </div>
             ))}

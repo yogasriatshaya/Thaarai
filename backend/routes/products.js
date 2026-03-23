@@ -35,6 +35,8 @@ router.get('/', async (req, res) => {
     if (sort === 'price_asc') sortObj.price = 1;
     else if (sort === 'price_desc') sortObj.price = -1;
     else if (sort === 'rating') sortObj.averageRating = -1;
+    else if (sort === 'name_asc') sortObj.name = 1;
+    else if (sort === 'name_desc') sortObj.name = -1;
     else sortObj.createdAt = -1; // default: newest
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -61,25 +63,58 @@ router.get('/:id', async (req, res) => {
 // Add product (admin)
 router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) => {
   try {
-    const { name, description, category, subcategory, price, originalPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage } = req.body;
+    const { name, description, category, subcategory, price, originalPrice, costPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, status } = req.body;
     const images = req.files?.map(f => f.path) || [];
+
+    let appliedLabel = label || '';
+    if (Number(stock) <= 0) {
+       appliedLabel = 'Sold Out';
+    }
 
     const product = await Product.create({
       name, description, category, subcategory,
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : undefined,
+      costPrice: Number(costPrice) || 0,
       sizes: sizes ? JSON.parse(sizes) : [],
       colors: colors ? JSON.parse(colors) : [],
       images,
       stock: Number(stock) || 0,
       bestseller: bestseller === 'true',
-      label: label || '',
+      label: appliedLabel,
       fabric: fabric || material || '',
       style: style || '',
       availability: availability || 'Available',
-      material, heritage
+      material, heritage,
+      status: status || 'Publish'
     });
     res.status(201).json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Bulk Discount rule (admin)
+router.put('/bulk/discount', adminMiddleware, async (req, res) => {
+  try {
+    const { category, discountType, discountValue } = req.body;
+    const query = {};
+    if (category && category !== 'All') query.category = category;
+
+    const products = await Product.find(query);
+    for (const p of products) {
+      if (p.price <= 0) continue;
+      let newPrice = p.price;
+      if (discountType === 'percentage') {
+        newPrice = p.price - (p.price * (Number(discountValue) / 100));
+      } else if (discountType === 'fixed') {
+        newPrice = p.price - Number(discountValue);
+      }
+      p.originalPrice = p.price; // Backup old price
+      p.price = Math.max(0, Math.round(newPrice));
+      await p.save();
+    }
+    res.json({ success: true, message: `Updated prices for ${products.length} products` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -88,7 +123,7 @@ router.post('/', adminMiddleware, upload.array('images', 6), async (req, res) =>
 // Update product (admin)
 router.put('/:id', adminMiddleware, upload.array('images', 6), async (req, res) => {
   try {
-    const { name, description, category, subcategory, price, originalPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, existingImages } = req.body;
+    const { name, description, category, subcategory, price, originalPrice, costPrice, sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, existingImages, status } = req.body;
     const updateData = {
       name, description, category, subcategory,
       price: Number(price),
@@ -98,12 +133,23 @@ router.put('/:id', adminMiddleware, upload.array('images', 6), async (req, res) 
       material, heritage
     };
 
+    if (status) updateData.status = status;
     if (originalPrice !== undefined && originalPrice !== '') updateData.originalPrice = Number(originalPrice);
+    if (costPrice !== undefined && costPrice !== '') updateData.costPrice = Number(costPrice);
     if (sizes) updateData.sizes = JSON.parse(sizes);
     if (colors) updateData.colors = JSON.parse(colors);
-    if (stock !== undefined) updateData.stock = Number(stock);
+    if (stock !== undefined) {
+      updateData.stock = Number(stock);
+      if (updateData.stock <= 0) {
+        updateData.label = 'Sold Out';
+      } else if (label !== undefined) {
+         updateData.label = label;
+      }
+    } else if (label !== undefined) {
+      updateData.label = label;
+    }
+
     if (bestseller !== undefined) updateData.bestseller = bestseller === 'true';
-    if (label !== undefined) updateData.label = label;
 
     // Handle images: combine existing (not removed) with new uploads
     const keptImages = existingImages ? JSON.parse(existingImages) : [];
@@ -131,11 +177,85 @@ router.delete('/:id', adminMiddleware, async (req, res) => {
 router.post('/:id/reviews', authMiddleware, async (req, res) => {
   try {
     const { rating, comment, name } = req.body;
+    const Product = require('../models/Product');
+    const Order = require('../models/Order');
+    
     const product = await Product.findById(req.params.id);
-    const review = { userId: req.user.id, name: name || 'Customer', rating: Number(rating), comment };
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    // Check if review already exists from this user
+    const alreadyReviewed = product.reviews.find(r => r.userId.toString() === req.user.id);
+    if (alreadyReviewed) {
+      return res.status(400).json({ success: false, message: 'You have already reviewed this product' });
+    }
+
+    // Check if user has ordered this product
+    const hasOrdered = await Order.findOne({ userId: req.user.id, 'items.productId': req.params.id });
+
+    const review = { 
+      userId: req.user.id, 
+      name: name || req.user.name || 'Customer', 
+      rating: Number(rating), 
+      comment,
+      verifiedPurchase: !!hasOrdered
+    };
+
     product.reviews.push(review);
     product.reviewCount = product.reviews.length;
     product.averageRating = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
+    await product.save();
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Edit review
+router.put('/:id/reviews/:reviewId', authMiddleware, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const Product = require('../models/Product');
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const review = product.reviews.id(req.params.reviewId);
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    if (review.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to edit this review' });
+    }
+
+    if (rating) review.rating = Number(rating);
+    if (comment) review.comment = comment;
+
+    product.averageRating = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
+    await product.save();
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete review
+router.delete('/:id/reviews/:reviewId', authMiddleware, async (req, res) => {
+  try {
+    const Product = require('../models/Product');
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const review = product.reviews.id(req.params.reviewId);
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    if (review.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
+    }
+
+    product.reviews.pull({ _id: req.params.reviewId });
+    product.reviewCount = product.reviews.length;
+    product.averageRating = product.reviews.length > 0
+      ? product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length
+      : 0;
+
     await product.save();
     res.json({ success: true, product });
   } catch (err) {

@@ -7,6 +7,9 @@ import Products from './pages/Products';
 import ProductForm from './pages/ProductForm';
 import Orders from './pages/Orders';
 import Customers from './pages/Customers';
+import Inventory from './pages/Inventory';
+import Coupons from './pages/Coupons';
+import Settings from './pages/Settings';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
@@ -25,6 +28,9 @@ export default function App() {
         <Route path="/products/edit/:id" element={<PrivateRoute><ProductForm /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
         <Route path="/customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
+        <Route path="/inventory" element={<PrivateRoute><Inventory /></PrivateRoute>} />
+        <Route path="/coupons" element={<PrivateRoute><Coupons /></PrivateRoute>} />
+        <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
       </Routes>
       <ToastContainer position="top-right" autoClose={3000}
         toastStyle={{ fontFamily: 'Jost, sans-serif', fontSize: '13px' }} />

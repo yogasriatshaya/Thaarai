@@ -19,7 +19,7 @@ export default function Collection() {
   const [maxPrice, setMaxPrice] = useState('');
 
   const urlCategory = searchParams.get('category') || '';
-  const urlSearch   = searchParams.get('search')   || '';
+  const urlSearch = searchParams.get('search') || '';
 
   // ── Load distinct categories from real DB products ──────────────────────
   useEffect(() => {
@@ -48,18 +48,18 @@ export default function Collection() {
 
     const activeCategory = selectedCategory || urlCategory;
     if (activeCategory) params.set('category', activeCategory);
-    if (urlSearch)       params.set('search', urlSearch);
-    if (maxPrice)        params.set('maxPrice', maxPrice);
+    if (urlSearch) params.set('search', urlSearch);
+    if (maxPrice) params.set('maxPrice', maxPrice);
 
-    params.set('sort',  sort);
-    params.set('page',  currentPage);
+    params.set('sort', sort);
+    params.set('page', currentPage);
     params.set('limit', 9);
 
     setLoading(true);
     API.get(`/products?${params.toString()}`)
       .then(r => {
         let realProducts = r.data.products || [];
-        
+
         // ── Local Storage Injection ──────────────────────────────────────
         const localData = localStorage.getItem('aara_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
@@ -70,9 +70,9 @@ export default function Collection() {
           return matchesCat && matchesSearch && matchesPrice;
         });
 
-        // Combine Real + Local
-        let combined = [...filteredLocals, ...realProducts];
-        
+        // Combine Real + Local (Prioritize Real)
+        let combined = [...realProducts, ...filteredLocals];
+
         // ── Mock Injection Logic ──────────────────────────────────────────
         if (combined.length < 6) {
           const filteredMocks = MOCK_PRODUCTS.filter(mp => {
@@ -89,7 +89,7 @@ export default function Collection() {
             }
           }
         }
-        
+
         // ── Local Sort Enforcement (API + Mocks) ──────────────────────────
         if (sort === 'price_asc') {
           combined.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -97,6 +97,10 @@ export default function Collection() {
           combined.sort((a, b) => (b.price || 0) - (a.price || 0));
         } else if (sort === 'rating') {
           combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
+        } else if (sort === 'name_asc') {
+          combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sort === 'name_desc') {
+          combined.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
         }
 
         setProducts(combined.slice(0, 9));
@@ -108,7 +112,7 @@ export default function Collection() {
         const localData = localStorage.getItem('aara_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
         const activeCategory = selectedCategory || urlCategory;
-        
+
         const filteredLocals = localProducts.filter(lp => {
           const matchesCat = !activeCategory || lp.category === activeCategory;
           const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
@@ -130,6 +134,10 @@ export default function Collection() {
           combined.sort((a, b) => (b.price || 0) - (a.price || 0));
         } else if (sort === 'rating') {
           combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
+        } else if (sort === 'name_asc') {
+          combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sort === 'name_desc') {
+          combined.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
         }
 
         setProducts(combined.slice(0, 9));
@@ -157,9 +165,9 @@ export default function Collection() {
 
   const bannerImgs = {
     'Silk Scarves': BANNER_SILK,
-    'Couture':      CAT_COUTURE,
-    'Heritage':     CAT_HERITAGE,
-    'Handbags':     CAT_HANDBAGS,
+    'Couture': CAT_COUTURE,
+    'Heritage': CAT_HERITAGE,
+    'Handbags': CAT_HANDBAGS,
   };
   const bannerImg = bannerImgs[selectedCategory || urlCategory] || HERO_BG;
 
@@ -271,13 +279,15 @@ export default function Collection() {
                         <option value="price_asc">Price: Low to High</option>
                         <option value="price_desc">Price: High to Low</option>
                         <option value="rating">Top Rated</option>
+                        <option value="name_asc">Alphabetical: A to Z</option>
+                        <option value="name_desc">Alphabetical: Z to A</option>
                       </select>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
+
 
           </aside>
 
@@ -295,7 +305,7 @@ export default function Collection() {
             {/* Grid */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {[1,2,3,4,5,6].map(i => (
+                {[1, 2, 3, 4, 5, 6].map(i => (
                   <ProductSkeleton key={i} />
                 ))}
               </div>
@@ -328,7 +338,7 @@ export default function Collection() {
                   className="w-14 h-14 flex items-center justify-center border border-gray-200 hover:border-gray-900 text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-all group rounded-sm">
                   <span className="group-hover:-translate-x-1 transition-transform">←</span>
                 </button>
-                
+
                 <div className="flex gap-4">
                   {Array.from({ length: Math.min(pages, 8) }, (_, i) => i + 1).map(p => (
                     <button key={p} onClick={() => setCurrentPage(p)}

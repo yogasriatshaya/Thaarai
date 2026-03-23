@@ -2,12 +2,41 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Product = require('../models/Product');
+const StockLog = require('../models/StockLog');
+const Coupon = require('../models/Coupon');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // Create order (COD)
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const { items, address, totalAmount, paymentMethod } = req.body;
+    const { items, address, totalAmount, paymentMethod, couponId } = req.body;
+    
+    // 📦 Deduct Stock at Order Time (E-commerce Best Practice)
+    for (const item of items) {
+      if (item.productId) {
+        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        if (prod) {
+            await StockLog.create({
+                productId: prod._id,
+                userId: req.user.id,
+                action: 'decrement',
+                quantity: item.quantity,
+                previousStock: prod.stock + item.quantity,
+                currentStock: prod.stock,
+                reason: 'New Order Placed (COD)'
+            });
+            if (prod.stock <= 0) {
+               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+            }
+        }
+      }
+    }
+
+    if (couponId) {
+        await Coupon.findByIdAndUpdate(couponId, { $inc: { usedCount: 1 } });
+    }
+
     const order = await Order.create({
       userId: req.user.id, items, address, totalAmount,
       paymentMethod,
@@ -26,7 +55,7 @@ router.post('/create', authMiddleware, async (req, res) => {
 router.post('/stripe', authMiddleware, async (req, res) => {
   try {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    const { items, address, totalAmount } = req.body;
+    const { items, address, totalAmount, couponId } = req.body;
     
     const lineItems = items.map(item => ({
       price_data: {
@@ -34,18 +63,43 @@ router.post('/stripe', authMiddleware, async (req, res) => {
         product_data: { name: item.name, images: item.image ? [item.image] : [] },
         unit_amount: Math.round(item.price * 100)
       },
-      quantity: item.quantity
+      lineItems
     }));
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: lineItems,
+      line_items: items.map(i => ({ price_data: { currency: 'inr', product_data: { name: i.name }, unit_amount: Math.round(i.price * 100) }, quantity: i.quantity })),
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cart`,
       metadata: { userId: req.user.id, address: JSON.stringify(address) }
     });
     
+    if (couponId) {
+        await Coupon.findByIdAndUpdate(couponId, { $inc: { usedCount: 1 } });
+    }
+
+    // 📦 Deduct Stock at Order Time
+    for (const item of items) {
+      if (item.productId) {
+        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        if (prod) {
+            await StockLog.create({
+                productId: prod._id,
+                userId: req.user.id,
+                action: 'decrement',
+                quantity: item.quantity,
+                previousStock: prod.stock + item.quantity,
+                currentStock: prod.stock,
+                reason: 'New Order Placed'
+            });
+            if (prod.stock <= 0) {
+               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+            }
+        }
+      }
+    }
+
     const order = await Order.create({
       userId: req.user.id, items, address, totalAmount,
       paymentMethod: 'stripe', paymentStatus: 'pending',
@@ -66,7 +120,7 @@ router.post('/razorpay', authMiddleware, async (req, res) => {
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET
     });
-    const { items, address, totalAmount } = req.body;
+    const { items, address, totalAmount, couponId } = req.body;
     
     const options = {
       amount: Math.round(totalAmount * 100),
@@ -75,6 +129,32 @@ router.post('/razorpay', authMiddleware, async (req, res) => {
     };
     
     const razorOrder = await razorpay.orders.create(options);
+
+    if (couponId) {
+        await Coupon.findByIdAndUpdate(couponId, { $inc: { usedCount: 1 } });
+    }
+
+    // 📦 Deduct Stock at Order Time
+    for (const item of items) {
+      if (item.productId) {
+        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        if (prod) {
+            await StockLog.create({
+                productId: prod._id,
+                userId: req.user.id,
+                action: 'decrement',
+                quantity: item.quantity,
+                previousStock: prod.stock + item.quantity,
+                currentStock: prod.stock,
+                reason: 'New Order Placed'
+            });
+            if (prod.stock <= 0) {
+               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+            }
+        }
+      }
+    }
+
     const order = await Order.create({
       userId: req.user.id, items, address, totalAmount,
       paymentMethod: 'razorpay', paymentStatus: 'pending',
@@ -122,11 +202,19 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
   try {
     const order = await Order.findOne({ _id: req.params.id, userId: req.user.id });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.orderStatus === 'cancelled') return res.status(400).json({ success: false, message: 'Order is already cancelled' });
     
     if (order.orderStatus === 'shipped' || order.orderStatus === 'delivered') {
       return res.status(400).json({ success: false, message: 'Cannot cancel an order that is already shipped or delivered' });
     }
     
+    // 📦 Add Stock back if order is cancelled
+    for (const item of order.items) {
+      if (item.productId) {
+        await Product.findByIdAndUpdate(item.productId, { $inc: { stock: item.quantity } });
+      }
+    }
+
     order.orderStatus = 'cancelled';
     await order.save();
     
@@ -152,10 +240,12 @@ router.get('/all', adminMiddleware, async (req, res) => {
 // Update order status (admin)
 router.put('/:id/status', adminMiddleware, async (req, res) => {
   try {
-    const { orderStatus, paymentStatus } = req.body;
+    const { orderStatus, paymentStatus, carrierName, trackingId } = req.body;
     const update = {};
     if (orderStatus) update.orderStatus = orderStatus;
     if (paymentStatus) update.paymentStatus = paymentStatus;
+    if (carrierName !== undefined) update.carrierName = carrierName;
+    if (trackingId !== undefined) update.trackingId = trackingId;
     const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ success: true, order });
   } catch (err) {

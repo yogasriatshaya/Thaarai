@@ -105,6 +105,7 @@ export function Orders() {
                         <h3 className="text-sm sm:text-base text-[#212121] font-medium hover:text-[#2874f0] cursor-pointer truncate transition-colors">
                           {item.name}
                         </h3>
+                        <p className="text-[10px] text-gray-400 font-bold font-sans tracking-wide mt-1">Order ID: #{order._id.slice(-8).toUpperCase()}</p>
                         <p className="text-xs text-gray-500 mt-2 flex flex-col gap-1">
                           {item.color && <span>Color: <span className="text-gray-600">{item.color}</span></span>}
                           {item.size && <span>Size: <span className="text-gray-600">{item.size}</span></span>}
@@ -128,6 +129,12 @@ export function Orders() {
                           <div>
                             <p className="text-sm text-black font-semibold">{statusInfo.text}</p>
                             <p className="text-xs text-gray-500 mt-1 leading-relaxed">{statusInfo.sub}</p>
+                            {order.trackingId && (
+                                <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-0.5">
+                                   <p className="text-[11px] font-bold text-black flex items-center gap-1">📦 Tracking</p>
+                                   <p className="text-[11px] font-bold text-[#2874f0] font-sans">{order.carrierName} ({order.trackingId})</p>
+                                </div>
+                            )}
                           </div>
                         </div>
                         

@@ -11,7 +11,7 @@ export default function RecentlyViewed() {
   useEffect(() => {
     const raw = localStorage.getItem('aara_recently_viewed');
     if (raw) {
-      try { setItems(JSON.parse(raw)); } catch {}
+      try { setItems(JSON.parse(raw)); } catch { }
     }
   }, []);
 

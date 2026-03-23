@@ -49,7 +49,7 @@ export default function Customers() {
                       {customer.role}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-xs font-sans text-gray-400">{new Date(customer.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-4 text-xs font-sans text-gray-400">{new Date(customer.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}</td>
                   <td className="px-5 py-4 text-xs font-sans text-gray-500">{customer.wishlist?.length || 0} items</td>
                 </tr>
               ))}

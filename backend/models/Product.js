@@ -5,6 +5,7 @@ const reviewSchema = new mongoose.Schema({
   name: String,
   rating: { type: Number, min: 1, max: 5 },
   comment: String,
+  verifiedPurchase: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -15,6 +16,7 @@ const productSchema = new mongoose.Schema({
   subcategory: { type: String },
   price: { type: Number, required: true },
   originalPrice: { type: Number },
+  costPrice: { type: Number, default: 0 },
   sizes: [{ type: String }],
   colors: [{ type: String }],
   images: [{ type: String }],
@@ -28,7 +30,8 @@ const productSchema = new mongoose.Schema({
   heritage: { type: String },
   reviews: [reviewSchema],
   averageRating: { type: Number, default: 0 },
-  reviewCount: { type: Number, default: 0 }
+  reviewCount: { type: Number, default: 0 },
+  status: { type: String, enum: ['Publish', 'Draft'], default: 'Publish' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', productSchema);

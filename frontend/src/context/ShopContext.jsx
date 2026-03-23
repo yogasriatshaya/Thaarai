@@ -17,9 +17,9 @@ export const ShopProvider = ({ children }) => {
   }, [wishlist]);
 
   const toggleWishlist = (productId) => {
-    setWishlist(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId) 
+    setWishlist(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
     if (!wishlist.includes(productId)) {
@@ -35,11 +35,26 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       API.get('/users/profile').then(r => setUser(r.data.user)).catch(() => logout());
-      API.get('/cart').then(r => setCartData(r.data.cartData || {})).catch(() => {});
+      API.get('/cart').then(r => setCartData(r.data.cartData || {})).catch(() => { });
     }
   }, [token]);
 
-  // ── Preload Global Catalog for Immediate Search ─────────────────────
+  const [settings, setSettings] = useState({ maintenanceMode: false, maintenanceMessage: '' });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await API.get('/settings');
+        if (res.data.success) {
+          setSettings(res.data.settings);
+        }
+      } catch (err) {
+        console.error('Failed to load site settings', err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   useEffect(() => {
     const fetchGlobalCatalog = async () => {
       try {
@@ -47,11 +62,11 @@ export const ShopProvider = ({ children }) => {
         const real = res.data.products || [];
         const localData = localStorage.getItem('aara_local_products');
         const locals = localData ? JSON.parse(localData) : [];
-        
+
         // Remove duplicate mocks if they exist in real db
         const combined = [...locals, ...real];
         const uniqueMocks = MOCK_PRODUCTS.filter(m => !combined.some(c => c.name === m.name));
-        
+
         setProducts([...combined, ...uniqueMocks]);
       } catch (err) {
         const localData = localStorage.getItem('aara_local_products');
@@ -77,7 +92,7 @@ export const ShopProvider = ({ children }) => {
 
   const addToCart = async (productId, size, color) => {
     if (!token) { toast.info('Please login to add to cart'); return; }
-    
+
     // ── Handle Mock & Local Injection ──────────────────────────────────
     if (productId.startsWith('mock_') || productId.startsWith('local_')) {
       const key = `${productId}-${size}-${color}`;
@@ -150,7 +165,7 @@ export const ShopProvider = ({ children }) => {
           try {
             const res = await API.get(`/products/${item.productId}`);
             total += res.data.product.price * item.quantity;
-          } catch {}
+          } catch { }
         }
       }
     }
@@ -162,7 +177,7 @@ export const ShopProvider = ({ children }) => {
       user, token, login, logout, cartData, setCartData,
       addToCart, updateCartQty, removeFromCart, cartCount,
       products, setProducts, BACKEND_URL, cartTotal,
-      wishlist, toggleWishlist, isWishlisted
+      wishlist, toggleWishlist, isWishlisted, settings
     }}>
       {children}
     </ShopContext.Provider>

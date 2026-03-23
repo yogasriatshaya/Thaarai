@@ -1,4 +1,4 @@
-# Thaarai — Luxury Fashion E-Commerce Platform
+# Aara — Luxury Fashion E-Commerce Platform
 
 A full-stack luxury fashion e-commerce platform built with React, Node.js, and MongoDB.
 

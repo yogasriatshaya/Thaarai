@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import API, { BACKEND_URL } from '../api';
 import { toast } from 'react-toastify';
@@ -24,30 +24,41 @@ const initialForm = {
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateId = new URLSearchParams(location.search).get('duplicateId');
   const isEdit = Boolean(id);
   const [form, setForm] = useState(initialForm);
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [colorInput, setColorInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(isEdit);
+  const [fetchLoading, setFetchLoading] = useState(isEdit || Boolean(duplicateId));
+  const [status, setStatus] = useState('Publish');
+  const [isPreview, setIsPreview] = useState(false);
 
   useEffect(() => {
-    if (isEdit) {
-      API.get(`/products/${id}`).then(r => {
+    const loadId = id || duplicateId;
+    if (loadId) {
+      API.get(`/products/${loadId}`).then(r => {
         const p = r.data.product;
         setForm({
-          name: p.name, description: p.description, category: p.category,
+          name: duplicateId ? `${p.name} (Copy)` : p.name, 
+          description: p.description, category: p.category,
           subcategory: p.subcategory || '', price: p.price, originalPrice: p.originalPrice || '',
           stock: p.stock, fabric: p.fabric || p.material || '', style: p.style || '',
           label: p.label || '', bestseller: p.bestseller || false,
           availability: p.availability || 'Available',
           sizes: p.sizes || [], colors: p.colors || []
         });
-        setExistingImages(p.images || []);
+        setStatus(p.status || 'Publish');
+        // Do not prefill images for duplicates (user must upload new) to avoid form-multipart mismatch, 
+        // OR let it append text only. Let's prefill existingImages just for visual, but handleSubmit must know what to upload.
+        if (!duplicateId) {
+           setExistingImages(p.images || []);
+        }
       }).finally(() => setFetchLoading(false));
     }
-  }, [id]);
+  }, [id, duplicateId]);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -67,8 +78,8 @@ export default function ProductForm() {
 
   const removeColor = c => setForm({ ...form, colors: form.colors.filter(x => x !== c) });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, submitStatus = 'Publish') => {
+    if (e) e.preventDefault();
     setLoading(true);
     try {
       const data = new FormData();
@@ -76,6 +87,7 @@ export default function ProductForm() {
         if (k === 'sizes' || k === 'colors') data.append(k, JSON.stringify(v));
         else data.append(k, v);
       });
+      data.append('status', submitStatus);
       images.forEach(img => data.append('images', img));
 
       // Send existing images that weren't removed (for edit mode)
@@ -226,13 +238,22 @@ export default function ProductForm() {
               )}
 
               {/* Upload Area */}
-              <label className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 hover:bg-gold-50/30 transition-all">
+              <label 
+                className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 hover:bg-gold-50/30 transition-all"
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files) {
+                    setImages([...images, ...Array.from(e.dataTransfer.files)]);
+                  }
+                }}
+              >
                 <input type="file" accept="image/*" multiple onChange={e => setImages([...images, ...Array.from(e.target.files)])} className="hidden" />
                 <div className="flex flex-col items-center gap-2">
                   <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p className="text-sm font-sans text-gray-500">Click to upload images</p>
+                  <p className="text-sm font-sans text-gray-500">Click or Drag & Drop to upload images</p>
                   <p className="text-xs font-sans text-gray-400">PNG, JPG, WEBP up to 10MB each</p>
                 </div>
               </label>
@@ -281,15 +302,57 @@ export default function ProductForm() {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button type="submit" disabled={loading} className="btn-primary flex-1 justify-center disabled:opacity-60">
-                {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Add Product'}
+            <div className="flex flex-col gap-3">
+              <button type="button" onClick={() => setIsPreview(true)} className="btn-outline w-full justify-center">
+                Preview Product
               </button>
-              <button type="button" onClick={() => navigate('/products')} className="btn-outline">Cancel</button>
+              <div className="flex gap-2">
+                <button type="button" onClick={(e) => handleSubmit(e, 'Draft')} disabled={loading} className="btn-outline flex-1 justify-center disabled:opacity-60 text-[10px] tracking-widest uppercase font-sans py-2.5">
+                  Save Draft
+                </button>
+                <button type="button" onClick={(e) => handleSubmit(e, 'Publish')} disabled={loading} className="btn-primary flex-1 justify-center disabled:opacity-60 text-[10px] tracking-widest uppercase font-sans py-2.5">
+                  {isEdit ? 'Update' : 'Publish'}
+                </button>
+                <button type="button" onClick={() => navigate('/products')} className="btn-outline px-3 flex items-center justify-center">
+                   <span className="text-gray-400">Cancel</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </form>
+
+      {/* Product Preview Modal */}
+      {isPreview && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-sm max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+               <button onClick={() => setIsPreview(false)} className="absolute top-4 right-4 text-xl text-gray-400 hover:text-charcoal">×</button>
+               <h3 className="font-serif text-charcoal text-lg mb-4 border-b pb-2">Product Preview</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden">
+                     {images.length > 0 ? (
+                        <img src={URL.createObjectURL(images[0])} alt="" className="w-full h-full object-cover" />
+                     ) : existingImages.length > 0 ? (
+                        <img src={existingImages[0].startsWith('http') ? existingImages[0] : `${BACKEND_URL}${existingImages[0]}`} alt="" className="w-full h-full object-cover" />
+                     ) : <div className="text-gray-400 text-xs">No image provided</div>}
+                  </div>
+                  <div className="space-y-2">
+                     <span className="text-[10px] tracking-wider text-gray-400 uppercase">{form.category} • {form.subcategory || 'Standard'}</span>
+                     <h2 className="font-serif text-xl font-bold text-charcoal">{form.name || 'Unnamed Product'}</h2>
+                     <p className="font-sans text-sm text-gray-500 min-h-[50px]">{form.description || 'No description provided'}</p>
+                     <div className="py-2">
+                        <span className="font-sans text-lg font-semibold text-charcoal mr-2">₹{form.price || 0}</span>
+                        {form.originalPrice && <span className="font-sans text-xs text-gray-400 line-through">₹{form.originalPrice}</span>}
+                     </div>
+                     <div>
+                         <span className="text-[10px] text-gray-500 block mb-1">Stock: {form.stock || 0}</span>
+                         <span className="text-[10px] text-gray-500 block">Status: {status}</span>
+                     </div>
+                  </div>
+               </div>
+           </div>
+        </div>
+      )}
     </Layout>
   );
 }

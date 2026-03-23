@@ -26,39 +26,64 @@ const ProtectedRoute = ({ children }) => {
   return isAdmin ? children : <Navigate to="/admin" />;
 };
 
+import { useShop } from './context/ShopContext';
+
+const MaintenancePage = ({ settings }) => (
+  <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
+    <div className="animate-fade-in">
+       <div className="mb-4 text-5xl text-blue-600 font-light">✧</div>
+       <h1 className="font-serif text-3xl font-bold text-gray-900 mb-3 tracking-tight">Website Offline</h1>
+       <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">{settings?.maintenanceMessage || "We are currently making some updates. Please visit us again shortly."}</p>
+    </div>
+  </div>
+);
+
+const AppContent = () => {
+  const { settings } = useShop();
+  const isAdminPath = window.location.pathname.startsWith('/admin');
+
+  if (settings?.maintenanceMode && !isAdminPath) {
+    return <MaintenancePage settings={settings} />;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <ScrollToTop />
+      <Navbar />
+      <main className="flex-1 transition-colors duration-500">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/collection" element={<Collection />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin-dashboard" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </main>
+      <Footer />
+      <RecentlyViewed />
+      <ExitIntentPopup />
+    </div>
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
       <ShopProvider>
-        <div className="flex flex-col min-h-screen">
-          <ScrollToTop />
-          <Navbar />
-          <main className="flex-1 transition-colors duration-500">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/collection" element={<Collection />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/wishlist" element={<Wishlist />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin-dashboard" element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </main>
-          <Footer />
-          <RecentlyViewed />
-          <ExitIntentPopup />
-        </div>
+        <AppContent />
         <ToastContainer
           position="bottom-right"
           autoClose={3000}
