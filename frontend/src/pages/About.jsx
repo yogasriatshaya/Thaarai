@@ -13,58 +13,62 @@ export default function About() {
               Our Story
             </span>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Welcome to <span className="italic" style={{ color: '#8b7fc0' }}>Aara</span>
+              Welcome to <span className="italic" style={{ color: '#8b7fc0' }}>Thaarai</span>
               <br />The Designer Studio
             </h1>
             <p className="text-gray-600 text-lg leading-relaxed">
-              We're proud to introduce Aara - where style meets tradition, and elegance meets affordability.
+              We're proud to introduce Thaarai - where style meets tradition, and elegance meets affordability.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Founder Section */}
+      {/* Brand Story Section */}
       <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            {/* Image */}
-            <div className="relative group">
-              <div className="absolute inset-0 border-2 border-[#aba0e3]/20 -translate-x-6 -translate-y-6 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-700 rounded-lg" />
-              <div className="relative overflow-hidden rounded-lg shadow-2xl" style={{ aspectRatio: '4/4' }}>
-                <img
-                  src="/founder-subha.png"
-                  alt="Subha Baskaran - Founder"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-6 -right-6 bg-white border border-gray-100 p-8 shadow-xl rounded-lg">
-                <p className="font-serif text-3xl font-bold text-gray-900">Subha Baskaran</p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] mt-1" style={{ color: '#aba0e3' }}>Founder & Designer</p>
-              </div>
-            </div>
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">The Thaarai Story</span>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4 mb-8">
+              Crafted for Women Who Love
+              <span className="italic block" style={{ color: '#8b7fc0' }}>Tradition with a Modern Edge</span>
+            </h2>
+          </div>
 
-            {/* Content */}
-            <div className="lg:pl-8">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">Meet The Founder</span>
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4 mb-8">
-                A Creative Force Driven by
-                <span className="italic block" style={{ color: '#8b7fc0' }}>Passion & Innovation</span>
-              </h2>
-              <div className="space-y-6 text-gray-600 leading-relaxed">
-                <p>
-                  Subha Baskaran is a creative force driven by a love for style, innovation, and individuality.
-                  With a vision to redefine ethnic fashion, she founded Aara - The Designer Studio.
-                </p>
-                <p>
-                  Drawing inspiration from her journey, culture, and innate creativity, Subha has built
-                  a brand that blends traditional aesthetics with contemporary design sensibilities.
-                </p>
-                <p>
-                  Every piece at Aara reflects her commitment to quality craftsmanship and timeless elegance,
-                  making designer fashion accessible to all.
-                </p>
+          <div className="space-y-6 text-gray-600 leading-relaxed text-center md:text-left">
+            <p>
+              Thaarai was created to make premium ethnic wear feel effortless, wearable, and relevant for everyday life.
+              Every collection is designed around real moments, festive gatherings, workdays, and celebrations.
+            </p>
+            <p>
+              Our design language blends timeless silhouettes with clean modern details, so each piece feels graceful,
+              versatile, and uniquely personal.
+            </p>
+            <p>
+              From fabric selection to final finishing, we focus on comfort, quality, and thoughtful craftsmanship,
+              so you can wear Thaarai with confidence season after season.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+            {[
+              {
+                title: 'Design First',
+                desc: 'Each collection starts with a strong design concept inspired by culture, color, and contemporary living.',
+              },
+              {
+                title: 'Fit & Comfort',
+                desc: 'We prioritize breathable fabrics and flattering cuts to ensure comfort without compromising elegance.',
+              },
+              {
+                title: 'Made to Repeat',
+                desc: 'Our pieces are created to be restyled across seasons, occasions, and moods.',
+              },
+            ].map((item) => (
+              <div key={item.title} className="bg-gray-50 border border-gray-100 rounded-xl p-6">
+                <h3 className="font-serif text-xl text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

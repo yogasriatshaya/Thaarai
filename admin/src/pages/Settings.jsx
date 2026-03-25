@@ -105,7 +105,7 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <label className="block text-gray-400 mb-1">Website Title</label>
-                    <input type="text" value={settings.siteName} onChange={e => setSettings({...settings, siteName: e.target.value})} className="input-field" placeholder="Aara Designers" />
+                    <input type="text" value={settings.siteName} onChange={e => setSettings({...settings, siteName: e.target.value})} className="input-field" placeholder="Thaarai Designers" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Currency Code</label>
@@ -113,11 +113,11 @@ export default function Settings() {
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Support Email</label>
-                    <input type="email" value={settings.contactEmail} onChange={e => setSettings({...settings, contactEmail: e.target.value})} className="input-field" placeholder="support@test.com" />
+                    <input type="email" value={settings.contactEmail} onChange={e => setSettings({...settings, contactEmail: e.target.value})} className="input-field" placeholder="support@thaarai.test" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Support Phone</label>
-                    <input type="text" value={settings.contactPhone} onChange={e => setSettings({...settings, contactPhone: e.target.value})} className="input-field" placeholder="+91 12345 67890" />
+                    <input type="text" value={settings.contactPhone} onChange={e => setSettings({...settings, contactPhone: e.target.value})} className="input-field" placeholder="+91 90000 00000" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Shipping Fee (₹)</label>
@@ -133,11 +133,11 @@ export default function Settings() {
                 <div className="grid grid-cols-1 gap-3 text-xs">
                     <div>
                       <label className="block text-gray-400 mb-1">Instagram Profile URL</label>
-                      <input type="text" value={settings.socialLinks?.instagram || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} className="input-field" placeholder="https://instagram.com/aara" />
+                      <input type="text" value={settings.socialLinks?.instagram || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} className="input-field" placeholder="https://instagram.com/thaarai" />
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1">Facebook Page URL</label>
-                      <input type="text" value={settings.socialLinks?.facebook || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, facebook: e.target.value}})} className="input-field" placeholder="https://facebook.com/aara" />
+                      <input type="text" value={settings.socialLinks?.facebook || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, facebook: e.target.value}})} className="input-field" placeholder="https://facebook.com/thaarai" />
                     </div>
                 </div>
               </div>

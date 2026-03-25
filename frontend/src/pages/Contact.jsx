@@ -67,8 +67,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
-                    <a href="mailto:aarathedesignerstudio@gmail.com" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
-                      aarathedesignerstudio@gmail.com
+                    <a href="mailto:support@thaarai.test" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
+                      support@thaarai.test
                     </a>
                   </div>
                 </div>
@@ -82,8 +82,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Call Us</h3>
-                    <a href="tel:+918072842781" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
-                      +91 80728 42781
+                    <a href="tel:+919000000000" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
+                      +91 90000 00000
                     </a>
                   </div>
                 </div>
@@ -97,7 +97,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">WhatsApp</h3>
-                    <a href="https://wa.me/918072842781" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
+                    <a href="https://wa.me/919000000001" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#aba0e3] transition-colors">
                       Chat with us on WhatsApp
                     </a>
                   </div>
@@ -112,8 +112,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Follow Us</h3>
-                    <a href="https://instagram.com/aara_thedesignerstudio" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
-                      @aara_thedesignerstudio
+                    <a href="https://instagram.com/thaarai_thedesignerstudio" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#8b7fc0] transition-colors">
+                      @thaarai_thedesignerstudio
                     </a>
                   </div>
                 </div>

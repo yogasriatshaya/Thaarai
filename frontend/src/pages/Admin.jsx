@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import logo from '../assets/logo.jpg';
 
 // ── Local Storage Helpers ───────────────────────────────────────────────────
-const LOCAL_STORAGE_KEY = 'aara_local_products';
+const LOCAL_STORAGE_KEY = 'thaarai_local_products';
 
 const getLocalProducts = () => {
   const data = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -50,8 +50,8 @@ export function AdminLogin() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10 border border-gray-100">
         <div className="text-center mb-10">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <img src="/aara-logo.png" alt="Aara" className="h-8 w-auto transition-all duration-500 rounded-sm" />
-            <span className="font-serif text-lg font-bold tracking-tight text-gray-900">AARA</span>
+            <img src="/thaarai-logo.png" alt="Thaarai" className="h-8 w-auto transition-all duration-500 rounded-sm" />
+            <span className="font-serif text-lg font-bold tracking-tight text-gray-900">THAARAI</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Admin Console</h1>
           <p className="text-gray-600 text-sm mt-2">Enter your credentials to manage properties</p>
@@ -102,7 +102,7 @@ export function AdminDashboard() {
     name: '',
     price: '',
     image: '',
-    category: 'Couture',
+    category: 'Kurti',
     description: '',
   });
 
@@ -134,7 +134,7 @@ export function AdminDashboard() {
 
     saveLocalProduct(newProduct);
     setLocalProducts(getLocalProducts());
-    setForm({ name: '', price: '', image: '', category: 'Couture', description: '' });
+    setForm({ name: '', price: '', image: '', category: 'Kurti', description: '' });
     setActiveTab('view');
     toast.success('Product deployed successfully');
   };
@@ -153,8 +153,8 @@ export function AdminDashboard() {
       <aside className="w-72 bg-white border-r border-gray-100 flex flex-col pt-8">
         <div className="px-8 mb-12">
           <div className="flex items-center gap-2">
-            <img src="/aara-logo.png" alt="Aara" className="w-8 h-8 object-contain rounded-lg" />
-            <span className="font-serif text-lg font-bold text-gray-900 tracking-tight">AARA <span className="text-[10px] text-purple-600 uppercase font-sans">Admin</span></span>
+            <img src="/thaarai-logo.png" alt="Thaarai" className="w-8 h-8 object-contain rounded-lg" />
+            <span className="font-serif text-lg font-bold text-gray-900 tracking-tight">THAARAI <span className="text-[10px] text-purple-600 uppercase font-sans">Admin</span></span>
           </div>
         </div>
 
@@ -238,10 +238,10 @@ export function AdminDashboard() {
                   onChange={e => setForm({ ...form, category: e.target.value })}
                   className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                 >
-                  <option>Couture</option>
-                  <option>Handbags</option>
-                  <option>Heritage</option>
-                  <option>Silk Scarves</option>
+                  <option>Kurti</option>
+                  <option>Maxi</option>
+                  <option>Co-ords</option>
+                  <option>Anarkali</option>
                 </select>
               </div>
 

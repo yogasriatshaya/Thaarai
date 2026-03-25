@@ -42,14 +42,14 @@ export function Login() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-50">
         <img
           src={AUTH_LOGIN}
-          alt="Aara"
+          alt="Thaarai"
           loading="lazy"
           decoding="async"
           className="w-full h-full object-cover opacity-50"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-white/80" />
         <div className="absolute bottom-16 left-12 right-12">
-          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#8b7fc0' }}>Aara The Designer Studio</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#8b7fc0' }}>Thaarai The Designer Studio</p>
           <h2 className="font-serif text-4xl text-gray-900 font-bold mb-4 leading-tight">
             Style, innovation, and individuality.
           </h2>
@@ -61,9 +61,9 @@ export function Login() {
       <div className="flex-1 flex items-center justify-center px-8 py-16">
         <div className="w-full max-w-md">
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <img src="/aara-logo.png" alt="Aara" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
+            <img src="/thaarai-logo.png" alt="Thaarai" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
             <div>
-              <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
+              <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
               <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
             </div>
           </Link>
@@ -115,7 +115,7 @@ export function Login() {
 
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
-              New to Aara?{' '}
+              New to Thaarai?{' '}
               <Link to="/register" className="font-semibold transition-colors" style={{ color: '#aba0e3' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#9589d4'}
                 onMouseLeave={e => e.currentTarget.style.color = '#aba0e3'}>
@@ -143,7 +143,7 @@ export function Register() {
       if (res.data.success) {
         login(res.data.token, res.data.user);
         navigate('/');
-        toast.success(`Welcome to Aara, ${res.data.user.name}!`);
+        toast.success(`Welcome to Thaarai, ${res.data.user.name}!`);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
@@ -158,7 +158,7 @@ export function Register() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-50">
         <img
           src={AUTH_REGISTER}
-          alt="Aara"
+          alt="Thaarai"
           loading="lazy"
           decoding="async"
           className="w-full h-full object-cover opacity-50"
@@ -176,16 +176,16 @@ export function Register() {
       <div className="flex-1 flex items-center justify-center px-8 py-16">
         <div className="w-full max-w-md">
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <img src="/aara-logo.png" alt="Aara" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
+            <img src="/thaarai-logo.png" alt="Thaarai" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
             <div>
-              <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">AARA</span>
+              <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
               <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
             </div>
           </Link>
 
           <div className="mb-10">
             <h1 className="font-serif text-4xl text-gray-900 font-bold mb-2">Create Account</h1>
-            <p className="text-gray-600 text-sm">Join the Aara family</p>
+            <p className="text-gray-600 text-sm">Join the Thaarai family</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

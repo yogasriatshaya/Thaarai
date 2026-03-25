@@ -31,7 +31,7 @@ export default function Checkout() {
             const mock = MOCK_PRODUCTS.find(p => p._id === item.productId);
             if (mock) items.push({ ...mock, ...item });
           } else if (item.productId.startsWith('local_')) {
-            const localData = localStorage.getItem('aara_local_products');
+            const localData = localStorage.getItem('thaarai_local_products');
             const locals = localData ? JSON.parse(localData) : [];
             const local = locals.find(p => p._id === item.productId);
             if (local) items.push({ ...local, ...item });

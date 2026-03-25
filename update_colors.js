@@ -5,7 +5,7 @@ const srcDir = path.join(__dirname, 'frontend/src');
 
 const targets = [
   "Get In Touch", "Fabrics", "Selected Works", "Our Philosophy", "Individuality",
-  "Stay Connected", "Customer Service", "Collections", "Aara", "Our Story",
+  "Stay Connected", "Customer Service", "Collections", "Thaarai", "Our Story",
   "Passion & Innovation", "FAQ"
 ];
 

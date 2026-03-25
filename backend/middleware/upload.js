@@ -11,7 +11,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'aara_products',
+    folder: 'thaarai_products',
     allowed_formats: ['jpeg', 'jpg', 'png', 'webp', 'gif'],
     transformation: [{ width: 800, crop: 'limit' }] // Optimization
   },

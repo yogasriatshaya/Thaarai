@@ -23,7 +23,7 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/coupons', require('./routes/coupons'));
 app.use('/api/settings', require('./routes/settings'));
 
-app.get('/', (req, res) => res.send('Aara Designer Studio API Running'));
+app.get('/', (req, res) => res.send('Thaarai Designer Studio API Running'));
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '127.0.0.1', () => console.log(`Server running on http://127.0.0.1:${PORT}`));

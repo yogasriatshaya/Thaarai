@@ -57,7 +57,7 @@ router.post('/test-email', adminMiddleware, async (req, res) => {
     const info = await transporter.sendMail({
       from: from || user,
       to,
-      subject: 'Test Email from Aara Designers',
+      subject: 'Test Email from Thaarai Designers',
       text: 'This is a test email from your Admin Configuration page.',
       html: '<b>This is a test email from your Admin Configuration page.</b>'
     });

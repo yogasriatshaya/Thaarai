@@ -121,7 +121,7 @@ export default function ProductDetail() {
 
     // ── Handle Local Admin IDs ───────────────────────────────────────────
     if (id?.startsWith('local_')) {
-      const localData = localStorage.getItem('aara_local_products');
+      const localData = localStorage.getItem('thaarai_local_products');
       const localProducts = localData ? JSON.parse(localData) : [];
       const localProduct = localProducts.find(p => p._id === id);
 
@@ -180,12 +180,12 @@ export default function ProductDetail() {
   // Track recently viewed in localStorage
   useEffect(() => {
     if (!product) return;
-    const raw = localStorage.getItem('aara_recently_viewed');
+    const raw = localStorage.getItem('thaarai_recently_viewed');
     let list = [];
     try { list = raw ? JSON.parse(raw) : []; } catch { }
     const filtered = list.filter(p => p._id !== product._id);
     filtered.unshift({ _id: product._id, name: product.name, price: product.price, images: product.images });
-    localStorage.setItem('aara_recently_viewed', JSON.stringify(filtered.slice(0, 10)));
+    localStorage.setItem('thaarai_recently_viewed', JSON.stringify(filtered.slice(0, 10)));
   }, [product]);
 
   useEffect(() => {

@@ -45,13 +45,13 @@ export default function ExitIntentPopup() {
         <div className="p-10 text-center">
           <span className="text-blue-600 font-bold text-[10px] uppercase tracking-[0.4em] mb-3 block">Exclusive Offer</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">Before You Go...</h2>
-          <p className="text-gray-500 text-sm mb-2 font-light">Join Aara and receive</p>
+          <p className="text-gray-500 text-sm mb-2 font-light">Join Thaarai and receive</p>
           <p className="text-5xl font-serif font-bold text-blue-600 mb-3">10% Off</p>
           <p className="text-gray-400 text-xs mb-8 uppercase tracking-widest font-bold">Your First Order</p>
 
           {submitted ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
-              <p className="text-emerald-700 font-bold uppercase tracking-widest text-sm">✓ Welcome to Aara!</p>
+              <p className="text-emerald-700 font-bold uppercase tracking-widest text-sm">✓ Welcome to Thaarai!</p>
               <p className="text-emerald-600 text-xs mt-1">Your code has been sent to your inbox.</p>
             </div>
           ) : (

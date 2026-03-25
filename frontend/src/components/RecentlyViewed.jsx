@@ -9,7 +9,7 @@ export default function RecentlyViewed() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const raw = localStorage.getItem('aara_recently_viewed');
+    const raw = localStorage.getItem('thaarai_recently_viewed');
     if (raw) {
       try { setItems(JSON.parse(raw)); } catch { }
     }

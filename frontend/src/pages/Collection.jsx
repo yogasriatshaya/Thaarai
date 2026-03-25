@@ -6,6 +6,15 @@ import { PRODUCT_FALLBACK, HERO_BG, CAT_COUTURE, CAT_HANDBAGS, CAT_HERITAGE, BAN
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { ProductSkeleton } from '../components/Skeleton';
 
+const CATEGORY_ORDER = ['Kurti', 'Maxi', 'Co-ords', 'Anarkali'];
+
+const normalizeCategory = (value = '') => {
+  const v = value.trim().toLowerCase();
+  if (v === 'co-ord sets' || v === 'co-ord set' || v === 'co-ords' || v === 'co ords') return 'Co-ords';
+  if (v === 'kurti with dupatta') return 'Kurti';
+  return value;
+};
+
 export default function Collection() {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -25,13 +34,20 @@ export default function Collection() {
   useEffect(() => {
     API.get('/products?limit=200')
       .then(r => {
-        const realCats = (r.data.products || []).map(p => p.category).filter(Boolean);
-        const mockCats = MOCK_PRODUCTS.map(p => p.category);
-        const allCats = [...new Set([...realCats, ...mockCats])];
+        const realCats = (r.data.products || []).map(p => normalizeCategory(p.category)).filter(Boolean);
+        const mockCats = MOCK_PRODUCTS.map(p => normalizeCategory(p.category));
+        const allCats = [...new Set([...realCats, ...mockCats])].sort((a, b) => {
+          const ai = CATEGORY_ORDER.indexOf(a);
+          const bi = CATEGORY_ORDER.indexOf(b);
+          if (ai === -1 && bi === -1) return a.localeCompare(b);
+          if (ai === -1) return 1;
+          if (bi === -1) return -1;
+          return ai - bi;
+        });
         setCategories(allCats);
       })
       .catch(() => {
-        const mockCats = [...new Set(MOCK_PRODUCTS.map(p => p.category))];
+        const mockCats = [...new Set(MOCK_PRODUCTS.map(p => normalizeCategory(p.category)))];
         setCategories(mockCats);
       });
   }, []);
@@ -46,7 +62,7 @@ export default function Collection() {
   const fetchProducts = useCallback(() => {
     const params = new URLSearchParams();
 
-    const activeCategory = selectedCategory || urlCategory;
+    const activeCategory = normalizeCategory(selectedCategory || urlCategory);
     if (activeCategory) params.set('category', activeCategory);
     if (urlSearch) params.set('search', urlSearch);
     if (maxPrice) params.set('maxPrice', maxPrice);
@@ -61,10 +77,10 @@ export default function Collection() {
         let realProducts = r.data.products || [];
 
         // ── Local Storage Injection ──────────────────────────────────────
-        const localData = localStorage.getItem('aara_local_products');
+        const localData = localStorage.getItem('thaarai_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
         const filteredLocals = localProducts.filter(lp => {
-          const matchesCat = !activeCategory || lp.category === activeCategory;
+          const matchesCat = !activeCategory || normalizeCategory(lp.category) === activeCategory;
           const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
           const matchesPrice = !maxPrice || lp.price <= parseFloat(maxPrice);
           return matchesCat && matchesSearch && matchesPrice;
@@ -76,7 +92,7 @@ export default function Collection() {
         // ── Mock Injection Logic ──────────────────────────────────────────
         if (combined.length < 6) {
           const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-            const matchesCat = !activeCategory || mp.category === activeCategory;
+            const matchesCat = !activeCategory || normalizeCategory(mp.category) === activeCategory;
             const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
             const matchesPrice = !maxPrice || mp.price <= parseFloat(maxPrice);
             return matchesCat && matchesSearch && matchesPrice;
@@ -109,18 +125,18 @@ export default function Collection() {
       })
       .catch(() => {
         // Fallback to Local + Mock if API fails
-        const localData = localStorage.getItem('aara_local_products');
+        const localData = localStorage.getItem('thaarai_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
-        const activeCategory = selectedCategory || urlCategory;
+        const activeCategory = normalizeCategory(selectedCategory || urlCategory);
 
         const filteredLocals = localProducts.filter(lp => {
-          const matchesCat = !activeCategory || lp.category === activeCategory;
+          const matchesCat = !activeCategory || normalizeCategory(lp.category) === activeCategory;
           const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
           return matchesCat && matchesSearch;
         });
 
         const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-          const matchesCat = !activeCategory || mp.category === activeCategory;
+          const matchesCat = !activeCategory || normalizeCategory(mp.category) === activeCategory;
           const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
           return matchesCat && matchesSearch;
         });
@@ -164,12 +180,12 @@ export default function Collection() {
   const pageTitle = urlSearch ? `Search: "${urlSearch}"` : selectedCategory || 'All Collections';
 
   const bannerImgs = {
-    'Silk Scarves': BANNER_SILK,
-    'Couture': CAT_COUTURE,
-    'Heritage': CAT_HERITAGE,
-    'Handbags': CAT_HANDBAGS,
+    'Kurti': CAT_COUTURE,
+    'Maxi': CAT_HANDBAGS,
+    'Co-ords': CAT_HERITAGE,
+    'Anarkali': BANNER_SILK,
   };
-  const bannerImg = bannerImgs[selectedCategory || urlCategory] || HERO_BG;
+  const bannerImg = bannerImgs[normalizeCategory(selectedCategory || urlCategory)] || HERO_BG;
 
   return (
     <div className="bg-white min-h-screen text-gray-900 animate-fade-in">

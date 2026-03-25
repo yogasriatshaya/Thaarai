@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const seedProducts = require('../config/seedProducts');
 const { adminMiddleware, authMiddleware } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 // Get all products with filters
 router.get('/', async (req, res) => {
   try {
+    // Ensure catalog is initialized so admin/frontend have products to manage
+    const existingCount = await Product.countDocuments();
+    if (existingCount === 0) {
+      await seedProducts();
+    }
+
     const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12 } = req.query;
     const query = {};
 

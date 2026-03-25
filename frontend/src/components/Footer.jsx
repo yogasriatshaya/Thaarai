@@ -43,7 +43,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center mb-6 group">
-              <img src={logo} alt="Aara" className="h-12 w-auto object-contain transition-all duration-500 rounded-sm mix-blend-multiply" />
+              <img src={logo} alt="Thaarai" className="h-12 w-auto object-contain transition-all duration-500 rounded-sm mix-blend-multiply" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6 font-light">
               Style, innovation, and individuality. We blend inspiration from culture and creativity with bold ideas and timeless aesthetics.
@@ -52,13 +52,13 @@ export default function Footer() {
             {/* Contact Info */}
             <div className="space-y-2 mb-6">
               <p className="text-xs text-gray-500">
-                <span className="font-bold">Email:</span> aarathedesignerstudio@gmail.com
+                <span className="font-bold">Email:</span> support@thaarai.test
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-bold">Phone:</span> +91 8072842781
+                <span className="font-bold">Phone:</span> +91 9000000000
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-bold">WhatsApp:</span> +91 8300519544
+                <span className="font-bold">WhatsApp:</span> +91 90000 00001
               </p>
             </div>
 
@@ -95,7 +95,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-[8px] text-gray-400 uppercase tracking-[0.3em] font-bold">
-            © 2026 Aara Luxury E-commerce. All Rights Reserved.
+            © 2026 Thaarai Luxury E-commerce. All Rights Reserved.
           </p>
           <div className="flex items-center gap-6">
             {['Privacy Policy', 'Terms of Use', 'Cookie Preferences'].map(item => (

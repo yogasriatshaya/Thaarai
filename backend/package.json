@@ -1,7 +1,7 @@
 {
-  "name": "aara-backend",
+  "name": "thaarai-backend",
   "version": "1.0.0",
-  "description": "Aara Luxury Fashion Backend",
+  "description": "Thaarai Luxury Fashion Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

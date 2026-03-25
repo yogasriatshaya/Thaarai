@@ -108,7 +108,7 @@ export default function Navbar() {
           <Link to="/" className="shrink-0 flex items-center group">
             <img
               src={logo}
-              alt="Aara"
+              alt="Thaarai"
               className="h-8 sm:h-10 md:h-12 w-auto object-contain transition-all duration-500"
             />
           </Link>

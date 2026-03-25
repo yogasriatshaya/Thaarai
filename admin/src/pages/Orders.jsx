@@ -230,7 +230,7 @@ export default function Orders() {
                <div id="invoice-print-area" className="p-4">
                    <div className="flex justify-between items-start border-b pb-4 mb-4">
                        <div>
-                          <h2 className="font-serif text-2xl text-charcoal">AARA</h2>
+                          <h2 className="font-serif text-2xl text-charcoal">THAARAI</h2>
                           <p className="text-[10px] text-gray-500 font-sans">Designer Studio</p>
                        </div>
                        <div className="text-right font-sans text-xs text-gray-500">

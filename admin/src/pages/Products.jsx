@@ -7,8 +7,12 @@ import { Pencil, Copy, Trash2 } from 'lucide-react';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [subcategoryOptions, setSubcategoryOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+  const [subcategory, setSubcategory] = useState('All');
   const [sort, setSort] = useState('newest');
   const [isBulkDiscount, setIsBulkDiscount] = useState(false);
   const [discountForm, setDiscountForm] = useState({ category: 'All', discountType: 'percentage', discountValue: '' });
@@ -21,6 +25,8 @@ export default function Products() {
     try {
       const params = new URLSearchParams({ page, limit: 10 });
       if (search) params.set('search', search);
+      if (category !== 'All') params.set('category', category);
+      if (subcategory !== 'All') params.set('subcategory', subcategory);
       if (sort) params.set('sort', sort);
       const res = await API.get(`/products?${params}`);
       setProducts(res.data.products || []);
@@ -32,7 +38,23 @@ export default function Products() {
     setLoading(false);
   };
 
-  useEffect(() => { loadProducts(); }, [page, search, sort]);
+  useEffect(() => { loadProducts(); }, [page, search, sort, category, subcategory]);
+
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const res = await API.get('/products?limit=500');
+        const list = res.data.products || [];
+        const cats = [...new Set(list.map(p => p.category).filter(Boolean))];
+        const subs = [...new Set(list.map(p => p.subcategory).filter(Boolean))];
+        setCategoryOptions(cats);
+        setSubcategoryOptions(subs);
+      } catch {
+        setCategoryOptions(['Kurti', 'Maxi', 'Co-ords', 'Anarkali']);
+      }
+    };
+    loadFilterOptions();
+  }, []);
 
   const handleDelete = async (id, name) => {
     if (!confirm(`Delete "${name}"?`)) return;
@@ -55,6 +77,14 @@ export default function Products() {
             placeholder="Search products..."
             className="input-field w-64"
           />
+          <select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }} className="input-field w-36 text-xs">
+            <option value="All">All Categories</option>
+            {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={subcategory} onChange={e => { setSubcategory(e.target.value); setPage(1); }} className="input-field w-40 text-xs">
+            <option value="All">All Subcategories</option>
+            {subcategoryOptions.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
           <select value={sort} onChange={e => setSort(e.target.value)} className="input-field w-40 text-xs">
             <option value="newest">Newest first</option>
             <option value="price_asc">Price: Low to High</option>
@@ -164,7 +194,7 @@ export default function Products() {
                          <label className="block text-gray-400 mb-1">Category</label>
                          <select value={discountForm.category} onChange={e => setDiscountForm({...discountForm, category: e.target.value})} className="input-field">
                              <option value="All">All Categories</option>
-                             {['Women', 'Kurti', 'Kurti with Dupatta', 'Anarkali', 'Maxi', 'Co-Ord Sets', 'Sarees', 'Dress Materials'].map(c => <option key={c} value={c}>{c}</option>)}
+                           {['Kurti', 'Maxi', 'Co-ords', 'Anarkali'].map(c => <option key={c} value={c}>{c}</option>)}
                          </select>
                      </div>
                      <div>

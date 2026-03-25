@@ -27,10 +27,12 @@ export default function Home() {
         />
 
         <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-6">
-          <p className="section-label text-gold-300 mb-4 tracking-[0.4em] drop-shadow-md">New Arrival</p>
-          <h1 className="font-serif text-5xl md:text-7xl text-white mb-2 leading-none drop-shadow-xl">The Royal</h1>
-          <h1 className="font-serif italic text-5xl md:text-7xl text-white mb-6 leading-none drop-shadow-xl">Collection</h1>
-          <p className="text-sm md:text-base text-white/90 font-sans font-light max-w-lg mb-10 leading-relaxed drop-shadow-sm">
+          <p className="mb-5 text-[12px] md:text-[13px] tracking-[0.45em] uppercase font-semibold text-[#e5c76b] drop-shadow-md">New Arrival</p>
+          <h1 className="font-serif text-[56px] md:text-[86px] text-white mb-6 leading-[0.95] drop-shadow-xl">
+            <span className="block font-normal">The Royal</span>
+            <span className="block italic font-normal">Collection</span>
+          </h1>
+          <p className="text-[17px] md:text-[18px] text-white/90 font-sans font-light max-w-4xl mb-12 leading-relaxed drop-shadow-sm">
             Experience the pinnacle of luxury with our hand-woven silk gowns and regal silhouettes designed for the modern monarch.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
@@ -42,7 +44,7 @@ export default function Home() {
               Shop the Collection
             </Link>
             <Link 
-              to="/collection?category=Heritage" 
+              to="/collection?category=Co-ords" 
               className="inline-block border-2 border-white text-white px-8 py-3 text-xs tracking-[0.2em] uppercase font-sans font-medium hover:bg-white hover:text-charcoal transition-all duration-300 shadow-xl"
             >
               View Lookbook

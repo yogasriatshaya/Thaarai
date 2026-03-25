@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import API, { BACKEND_URL } from '../api';
 import { toast } from 'react-toastify';
 
-const CATEGORIES = ['Women', 'Kurti', 'Kurti with Dupatta', 'Anarkali', 'Maxi', 'Co-Ord Sets', 'Sarees', 'Dress Materials'];
+const CATEGORIES = ['Kurti', 'Maxi', 'Co-ords', 'Anarkali'];
 const LABELS = ['', 'Hot', 'New Arrival', 'Trending', 'Sold Out'];
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'];
 const FABRICS = [
@@ -16,7 +16,7 @@ const STYLES = ['Kurti', 'A-Line', 'Anarkali', 'Maxi', '2-Piece Set', '3-Piece S
 const AVAILABILITY = ['Available', 'Limited Stock', 'Made to Order', 'Pre-Order'];
 
 const initialForm = {
-  name: '', description: '', category: 'Women', subcategory: '', price: '',
+  name: '', description: '', category: 'Kurti', subcategory: '', price: '',
   originalPrice: '', stock: '', fabric: '', style: '', label: '', bestseller: false,
   availability: 'Available', sizes: [], colors: []
 };

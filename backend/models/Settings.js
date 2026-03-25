@@ -15,7 +15,7 @@ const settingsSchema = new mongoose.Schema({
   },
 
   // General Site Config
-  siteName: { type: String, default: 'Aara Designers' },
+  siteName: { type: String, default: 'Thaarai Designers' },
   contactEmail: { type: String, default: '' },
   contactPhone: { type: String, default: '' },
   currency: { type: String, default: 'INR' },

@@ -17,7 +17,7 @@ export default function AdminLogin() {
       if (res.data.success) {
         localStorage.setItem('adminToken', res.data.token);
         navigate('/dashboard');
-        toast.success('Welcome to Aara Admin');
+        toast.success('Welcome to Thaarai Admin');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
@@ -31,7 +31,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <div className="flex justify-center mb-3">
-            <img src={logo} alt="Aara" className="h-12 w-auto object-contain brightness-0 invert" />
+            <img src={logo} alt="Thaarai" className="h-12 w-auto object-contain brightness-0 invert" />
           </div>
           <p className="text-[9px] tracking-[0.35em] uppercase text-gold-500 font-sans">Admin Portal</p>
         </div>

@@ -60,7 +60,7 @@ export const ShopProvider = ({ children }) => {
       try {
         const res = await API.get('/products?limit=500');
         const real = res.data.products || [];
-        const localData = localStorage.getItem('aara_local_products');
+        const localData = localStorage.getItem('thaarai_local_products');
         const locals = localData ? JSON.parse(localData) : [];
 
         // Remove duplicate mocks if they exist in real db
@@ -69,7 +69,7 @@ export const ShopProvider = ({ children }) => {
 
         setProducts([...combined, ...uniqueMocks]);
       } catch (err) {
-        const localData = localStorage.getItem('aara_local_products');
+        const localData = localStorage.getItem('thaarai_local_products');
         const locals = localData ? JSON.parse(localData) : [];
         setProducts([...locals, ...MOCK_PRODUCTS]);
       }
@@ -157,7 +157,7 @@ export const ShopProvider = ({ children }) => {
           const mock = (await import('../data/mockProducts')).MOCK_PRODUCTS.find(p => p._id === item.productId);
           total += (mock?.price || 0) * item.quantity;
         } else if (item.productId.startsWith('local_')) {
-          const localData = localStorage.getItem('aara_local_products');
+          const localData = localStorage.getItem('thaarai_local_products');
           const locals = localData ? JSON.parse(localData) : [];
           const local = locals.find(p => p._id === item.productId);
           total += (local?.price || 0) * item.quantity;
