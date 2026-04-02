@@ -8,7 +8,8 @@ dotenv.config({ override: true });
 connectDB();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -21,6 +22,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/coupons', require('./routes/coupons'));
+app.use('/api/categories', require('./routes/categories'));
 app.use('/api/settings', require('./routes/settings'));
 
 app.get('/', (req, res) => res.send('Thaarai Designer Studio API Running'));

@@ -41,7 +41,7 @@ export default function RecentlyViewed() {
                   onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
               </div>
               <div className="hidden sm:block">
-                <p className="text-[10px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 max-w-[100px]">{p.name}</p>
+                <p className="text-[10px] font-bold text-gray-900 group-hover:text-black transition-colors line-clamp-1 max-w-[100px]">{p.name}</p>
                 <p className="text-[9px] text-gray-400 font-bold">
                   {p.price?.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
                 </p>

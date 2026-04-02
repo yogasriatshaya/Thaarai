@@ -10,6 +10,22 @@ router.get('/', async (req, res) => {
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create({});
+    } else {
+      // Ensure defaults if fields are 0/empty
+      let changed = false;
+      if (!settings.countryConfig.IN.taxPercentage) {
+        settings.countryConfig.IN.taxPercentage = 18;
+        settings.countryConfig.IN.taxName = 'GST';
+        settings.countryConfig.IN.taxInclusive = true;
+        changed = true;
+      }
+      if (!settings.countryConfig.US.taxPercentage) {
+        settings.countryConfig.US.taxPercentage = 8;
+        settings.countryConfig.US.taxName = 'Sales Tax';
+        settings.countryConfig.US.taxInclusive = false;
+        changed = true;
+      }
+      if (changed) await settings.save();
     }
     res.json({ success: true, settings });
   } catch (err) {

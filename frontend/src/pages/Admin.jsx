@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import logo from '../assets/logo.jpg';
+
 
 // ── Local Storage Helpers ───────────────────────────────────────────────────
 const LOCAL_STORAGE_KEY = 'thaarai_local_products';
@@ -82,7 +82,7 @@ export function AdminLogin() {
           </div>
           <button
             type="submit"
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform active:scale-[0.98]"
+            className="w-full py-4 bg-black hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform active:scale-[0.98]"
           >
             Authenticate Access
           </button>
@@ -161,13 +161,13 @@ export function AdminDashboard() {
         <nav className="flex-1 px-4 space-y-2">
           <button
             onClick={() => setActiveTab('view')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all font-medium ${activeTab === 'view' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all font-medium ${activeTab === 'view' ? 'bg-blue-50 text-black' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <span className="text-xl">📁</span> Product Registry
           </button>
           <button
             onClick={() => setActiveTab('add')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all font-medium ${activeTab === 'add' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all font-medium ${activeTab === 'add' ? 'bg-blue-50 text-black' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <span className="text-xl">✨</span> New Acquisition
           </button>
@@ -190,7 +190,7 @@ export function AdminDashboard() {
             <h2 className="text-3xl font-bold text-gray-900">{activeTab === 'view' ? 'Product Registry' : 'New Acquisition'}</h2>
             <p className="text-gray-500 mt-1">{activeTab === 'view' ? `Managing ${localProducts.length} local items` : 'Initialize a new product entry'}</p>
           </div>
-          <Link to="/" className="text-[11px] font-bold uppercase tracking-widest text-blue-600 hover:underline">View Storefront →</Link>
+          <Link to="/" className="text-[11px] font-bold uppercase tracking-widest text-black hover:underline">View Storefront →</Link>
         </header>
 
         {activeTab === 'add' ? (
@@ -257,7 +257,7 @@ export function AdminDashboard() {
 
               <button
                 type="submit"
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-black hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
               >
                 Deploy Product
               </button>
@@ -270,7 +270,7 @@ export function AdminDashboard() {
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl text-gray-300">📁</div>
                 <h3 className="text-lg font-bold text-gray-900">No local items indexed</h3>
                 <p className="text-gray-500 text-sm mt-2">Start by initializing a new acquisition.</p>
-                <button onClick={() => setActiveTab('add')} className="mt-8 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all hover:bg-blue-700">Add First Product</button>
+                <button onClick={() => setActiveTab('add')} className="mt-8 px-8 py-3 bg-black text-white rounded-xl font-bold transition-all hover:bg-blue-700">Add First Product</button>
               </div>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -283,7 +283,7 @@ export function AdminDashboard() {
                       <div>
                         <div className="flex justify-between items-start">
                           <h3 className="font-bold text-xl text-gray-900">{product.name}</h3>
-                          <span className="text-blue-600 font-bold text-lg">
+                          <span className="text-black font-bold text-lg">
                             {product.price?.toLocaleString('en-IN', {
                               style: 'currency',
                               currency: 'INR',

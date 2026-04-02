@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import API from '../api';
+import API, { BACKEND_URL } from '../api';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
-import { ShoppingBag, TrendingUp, AlertTriangle, Users, DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
+import { ShoppingBag, TrendingUp, AlertTriangle, Users, IndianRupee, DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Dashboard() {
@@ -15,19 +15,19 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Date Filters
+  // Date & Currency Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currency, setCurrency] = useState('all');
 
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      let url = '/dashboard/stats';
-      const params = {};
+      const params = { currency };
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
       
-      const res = await API.get(url, { params });
+      const res = await API.get('/dashboard/stats', { params });
       if (res.data.success) {
          setStats(res.data.stats || {});
          setRecentOrders(res.data.recentOrders || []);
@@ -48,12 +48,37 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  }, [startDate, endDate, currency]);
 
   const COLORS = ['#D4AF37', '#22C55E', '#3B82F6', '#EF4444', '#8B5CF6'];
 
+  const getSalesValue = () => {
+    if (currency === 'USD') return `$${stats.totalSalesUSD?.toLocaleString() || 0}`;
+    if (currency === 'INR') return `₹${stats.totalSales?.toLocaleString() || 0}`;
+    // Global view - Show both if both exist
+    const strings = [];
+    if (stats.totalSales > 0) strings.push(`₹${stats.totalSales.toLocaleString()}`);
+    if (stats.totalSalesUSD > 0) strings.push(`$${stats.totalSalesUSD.toLocaleString()}`);
+    
+    if (strings.length === 0) return '₹0';
+    return strings.join(' + ');
+  };
+
+  const getTodaySales = () => {
+    if (currency === 'USD') return `$${stats.todaySalesUSD?.toLocaleString() || 0}`;
+    if (currency === 'INR') return `₹${stats.todaySales?.toLocaleString() || 0}`;
+    
+    // Global view - Show both
+    const strings = [];
+    if (stats.todaySales > 0) strings.push(`₹${stats.todaySales.toLocaleString()}`);
+    if (stats.todaySalesUSD > 0) strings.push(`$${stats.todaySalesUSD.toLocaleString()}`);
+    
+    if (strings.length === 0) return '₹0';
+    return strings.join(' + ');
+  };
+
   const statCards = [
-    { label: 'Total Sales', value: `₹${stats.totalSales?.toLocaleString() || 0}`, sub: `Today: ₹${stats.todaySales?.toLocaleString() || 0}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: currency === 'all' ? 'Total Sales (Global)' : `Sales (${currency})`, value: getSalesValue(), sub: `Today: ${getTodaySales()}`, icon: currency === 'USD' ? DollarSign : IndianRupee, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Total Orders', value: stats.totalOrders || 0, sub: `Today: ${stats.todayOrders || 0}`, icon: ShoppingBag, color: 'text-gold-600', bg: 'bg-gold-50' },
     { label: 'Pending Orders', value: stats.pendingOrders || 0, sub: `Processing`, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
     { label: 'New Customers', value: stats.newCustomers || 0, sub: `Target interval`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' }
@@ -65,7 +90,15 @@ export default function Dashboard() {
      { label: 'Delivered', value: stats.deliveredOrders || 0, icon: CheckCircle, color: 'text-green-500' }
   ];
 
+  const returnStats = [
+     { label: 'Pending Returns', value: stats.pendingReturns || 0, icon: Clock, color: 'text-yellow-600' },
+     { label: 'Approved Returns', value: stats.approvedReturns || 0, icon: CheckCircle, color: 'text-blue-500' },
+     { label: 'Received Returns', value: stats.receivedReturns || 0, icon: Package, color: 'text-green-600' },
+     { label: 'Total Requests', value: stats.totalReturns || 0, icon: ShoppingBag, color: 'text-indigo-500' }
+  ];
+
   const statusColors = { processing: 'text-yellow-700 bg-yellow-50', shipped: 'text-blue-700 bg-blue-50', delivered: 'text-green-700 bg-green-50', cancelled: 'text-red-700 bg-red-50' };
+  const returnStatusColors = { pending: 'text-yellow-600 bg-yellow-50', approved: 'text-blue-600 bg-blue-50', received: 'text-green-600 bg-green-50', rejected: 'text-red-600 bg-red-50', refunded: 'text-indigo-600 bg-indigo-50' };
 
   return (
     <Layout title="Dashboard">
@@ -77,9 +110,25 @@ export default function Dashboard() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-600 focus:outline-none" />
           <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-[10px] text-gray-400 hover:text-charcoal underline">Clear</button>
         </div>
-        <div className="flex items-center gap-2">
-            <a href="/products" className="btn-outline text-xs py-1.5 flex items-center justify-center gap-1"><Package size={14}/> Products</a>
-            <a href="/orders" className="btn-primary text-xs py-1.5 flex items-center justify-center gap-1"><ShoppingBag size={14}/> Orders</a>
+        <div className="flex border border-gray-200 rounded divide-x divide-gray-200 bg-white shadow-sm overflow-hidden">
+            <button 
+              onClick={() => setCurrency('all')} 
+              className={`px-4 py-1.5 text-[10px] uppercase tracking-wider font-bold transition-all ${currency === 'all' ? 'bg-charcoal text-white' : 'hover:bg-gray-50 text-gray-400'}`}
+            >
+              Global
+            </button>
+            <button 
+              onClick={() => setCurrency('INR')} 
+              className={`px-4 py-1.5 text-[10px] uppercase tracking-wider font-bold transition-all ${currency === 'INR' ? 'bg-green-600 text-white' : 'hover:bg-gray-50 text-green-700'}`}
+            >
+              IN (₹)
+            </button>
+            <button 
+              onClick={() => setCurrency('USD')} 
+              className={`px-4 py-1.5 text-[10px] uppercase tracking-wider font-bold transition-all ${currency === 'USD' ? 'bg-blue-600 text-white' : 'hover:bg-gray-50 text-blue-700'}`}
+            >
+              US ($)
+            </button>
         </div>
       </div>
 
@@ -131,6 +180,25 @@ export default function Dashboard() {
          })}
        </div>
 
+       {/* Return Statistics Overview */}
+       <div className="mb-8">
+          <h3 className="font-serif text-[10px] tracking-[0.2em] text-gray-400 uppercase mb-3">Return Details</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {returnStats.map(s => {
+                const Icon = s.icon;
+                return (
+                  <div key={s.label} className="bg-white p-4 rounded border border-gray-100 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="p-2 bg-gray-50 rounded-full"><Icon size={16} className={s.color} /></div>
+                    <div>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wider">{s.label}</div>
+                        <div className="text-lg font-bold font-serif text-charcoal">{loading ? '—' : s.value}</div>
+                    </div>
+                  </div>
+                );
+            })}
+          </div>
+       </div>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
         <div className="card p-5 lg:col-span-2 shadow-sm">
@@ -140,16 +208,25 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
-                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="colorSalesINR" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.4}/>
                                 <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorSalesUSD" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                         <XAxis dataKey="_id" tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
                         <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '4px', border: '1px solid #F3F4F6' }} />
-                        <Area type="monotone" dataKey="sales" name="Sales (₹)" stroke="#D4AF37" strokeWidth={1.5} fillOpacity={1} fill="url(#colorSales)" />
+                        {(currency === 'all' || currency === 'INR') && (
+                           <Area type="monotone" dataKey="salesINR" name="Sales (₹)" stroke="#D4AF37" strokeWidth={1.5} fillOpacity={1} fill="url(#colorSalesINR)" />
+                        )}
+                        {(currency === 'all' || currency === 'USD') && (
+                           <Area type="monotone" dataKey="salesUSD" name="Sales ($)" stroke="#3B82F6" strokeWidth={1.5} fillOpacity={1} fill="url(#colorSalesUSD)" />
+                        )}
                     </AreaChart>
                 </ResponsiveContainer>
                ) : (
@@ -214,7 +291,7 @@ export default function Dashboard() {
                 <table className="w-full">
                 <thead>
                     <tr className="border-b border-gray-100">
-                    {['Order ID', 'Customer', 'Amount', 'Payment', 'Status', 'Date'].map(h => (
+                    {['Order ID', 'Customer', 'Amount', 'Payment', 'Status', 'Return', 'Date'].map(h => (
                         <th key={h} className="text-left text-[10px] tracking-[0.18em] uppercase text-gray-400 font-sans pb-3 pr-4">{h}</th>
                     ))}
                     </tr>
@@ -224,12 +301,19 @@ export default function Dashboard() {
                     <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="py-3 pr-4 text-xs font-sans text-charcoal">#{order._id.slice(-8).toUpperCase()}</td>
                         <td className="py-3 pr-4 text-xs font-sans text-gray-600 truncate max-w-[100px]">{order.userId?.name || 'Guest'}</td>
-                        <td className="py-3 pr-4 text-xs font-sans font-medium">₹{order.totalAmount?.toLocaleString()}</td>
+                        <td className="py-3 pr-4 text-xs font-sans font-medium">{order.currency === 'USD' ? '$' : '₹'}{order.totalAmount?.toLocaleString()}</td>
                         <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
                         <td className="py-3 pr-4">
                         <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>
                             {order.orderStatus}
                         </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                            {order.returnStatus && order.returnStatus !== 'none' ? (
+                                <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${returnStatusColors[order.returnStatus] || 'text-gray-500 bg-gray-50'}`}>
+                                    {order.returnStatus}
+                                </span>
+                            ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="py-3 text-xs font-sans text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-GB')}</td>
                     </tr>
@@ -248,7 +332,7 @@ export default function Dashboard() {
                      {topProducts.map((prod, index) => (
                          <div key={prod._id} className="flex items-center gap-3 border-b border-gray-50 last:border-0 pb-3 hover:bg-gray-50 p-1 rounded-sm transition-colors">
                             <div className="w-9 h-9 bg-gray-50 rounded overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center">
-                                {prod.image ? <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
+                                {prod.image ? <img src={prod.image.startsWith('http') ? prod.image.replace(/^http:\/\/localhost:\d+/, BACKEND_URL) : `${BACKEND_URL}${prod.image}`} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-charcoal truncate">{prod.name || 'Unnamed'}</p>

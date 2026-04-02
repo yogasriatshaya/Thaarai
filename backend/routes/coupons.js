@@ -7,8 +7,10 @@ const { adminMiddleware, authMiddleware } = require('../middleware/auth');
 // @desc    Get all coupons for admin
 router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const coupons = await Coupon.find().sort({ createdAt: -1 });
-        res.json({ success: true, coupons });
+        const { page = 1, limit = 20 } = req.query;
+        const total = await Coupon.countDocuments();
+        const coupons = await Coupon.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit));
+        res.json({ success: true, coupons, total });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -51,33 +53,47 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 // @desc    Validate and calculate coupon discount for customer
 router.post('/apply', authMiddleware, async (req, res) => {
     try {
-        const { code, totalAmount } = req.body;
+        const { code, totalAmount, country } = req.body;
         if (!code) return res.status(400).json({ success: false, message: 'Coupon code required' });
 
         const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
         if (!coupon) return res.status(404).json({ success: false, message: 'Invalid or inactive coupon code' });
+
+        // Check country applicability
+        if (coupon.applicableCountries && coupon.applicableCountries.length > 0) {
+            const activeCountry = country || 'IN';
+            if (!coupon.applicableCountries.includes(activeCountry)) {
+                return res.status(400).json({ success: false, message: 'This coupon is not valid for your region' });
+            }
+        }
 
         // Expiry verification
         if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
             return res.status(400).json({ success: false, message: 'Coupon has expired' });
         }
 
-        // Usage Limit verified triggers
+        // Usage Limit
         if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
             return res.status(400).json({ success: false, message: 'Coupon limit reached' });
         }
 
-        // Min Order constraint setups
-        if (totalAmount < coupon.minAmount) {
-             return res.status(400).json({ success: false, message: `Minimum amount calculation to use this coupon is ₹${coupon.minAmount}` });
+        const isUS = country === 'US';
+        const minAmount = isUS ? (coupon.minAmountUSD || coupon.minAmount) : coupon.minAmount;
+        const symbol = isUS ? '$' : '₹';
+
+        if (totalAmount < minAmount) {
+             return res.status(400).json({ success: false, message: `Minimum order to use this coupon is ${symbol}${minAmount}` });
         }
+
+        const discountValue = isUS ? (coupon.discountValueUSD || coupon.discountValue) : coupon.discountValue;
+        const maxDiscount = isUS ? (coupon.maxDiscountUSD || coupon.maxDiscount) : coupon.maxDiscount;
 
         let discount = 0;
         if (coupon.discountType === 'percentage') {
-            discount = totalAmount * (coupon.discountValue / 100);
-            if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+            discount = totalAmount * (discountValue / 100);
+            if (maxDiscount) discount = Math.min(discount, maxDiscount);
         } else {
-            discount = Math.min(coupon.discountValue, totalAmount);
+            discount = Math.min(discountValue, totalAmount);
         }
 
         res.json({ success: true, discount: Math.floor(discount), couponId: coupon._id, code: coupon.code });

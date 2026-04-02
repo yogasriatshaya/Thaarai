@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ShopProvider } from './context/ShopContext';
+import { CurrencyProvider } from './context/CurrencyContext';
 import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
@@ -17,21 +18,23 @@ import { Orders, OrderSuccess } from './pages/Orders';
 import { AdminLogin, AdminDashboard } from './pages/Admin';
 import About from './pages/About';
 import Contact from './pages/Contact';
-import { Navigate } from 'react-router-dom';
+import TrackOrder from './pages/TrackOrder';
+// Navigation components consolidated at top
 import ExitIntentPopup from './components/ExitIntentPopup';
 import RecentlyViewed from './components/RecentlyViewed';
+import { useShop } from './context/ShopContext';
 
 const ProtectedRoute = ({ children }) => {
   const isAdmin = localStorage.getItem('admin_session') === 'active';
   return isAdmin ? children : <Navigate to="/admin" />;
 };
 
-import { useShop } from './context/ShopContext';
+
 
 const MaintenancePage = ({ settings }) => (
   <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
     <div className="animate-fade-in">
-       <div className="mb-4 text-5xl text-blue-600 font-light">✧</div>
+       <div className="mb-4 text-5xl text-black font-light">✧</div>
        <h1 className="font-serif text-3xl font-bold text-gray-900 mb-3 tracking-tight">Website Offline</h1>
        <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">{settings?.maintenanceMessage || "We are currently making some updates. Please visit us again shortly."}</p>
     </div>
@@ -40,7 +43,60 @@ const MaintenancePage = ({ settings }) => (
 
 const AppContent = () => {
   const { settings } = useShop();
-  const isAdminPath = window.location.pathname.startsWith('/admin');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
+  
+  const isCollectionPage = location.pathname.startsWith('/collection');
+  const isProductPage = location.pathname.startsWith('/product/');
+  const hideFooterOnMobile = (isCollectionPage || isProductPage);
+
+  // Stealth Link Logic: Hide URL in status bar
+  useEffect(() => {
+    const handleMouseOver = (e) => {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href') && !link.dataset.stealth) {
+        const href = link.getAttribute('href');
+        // Only trigger for internal links
+        if (href.startsWith('/') && !href.startsWith('//')) {
+          link.dataset.href = href;
+          link.removeAttribute('href');
+          link.style.cursor = 'pointer';
+          link.dataset.stealth = 'true';
+        }
+      }
+    };
+
+    const handleMouseOut = (e) => {
+      const link = e.target.closest('a');
+      if (link && link.dataset.href) {
+        link.setAttribute('href', link.dataset.href);
+        delete link.dataset.href;
+        delete link.dataset.stealth;
+      }
+    };
+
+    const handleClick = (e) => {
+      const link = e.target.closest('a');
+      if (link && link.dataset.href) {
+        e.preventDefault();
+        const target = link.dataset.href;
+        // Restore before navigating to keep history clean
+        link.setAttribute('href', target);
+        navigate(target);
+      }
+    };
+
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
+    document.addEventListener('click', handleClick);
+
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
+      document.removeEventListener('click', handleClick);
+    };
+  }, [navigate]);
 
   if (settings?.maintenanceMode && !isAdminPath) {
     return <MaintenancePage settings={settings} />;
@@ -64,6 +120,7 @@ const AppContent = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin-dashboard" element={
             <ProtectedRoute>
@@ -72,7 +129,10 @@ const AppContent = () => {
           } />
         </Routes>
       </main>
-      <Footer />
+      {/* Conditionally hide footer on mobile for Collection and Product Detail pages */}
+      <div className={hideFooterOnMobile ? 'hidden lg:block' : 'block'}>
+        <Footer />
+      </div>
       <RecentlyViewed />
       <ExitIntentPopup />
     </div>
@@ -82,18 +142,20 @@ const AppContent = () => {
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ShopProvider>
-        <AppContent />
-        <ToastContainer
-          position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          closeOnClick
-          pauseOnHover
-          theme="light"
-          toastStyle={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '600' }}
-        />
-      </ShopProvider>
+      <CurrencyProvider>
+        <ShopProvider>
+          <AppContent />
+          <ToastContainer
+            position="bottom-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            closeOnClick
+            pauseOnHover
+            theme="light"
+            toastStyle={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '600' }}
+          />
+        </ShopProvider>
+      </CurrencyProvider>
     </BrowserRouter>
   );
 }

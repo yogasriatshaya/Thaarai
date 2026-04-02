@@ -10,17 +10,19 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // @access  Private/Admin
 router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, currency } = req.query;
     
     // Create Date filter
     let dateFilter = {};
     if (startDate && endDate) {
-      dateFilter = {
-        createdAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate)
-        }
+      dateFilter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
       };
+    }
+
+    if (currency && currency !== 'all') {
+      dateFilter.currency = currency;
     }
 
     const now = new Date();
@@ -28,16 +30,18 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
     
     // 1. Total & Today Orders
     const totalOrders = await Order.countDocuments(dateFilter);
-    const todayOrders = await Order.countDocuments({
-      createdAt: { $gte: startOfToday }
-    });
+    const todayOrdersFilter = { createdAt: { $gte: startOfToday } };
+    if (currency && currency !== 'all') {
+      todayOrdersFilter.currency = currency;
+    }
+    const todayOrders = await Order.countDocuments(todayOrdersFilter);
 
     // 2. Order Status Counts
     const pendingOrders = await Order.countDocuments({ ...dateFilter, orderStatus: 'processing' });
     const deliveredOrders = await Order.countDocuments({ ...dateFilter, orderStatus: 'delivered' });
     const cancelledOrders = await Order.countDocuments({ ...dateFilter, orderStatus: 'cancelled' });
 
-    // 3. Sales
+    // 3. Sales Breakdown
     let matchSales = { paymentStatus: 'paid' };
     if (startDate && endDate) {
        matchSales.createdAt = {
@@ -45,18 +49,35 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
           $lte: new Date(endDate)
        };
     }
+    if (currency && currency !== 'all') {
+      matchSales.currency = currency;
+    }
     
-    const totalSalesAgg = await Order.aggregate([
+    const salesAgg = await Order.aggregate([
       { $match: matchSales },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      { $group: { 
+          _id: { $toUpper: '$currency' }, 
+          total: { $sum: '$totalAmount' } 
+      } }
     ]);
-    const totalSales = totalSalesAgg.length > 0 ? totalSalesAgg[0].total : 0;
+
+    const totalSales = salesAgg.find(s => s._id === 'INR')?.total || 0;
+    const totalSalesUSD = salesAgg.find(s => s._id === 'USD')?.total || 0;
+
+    const todayMatch = { paymentStatus: 'paid', createdAt: { $gte: startOfToday } };
+    if (currency && currency !== 'all') {
+        todayMatch.currency = currency;
+    }
 
     const todaySalesAgg = await Order.aggregate([
-      { $match: { paymentStatus: 'paid', createdAt: { $gte: startOfToday } } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      { $match: todayMatch },
+      { $group: { 
+          _id: { $toUpper: '$currency' }, 
+          today: { $sum: '$totalAmount' } 
+      } }
     ]);
-    const todaySales = todaySalesAgg.length > 0 ? todaySalesAgg[0].total : 0;
+    const todaySales = todaySalesAgg.find(s => s._id === 'INR')?.today || 0;
+    const todaySalesUSD = todaySalesAgg.find(s => s._id === 'USD')?.today || 0;
 
     // 4. Products Stock Count
     const lowStockCount = await Product.countDocuments({ stock: { $gt: 0, $lte: 10 } });
@@ -113,7 +134,8 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
        { $group: {
            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
            orders: { $sum: 1 },
-           sales: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalAmount", 0] } }
+           salesINR: { $sum: { $cond: [{ $and: [{ $eq: ["$paymentStatus", "paid"] }, { $eq: [{ $toUpper: "$currency" }, "INR"] }] }, "$totalAmount", 0] } },
+           salesUSD: { $sum: { $cond: [{ $and: [{ $eq: ["$paymentStatus", "paid"] }, { $eq: [{ $toUpper: "$currency" }, "USD"] }] }, "$totalAmount", 0] } }
        }},
        { $sort: { _id: 1 } },
        { $limit: 15 }
@@ -134,10 +156,16 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
         deliveredOrders,
         cancelledOrders,
         totalSales,
+        totalSalesUSD,
         todaySales,
+        todaySalesUSD,
         lowStockCount,
         outOfStockCount,
-        newCustomers
+        newCustomers,
+        pendingReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'pending' }),
+        approvedReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'approved' }),
+        receivedReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'received' }),
+        totalReturns: await Order.countDocuments({ ...dateFilter, returnStatus: { $ne: 'none' } })
       },
       paymentSummary,
       shippingSummary,

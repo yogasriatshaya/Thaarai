@@ -1,27 +1,50 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { getProductPrice } from '../utils/priceUtils';
 import API from '../api';
 import { toast } from 'react-toastify';
 import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 export default function Checkout() {
-  const { cartData, setCartData, token, BACKEND_URL, removeFromCart } = useShop();
+  const { cartData, setCartData, token, BACKEND_URL, removeFromCart, settings } = useShop();
+  const { formatPrice, country, currency, currencySymbol, countryName } = useCurrency();
   const navigate = useNavigate();
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.id = 'razorpay-sdk';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [paymentMethod, setPaymentMethod] = useState(country === 'US' ? 'stripe' : 'cod');
   const [form, setForm] = useState({
-    fullName: '', phone: '', addressLine: '', city: '', postalCode: '', country: 'India'
+    fullName: '', email: '', phone: '', addressLine: '', city: '', postalCode: '', country: countryName
   });
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [couponId, setCouponId] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
 
+  // Update form country when country switcher changes
   useEffect(() => {
-    if (!token) { navigate('/login'); return; }
+    setForm(prev => ({ ...prev, country: countryName }));
+    const cc = settings?.countryConfig?.[country];
+    if (country === 'US') {
+      setPaymentMethod('stripe');
+    } else {
+      setPaymentMethod(cc?.codAvailable !== false ? 'cod' : 'razorpay');
+    }
+  }, [country, countryName, settings]);
+
+  useEffect(() => {
     const loadCart = async () => {
       const items = [];
       for (const key in cartData) {
@@ -48,15 +71,41 @@ export default function Checkout() {
     loadCart();
   }, [cartData, token]);
 
-  const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const delivery = subtotal > 500 ? 0 : 35;
-  const total = Math.max(0, subtotal + delivery - discount);
+  // Get country-specific config from settings
+  const countryConfig = settings?.countryConfig?.[country] || {};
+  const taxName = countryConfig.taxName || (country === 'US' ? 'Sales Tax' : 'GST');
+  const taxPercentage = countryConfig.taxPercentage || 0;
+  const taxInclusive = countryConfig.taxInclusive !== undefined ? countryConfig.taxInclusive : false;
+  const freeShippingThreshold = countryConfig.freeShippingThreshold || (country === 'US' ? 50 : 500);
+  const shippingFee = countryConfig.shippingFee || (country === 'US' ? 10 : 0);
+  const codAvailable = countryConfig.codAvailable !== undefined ? countryConfig.codAvailable : (country === 'IN');
+
+  // Calculate totals
+  const subtotal = cartItems.reduce((sum, i) => sum + getProductPrice(i, country) * i.quantity, 0);
+  
+  useEffect(() => {
+    // If cart becomes empty during checkout, redirect back to cart
+    if (Object.keys(cartData).length === 0 && !loading) {
+      navigate('/cart');
+    }
+  }, [cartData, navigate, loading]);
+
+  const delivery = subtotal > freeShippingThreshold ? 0 : shippingFee;
+  const netAmount = subtotal + delivery - discount;
+  const finalTaxAmount = taxPercentage > 0 
+    ? (taxInclusive 
+        ? Math.round(netAmount * (taxPercentage / (100 + taxPercentage)) * 100) / 100
+        : Math.round(netAmount * (taxPercentage / 100) * 100) / 100)
+    : 0;
+  
+  const total = taxInclusive ? netAmount : netAmount + finalTaxAmount;
+  const taxAmount = finalTaxAmount; // Save actual tax value regardless (for display/invoice)
 
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
     setCouponLoading(true);
     try {
-      const res = await API.post('/coupons/apply', { code: couponCode, totalAmount: subtotal });
+      const res = await API.post('/coupons/apply', { code: couponCode, totalAmount: subtotal, country });
       if (res.data.success) {
         setDiscount(res.data.discount);
         setCouponId(res.data.couponId);
@@ -70,8 +119,17 @@ export default function Checkout() {
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const hasUnavailableItems = cartItems.some(item => 
+    (country === 'IN' && item.availableInIndia === false) ||
+    (country === 'US' && item.availableInUS === false)
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (hasUnavailableItems) {
+      toast.error('Please remove items from your cart that are not available in your region.');
+      return;
+    }
     if (!form.fullName || !form.phone || !form.addressLine || !form.city || !form.postalCode) {
       toast.error('Please fill all delivery fields');
       return;
@@ -85,13 +143,12 @@ export default function Checkout() {
       const itemToSave = {
         name: i.name,
         image: imageUrl,
-        price: i.price,
+        price: getProductPrice(i, country),
         size: i.size,
         color: i.color,
         quantity: i.quantity
       };
 
-      // Omit invalid ObjectIds for Mock or Local products
       if (i._id && !i._id.startsWith('mock_') && !i._id.startsWith('local_')) {
         itemToSave.productId = i._id;
       }
@@ -101,22 +158,80 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      // Temporarily bypassing payment gateways to place orders directly
-      const res = await API.post('/orders/create', {
+      const orderPayload = {
         items: orderItems,
         address: form,
         totalAmount: total,
         paymentMethod: paymentMethod,
-        couponId: couponId
-      });
+        couponId: couponId,
+        guestEmail: form.email,
+        guestPhone: form.phone,
+        currency,
+        orderCountry: country,
+        subtotal,
+        taxAmount,
+        taxName,
+        taxPercentage,
+        shippingAmount: delivery,
+        discountAmount: discount
+      };
+
+      let res;
+      if (paymentMethod === 'stripe') {
+        res = await API.post('/orders/stripe', orderPayload);
+        if (res.data.url) window.location.href = res.data.url;
+        return;
+      } else if (paymentMethod === 'razorpay') {
+        const isLoaded = await loadRazorpayScript();
+        if (!isLoaded) {
+          toast.error('Razorpay SDK failed to load. Are you online?');
+          setLoading(false);
+          return;
+        }
+
+        res = await API.post('/orders/razorpay', orderPayload);
+        const { razorpayOrderId, key, orderId } = res.data;
+        const options = {
+          key,
+          amount: Math.round(total * 100),
+          currency: currency.toUpperCase(),
+          name: 'Thaarai Designers',
+          description: 'Luxury Ethnic Wear',
+          order_id: razorpayOrderId,
+          handler: async (response) => {
+            const verifyRes = await API.post('/orders/razorpay/verify', { ...response, orderId });
+            if (verifyRes.data.success) {
+              setCartData({});
+              if (token) {
+                navigate('/orders');
+              } else {
+                navigate('/track-order', { state: { orderId, email: form.email } });
+              }
+              toast.success('Payment successful!');
+            }
+          },
+          prefill: { name: form.fullName, email: form.email, contact: form.phone },
+          theme: { color: '#000000' }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setLoading(false);
+        return;
+      } else {
+        res = await API.post('/orders/create', orderPayload);
+      }
 
       if (res.data.success) {
         setCartData({});
-        navigate('/order-success');
-        toast.success('Order placed successfully (Payment Gateway bypassed for now)!');
+        if (token) {
+          navigate('/orders');
+        } else {
+          navigate('/track-order', { state: { orderId: res.data.order._id, email: form.email } });
+        }
+        toast.success('Order placed successfully!');
       }
     } catch (err) {
-      toast.error('Order failed. Please try again.');
+      toast.error(err.response?.data?.message || 'Order failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -145,9 +260,13 @@ export default function Checkout() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
+                <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Full Name</label>
                   <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Sarah Jenkins" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
+                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="sarah@example.com" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Phone</label>
@@ -155,15 +274,19 @@ export default function Checkout() {
                 </div>
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line</label>
-                  <input name="addressLine" value={form.addressLine} onChange={handleChange} placeholder="Flat/House No, Street, Landmark" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="addressLine" value={form.addressLine} onChange={handleChange} placeholder={country === 'US' ? 'Street Address, Apt/Suite' : 'Flat/House No, Street, Landmark'} className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">City</label>
                   <input name="city" value={form.city} onChange={handleChange} placeholder="City Name" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pincode</label>
-                  <input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="600001" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{country === 'US' ? 'ZIP Code' : 'Pincode'}</label>
+                  <input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder={country === 'US' ? '10001' : '600001'} className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Country</label>
+                  <input name="country" value={form.country} readOnly className="w-full p-3 bg-gray-100/50 border border-gray-100 rounded-xl text-sm text-gray-500 cursor-not-allowed" />
                 </div>
               </div>
             </div>
@@ -176,35 +299,51 @@ export default function Checkout() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
+                {/* Online Payment - Razorpay for India, Stripe for US */}
+                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === (country === 'US' ? 'stripe' : 'razorpay') ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-center text-purple-500 text-lg">⚡</div>
                     <div>
-                      <p className="font-bold text-gray-900 text-sm">UPI / Cards / NetBanking</p>
-                      <p className="text-[11px] text-gray-400">Instant & secure processing</p>
+                      <p className="font-bold text-gray-900 text-sm">
+                        {country === 'US' ? 'Credit/Debit Card' : 'UPI / Cards / NetBanking'}
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        {country === 'US' ? 'Secure Stripe checkout' : 'Instant & secure processing'}
+                      </p>
                     </div>
                   </div>
-                  <input type="radio" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} className="w-4 h-4 accent-purple-600" />
+                  <input
+                    type="radio"
+                    value={country === 'US' ? 'stripe' : 'razorpay'}
+                    checked={paymentMethod === (country === 'US' ? 'stripe' : 'razorpay')}
+                    onChange={() => setPaymentMethod(country === 'US' ? 'stripe' : 'razorpay')}
+                    className="w-4 h-4 accent-purple-600"
+                  />
                 </label>
 
-                <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-blue-500 text-lg">🏠</div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">Cash on Delivery</p>
-                      <p className="text-[11px] text-gray-400">Pay on doorstep handoff</p>
+                {/* COD - only if available for this country */}
+                {codAvailable && (
+                  <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-purple-400 bg-purple-50/40 ring-1 ring-purple-400' : 'border-gray-100 hover:border-gray-200 bg-gray-50/40'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-blue-500 text-lg">🏠</div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">Cash on Delivery</p>
+                        <p className="text-[11px] text-gray-400">Pay on doorstep handoff</p>
+                      </div>
                     </div>
-                  </div>
-                  <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-4 h-4 accent-purple-600" />
-                </label>
+                    <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="w-4 h-4 accent-purple-600" />
+                  </label>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-purple-600 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-purple-700 transition-all active:scale-[0.98] shadow-lg shadow-purple-600/20 rounded-xl disabled:opacity-40"
+                disabled={loading || hasUnavailableItems}
+                className={`w-full py-4 text-white text-[12px] font-bold uppercase tracking-widest transition-all active:scale-[0.98] rounded-xl ${
+                  hasUnavailableItems ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-600/20 disabled:opacity-40'
+                }`}
               >
-                {loading ? 'Processing Order...' : 'Complete Purchase'}
+                {loading ? 'Processing Order...' : hasUnavailableItems ? 'Remove Unavailable Items' : 'Complete Purchase'}
               </button>
 
               <p className="text-[10px] text-center text-gray-400 px-4">
@@ -218,15 +357,19 @@ export default function Checkout() {
             <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-100/40 space-y-6">
               <div className="flex justify-between items-center border-b border-gray-100 pb-4">
                 <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
-                <Link to="/cart" className="text-[10px] font-bold uppercase tracking-widest text-[#8b7fc0] hover:text-[#7b6ea8] transition-colors bg-[#aba0e3]/10 hover:bg-[#aba0e3]/20 px-3 py-1.5 rounded-full">
+                <Link to="/cart" className="text-[10px] font-bold uppercase tracking-widest text-[#000000] hover:text-[#7b6ea8] transition-colors bg-[#000000]/10 hover:bg-[#000000]/20 px-3 py-1.5 rounded-full">
                   Edit Cart
                 </Link>
               </div>
 
               <div className="space-y-4 max-h-[45vh] overflow-auto pr-2 custom-scrollbar">
-                {cartItems.map((item, i) => (
-                  <div key={i} className="flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0">
-                    <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100">
+                {cartItems.map((item, i) => {
+                  const isItemUnavailable = (country === 'IN' && item.availableInIndia === false) ||
+                                            (country === 'US' && item.availableInUS === false);
+                  return (
+                  <div key={i} className={`flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0 ${isItemUnavailable ? 'opacity-50' : ''}`}>
+                    <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
+                      {isItemUnavailable && <div className="absolute inset-0 bg-red-500/10 z-10"></div>}
                       <img
                         src={item.images?.[0] ? (item.images[0].startsWith('http') ? item.images[0] : `${BACKEND_URL}${item.images[0]}`) : PRODUCT_FALLBACK}
                         alt={item.name}
@@ -254,17 +397,16 @@ export default function Checkout() {
                             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
                         </div>
-                        <span className="font-bold text-gray-900 text-sm">
-                          {(item.price * item.quantity).toLocaleString('en-IN', {
-                            style: 'currency',
-                            currency: 'INR',
-                            maximumFractionDigits: 0
-                          })}
-                        </span>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900 text-sm">
+                            {formatPrice(getProductPrice(item, country) * item.quantity)}
+                          </div>
+                          {isItemUnavailable && <div className="text-[10px] text-red-500 font-bold mt-1">UNAVAILABLE</div>}
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
 
               {/* Promo Code Input */}
@@ -280,39 +422,32 @@ export default function Checkout() {
               <div className="border-t border-gray-100 pt-5 space-y-3 text-sm">
                 <div className="flex justify-between text-gray-500 font-medium">
                   <span>Subtotal</span>
-                  <span>
-                    {subtotal.toLocaleString('en-IN', {
-                      style: 'currency',
-                      currency: 'INR',
-                      maximumFractionDigits: 0
-                    })}
-                  </span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500 font-medium">
-                  <span>Delivery Charges</span>
+                  <span>Delivery</span>
                   <span className={delivery === 0 ? 'text-green-500 font-bold' : ''}>
-                    {delivery === 0 ? 'FREE' : delivery.toLocaleString('en-IN', {
-                      style: 'currency',
-                      currency: 'INR',
-                      maximumFractionDigits: 0
-                    })}
+                    {delivery === 0 ? 'FREE' : formatPrice(delivery)}
                   </span>
                 </div>
+                {/* Tax line */}
+                {taxPercentage > 0 && (
+                  <div className="flex justify-between text-gray-500 font-medium">
+                    <span>{taxName} ({taxPercentage}%)</span>
+                    <span>{formatPrice(taxAmount)} {taxInclusive && <span className="text-[10px] text-gray-400 font-medium">(Included)</span>}</span>
+                  </div>
+                )}
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600 font-bold">
                     <span>Discount</span>
-                    <span>-₹{discount.toLocaleString()}</span>
+                    <span>-{formatPrice(discount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center text-gray-900 pt-4 border-t border-gray-100">
                   <span className="font-bold text-base">Total Amount</span>
                   <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-rose-500 bg-clip-text text-transparent">
-                    {total.toLocaleString('en-IN', {
-                      style: 'currency',
-                      currency: 'INR',
-                      maximumFractionDigits: 0
-                    })}
+                    {formatPrice(total)}
                   </span>
                 </div>
               </div>

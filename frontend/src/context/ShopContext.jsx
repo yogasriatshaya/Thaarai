@@ -7,8 +7,9 @@ const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [cartData, setCartData] = useState({});
+  const [cartData, setCartData] = useState(JSON.parse(localStorage.getItem('thaarai_guest_cart')) || {});
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [wishlist, setWishlist] = useState(JSON.parse(localStorage.getItem('wishlist')) || []);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
@@ -16,16 +17,31 @@ export const ShopProvider = ({ children }) => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  const toggleWishlist = (productId) => {
-    setWishlist(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-    if (!wishlist.includes(productId)) {
-      toast.success('Added to wishlist');
-    } else {
-      toast.info('Removed from wishlist');
+  useEffect(() => {
+    localStorage.setItem('thaarai_guest_cart', JSON.stringify(cartData));
+  }, [cartData]);
+
+  const toggleWishlist = async (productId) => {
+    // If not logged in, just handle locally
+    if (!token) {
+      setWishlist(prev =>
+        prev.includes(productId)
+          ? prev.filter(id => id !== productId)
+          : [...prev, productId]
+      );
+      toast.success(!wishlist.includes(productId) ? 'Added to wishlist' : 'Removed from wishlist');
+      return;
+    }
+
+    // If logged in, sync with backend
+    try {
+      const res = await API.post('/users/wishlist', { productId });
+      if (res.data.success) {
+        setWishlist(res.data.wishlist || []);
+        toast.success(res.data.wishlist.includes(productId) ? 'Added to wishlist' : 'Removed from wishlist');
+      }
+    } catch {
+      toast.error('Failed to update wishlist');
     }
   };
 
@@ -34,7 +50,10 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      API.get('/users/profile').then(r => setUser(r.data.user)).catch(() => logout());
+      API.get('/users/profile').then(r => {
+        setUser(r.data.user);
+        if (r.data.user?.wishlist) setWishlist(r.data.user.wishlist);
+      }).catch(() => logout());
       API.get('/cart').then(r => setCartData(r.data.cartData || {})).catch(() => { });
     }
   }, [token]);
@@ -77,6 +96,20 @@ export const ShopProvider = ({ children }) => {
     fetchGlobalCatalog();
   }, []);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await API.get('/categories');
+        if (res.data.success) {
+          setCategories(res.data.categories || []);
+        }
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const login = (tokenVal, userData) => {
     localStorage.setItem('token', tokenVal);
     setToken(tokenVal);
@@ -88,19 +121,18 @@ export const ShopProvider = ({ children }) => {
     setToken('');
     setUser(null);
     setCartData({});
+    setWishlist(JSON.parse(localStorage.getItem('wishlist')) || []);
   };
 
   const addToCart = async (productId, size, color) => {
-    if (!token) { toast.info('Please login to add to cart'); return; }
-
-    // ── Handle Mock & Local Injection ──────────────────────────────────
-    if (productId.startsWith('mock_') || productId.startsWith('local_')) {
+    // ── Handle Mock, Local, or Guest Injection ────────────────────────
+    if (!token || productId.startsWith('mock_') || productId.startsWith('local_')) {
       const key = `${productId}-${size}-${color}`;
       setCartData(prev => ({
         ...prev,
         [key]: { productId, size, color, quantity: (prev[key]?.quantity || 0) + 1 }
       }));
-      toast.success('Local item added to cart (Session only)');
+      toast.success('Added to cart');
       return;
     }
 
@@ -112,7 +144,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const updateCartQty = async (productId, size, color, quantity) => {
-    if (productId.startsWith('mock_') || productId.startsWith('local_')) {
+    if (!token || productId.startsWith('mock_') || productId.startsWith('local_')) {
       const key = `${productId}-${size}-${color}`;
       setCartData(prev => {
         const newData = { ...prev };
@@ -130,7 +162,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const removeFromCart = async (productId, size, color) => {
-    if (productId.startsWith('mock_') || productId.startsWith('local_')) {
+    if (!token || productId.startsWith('mock_') || productId.startsWith('local_')) {
       const key = `${productId}-${size}-${color}`;
       setCartData(prev => {
         const newData = { ...prev };
@@ -174,10 +206,11 @@ export const ShopProvider = ({ children }) => {
 
   return (
     <ShopContext.Provider value={{
-      user, token, login, logout, cartData, setCartData,
+      user, products, categories, cartData, setCartData,
       addToCart, updateCartQty, removeFromCart, cartCount,
-      products, setProducts, BACKEND_URL, cartTotal,
-      wishlist, toggleWishlist, isWishlisted, settings
+      setProducts, BACKEND_URL, cartTotal,
+      wishlist, toggleWishlist, isWishlisted, settings,
+      login, logout, token
     }}>
       {children}
     </ShopContext.Provider>

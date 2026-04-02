@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { getProductPrice, getProductOriginalPrice } from '../utils/priceUtils';
 import { PRODUCT_FALLBACK } from '../assets/images';
 import { createPortal } from 'react-dom';
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
   const { addToCart, BACKEND_URL, toggleWishlist, isWishlisted } = useShop();
+  const { formatPrice, country } = useCurrency();
   const navigate = useNavigate();
   const [size, setSize] = useState('');
   const [color, setColor] = useState('');
@@ -58,14 +61,10 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
         {/* Product Info */}
         <div className="w-full md:w-1/2 flex flex-col overflow-y-auto custom-scrollbar pr-2 space-y-4 sm:space-y-6 pb-2">
           <div>
-            <p className="text-xs sm:text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">{product.category}</p>
+            <p className="text-xs sm:text-[11px] font-bold uppercase tracking-[0.2em] text-black mb-2">{product.category}</p>
             <h2 className="text-2xl sm:text-3xl font-bold font-serif text-gray-900 mb-2">{product.name}</h2>
             <p className="text-xl font-bold text-gray-900">
-              {product.price?.toLocaleString('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                maximumFractionDigits: 0
-              })}
+              {formatPrice(getProductPrice(product, country))}
             </p>
           </div>
 
@@ -83,7 +82,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                       key={s}
                       onClick={() => setSize(s)}
                       className={`px-5 py-3 sm:px-4 sm:py-2 text-xs sm:text-[10px] font-bold uppercase border transition-all rounded-xl ${
-                        size === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent text-gray-600 border-gray-200 hover:border-blue-600'
+                        size === s ? 'bg-black text-white border-black' : 'bg-transparent text-gray-600 border-gray-200 hover:border-black'
                       }`}
                     >
                       {s}
@@ -102,7 +101,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                       key={c}
                       onClick={() => setColor(c)}
                       className={`px-5 py-3 sm:px-4 sm:py-2 text-xs sm:text-[10px] font-bold uppercase border transition-all rounded-xl ${
-                        color === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent text-gray-600 border-gray-200 hover:border-blue-600'
+                        color === c ? 'bg-black text-white border-black' : 'bg-transparent text-gray-600 border-gray-200 hover:border-black'
                       }`}
                     >
                       {c}
@@ -123,7 +122,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
             <button 
               onClick={() => toggleWishlist(product._id)}
               className={`p-3 border transition-colors rounded-xl ${
-                isWishlisted(product._id) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-600'
+                isWishlisted(product._id) ? 'bg-blue-50 border-blue-200 text-black' : 'bg-white border-gray-200 text-gray-400 hover:text-black hover:border-black'
               }`}
             >
               <svg width="20" height="20" fill={isWishlisted(product._id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">

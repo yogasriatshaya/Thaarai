@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../assets/logo.jpg';
+
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../api';
 import { useShop } from '../context/ShopContext';
@@ -49,7 +49,7 @@ export function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-white/80" />
         <div className="absolute bottom-16 left-12 right-12">
-          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#8b7fc0' }}>Thaarai The Designer Studio</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#000000' }}>Thaarai The Designer Studio</p>
           <h2 className="font-serif text-4xl text-gray-900 font-bold mb-4 leading-tight">
             Style, innovation, and individuality.
           </h2>
@@ -64,7 +64,7 @@ export function Login() {
             <img src="/thaarai-logo.png" alt="Thaarai" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
             <div>
               <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
+              <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#000000' }}>The Designer Studio</span>
             </div>
           </Link>
 
@@ -97,8 +97,8 @@ export function Login() {
             </InputGroup>
 
             <div className="flex justify-end">
-              <button type="button" className="text-[11px] font-medium text-gray-400 transition-colors" style={{ '--hover-color': '#aba0e3' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
+              <button type="button" className="text-[11px] font-medium text-gray-400 transition-colors" style={{ '--hover-color': '#000000' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#000000'}
                 onMouseLeave={e => e.currentTarget.style.color = ''}>
                 Forgot password?
               </button>
@@ -116,9 +116,9 @@ export function Login() {
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
               New to Thaarai?{' '}
-              <Link to="/register" className="font-semibold transition-colors" style={{ color: '#aba0e3' }}
+              <Link to="/register" className="font-semibold transition-colors" style={{ color: '#000000' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#9589d4'}
-                onMouseLeave={e => e.currentTarget.style.color = '#aba0e3'}>
+                onMouseLeave={e => e.currentTarget.style.color = '#000000'}>
                 Create an account
               </Link>
             </p>
@@ -165,7 +165,7 @@ export function Register() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/70 to-white/80" />
         <div className="absolute bottom-16 left-12 right-12">
-          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#aba0e3' }}>Join Our Family</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.4em] mb-4" style={{ color: '#000000' }}>Join Our Family</p>
           <h2 className="font-serif text-4xl text-gray-900 font-bold leading-tight">
             Where tradition meets modern design.
           </h2>
@@ -179,7 +179,7 @@ export function Register() {
             <img src="/thaarai-logo.png" alt="Thaarai" className="h-10 w-auto object-contain transition-all duration-500 rounded-sm" />
             <div>
               <span className="font-serif text-xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>The Designer Studio</span>
+              <span className="text-[9px] font-medium uppercase tracking-[0.3em]" style={{ color: '#000000' }}>The Designer Studio</span>
             </div>
           </Link>
 
@@ -234,9 +234,9 @@ export function Register() {
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
               Already a member?{' '}
-              <Link to="/login" className="font-semibold transition-colors" style={{ color: '#aba0e3' }}
+              <Link to="/login" className="font-semibold transition-colors" style={{ color: '#000000' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#9589d4'}
-                onMouseLeave={e => e.currentTarget.style.color = '#aba0e3'}>
+                onMouseLeave={e => e.currentTarget.style.color = '#000000'}>
                 Sign In
               </Link>
             </p>

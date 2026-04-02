@@ -3,22 +3,20 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import API, { BACKEND_URL } from '../api';
 import { toast } from 'react-toastify';
+import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
 
-const CATEGORIES = ['Kurti', 'Maxi', 'Co-ords', 'Anarkali'];
+// Labels and constants - DEFAULT_SIZES as fallback
 const LABELS = ['', 'Hot', 'New Arrival', 'Trending', 'Sold Out'];
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'];
-const FABRICS = [
-  'Chanderi', 'Chettinadu Cotton', 'Jaipur Cotton', 'Pure Handloom Cotton',
-  'Mul Chanderi', 'Raw Silk', 'Mangalagiri Cotton', 'Chennuri Silk',
-  'Vichitra Silk', 'Silk Cotton', 'Ikkat', 'Rayon', 'Georgette', 'Crepe'
-];
-const STYLES = ['Kurti', 'A-Line', 'Anarkali', 'Maxi', '2-Piece Set', '3-Piece Set', 'Co-Ord Set', 'Straight Cut'];
+const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size'];
 const AVAILABILITY = ['Available', 'Limited Stock', 'Made to Order', 'Pre-Order'];
 
 const initialForm = {
   name: '', description: '', category: 'Kurti', subcategory: '', price: '',
   originalPrice: '', stock: '', fabric: '', style: '', label: '', bestseller: false,
-  availability: 'Available', sizes: [], colors: []
+  availability: 'Available', sizes: [], colors: [],
+  priceUSD: '', originalPriceUSD: '', availableInIndia: true, availableInUS: false,
+  offerEndTimeIndia: '', offerActiveIndia: false, offerPriceIndia: '', offerPriceUSDIndia: '',
+  offerEndTimeUSA: '', offerActiveUSA: false, offerPriceUSDUSA: ''
 };
 
 export default function ProductForm() {
@@ -35,12 +33,39 @@ export default function ProductForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit || Boolean(duplicateId));
   const [status, setStatus] = useState('Publish');
   const [isPreview, setIsPreview] = useState(false);
+  const [priceTab, setPriceTab] = useState('INR');
+  const [categories, setCategories] = useState([]);
+  const [matchingSubcats, setMatchingSubcats] = useState([]);
+  const [availableFabrics, setAvailableFabrics] = useState([]);
+  const [availableStyles, setAvailableStyles] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState(DEFAULT_SIZES);
 
+  // 1. Initial Load: Fetch Categories
+  useEffect(() => {
+    API.get('/categories').then(res => {
+      if (res.data.success) {
+        setCategories(res.data.categories || []);
+      }
+    }).catch(err => console.error('Failed to fetch categories:', err));
+  }, []);
+
+  // 2. Fetch product data if editing/duplicating
   useEffect(() => {
     const loadId = id || duplicateId;
     if (loadId) {
       API.get(`/products/${loadId}`).then(r => {
         const p = r.data.product;
+        const formatDateTimeLocal = (dateString) => {
+          if (!dateString) return '';
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+
         setForm({
           name: duplicateId ? `${p.name} (Copy)` : p.name, 
           description: p.description, category: p.category,
@@ -48,17 +73,78 @@ export default function ProductForm() {
           stock: p.stock, fabric: p.fabric || p.material || '', style: p.style || '',
           label: p.label || '', bestseller: p.bestseller || false,
           availability: p.availability || 'Available',
-          sizes: p.sizes || [], colors: p.colors || []
+          sizes: p.sizes || [], colors: p.colors || [],
+          priceUSD: p.priceUSD || '', originalPriceUSD: p.originalPriceUSD || '',
+          availableInIndia: p.availableInIndia !== false, availableInUS: p.availableInUS || false,
+          offerEndTimeIndia: formatDateTimeLocal(p.offerEndTimeIndia),
+          offerActiveIndia: p.offerActiveIndia || false,
+          offerPriceIndia: p.offerPriceIndia || '',
+          offerPriceUSDIndia: p.offerPriceUSDIndia || '',
+          offerEndTimeUSA: formatDateTimeLocal(p.offerEndTimeUSA),
+          offerActiveUSA: p.offerActiveUSA || false,
+          offerPriceUSDUSA: p.offerPriceUSDUSA || '',
+          averageRating: p.averageRating,
+          reviews: p.reviews || []
         });
         setStatus(p.status || 'Publish');
-        // Do not prefill images for duplicates (user must upload new) to avoid form-multipart mismatch, 
-        // OR let it append text only. Let's prefill existingImages just for visual, but handleSubmit must know what to upload.
-        if (!duplicateId) {
-           setExistingImages(p.images || []);
-        }
+        if (!duplicateId) setExistingImages(p.images || []);
       }).finally(() => setFetchLoading(false));
+    } else {
+      setFetchLoading(false);
     }
   }, [id, duplicateId]);
+
+  // 3. Sync matching subcategories, fabrics, styles and sizes
+  useEffect(() => {
+    if (!form.category || categories.length === 0) {
+      setMatchingSubcats([]);
+      setAvailableFabrics([]);
+      setAvailableStyles([]);
+      setAvailableSizes(DEFAULT_SIZES);
+      return;
+    }
+
+    const catObj = categories.find(c => 
+      (c.name || '').toLowerCase() === (form.category || '').toLowerCase()
+    );
+
+    if (catObj) {
+      const subs = catObj.subcategories || [];
+      setMatchingSubcats(subs);
+      
+      const subObj = subs.find(s => 
+        (typeof s === 'string' ? s : s?.name || '').toLowerCase() === (form.subcategory || '').toLowerCase()
+      );
+      
+      let currentFabrics = [
+        ...(subObj && typeof subObj !== 'string' ? (subObj.fabrics || []) : []),
+        ...(catObj.defaultFabrics || [])
+      ];
+      let currentStyles = [
+        ...(subObj && typeof subObj !== 'string' ? (subObj.styles || []) : []),
+        ...(catObj.defaultStyles || [])
+      ];
+
+      // Dynamic sizes from category
+      let currentSizes = catObj.availableSizes && catObj.availableSizes.length > 0 
+        ? [...catObj.availableSizes] 
+        : [...DEFAULT_SIZES];
+
+      currentFabrics = [...new Set(currentFabrics)].filter(Boolean).sort();
+      currentStyles = [...new Set(currentStyles)].filter(Boolean).sort();
+
+      const isPersistent = isEdit || Boolean(duplicateId);
+      if (isPersistent) {
+        if (form.fabric && !currentFabrics.includes(form.fabric)) currentFabrics.push(form.fabric);
+        if (form.style && !currentStyles.includes(form.style)) currentStyles.push(form.style);
+        form.sizes.forEach(s => { if (!currentSizes.includes(s)) currentSizes.push(s); });
+      }
+
+      setAvailableFabrics(currentFabrics);
+      setAvailableStyles(currentStyles);
+      setAvailableSizes(currentSizes);
+    }
+  }, [form.category, form.subcategory, categories, isEdit, duplicateId, form.fabric, form.style]);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -85,17 +171,16 @@ export default function ProductForm() {
       const data = new FormData();
       Object.entries(form).forEach(([k, v]) => {
         if (k === 'sizes' || k === 'colors') data.append(k, JSON.stringify(v));
+        else if ((k === 'offerEndTimeIndia' || k === 'offerEndTimeUSA') && v) {
+          data.append(k, new Date(v).toISOString());
+        }
         else data.append(k, v);
       });
       data.append('status', submitStatus);
       images.forEach(img => data.append('images', img));
 
-      // Send existing images that weren't removed (for edit mode)
       if (isEdit) {
         data.append('existingImages', JSON.stringify(existingImages));
-      }
-
-      if (isEdit) {
         await API.put(`/products/${id}`, data);
         toast.success('Product updated successfully');
       } else {
@@ -116,7 +201,6 @@ export default function ProductForm() {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Info */}
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Basic Information</h3>
               <div className="space-y-4">
@@ -126,18 +210,25 @@ export default function ProductForm() {
                 </div>
                 <div>
                   <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Description *</label>
-                  <textarea name="description" value={form.description} onChange={handleChange} className="input-field min-h-[100px] resize-none" required placeholder="Describe the product details, fabric quality, care instructions..." />
+                  <textarea name="description" value={form.description} onChange={handleChange} className="input-field min-h-[100px] resize-none" required placeholder="Describe the product details..." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Category *</label>
-                    <select name="category" value={form.category} onChange={handleChange} className="input-field">
-                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    <select name="category" value={form.category} onChange={handleChange} className="input-field shadow-sm" required>
+                      <option value="">Select Category</option>
+                      {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Subcategory</label>
-                    <input name="subcategory" value={form.subcategory} onChange={handleChange} className="input-field" placeholder="e.g. Festive Collection" />
+                     <select name="subcategory" value={form.subcategory} onChange={handleChange} className="input-field shadow-sm">
+                        <option value="">— No Subcategory —</option>
+                         {matchingSubcats.map(s => {
+                           const name = typeof s === 'string' ? s : s?.name || '';
+                           return <option key={name} value={name}>{name}</option>;
+                         })}
+                     </select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -145,25 +236,24 @@ export default function ProductForm() {
                     <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Fabric / Material *</label>
                     <select name="fabric" value={form.fabric} onChange={handleChange} className="input-field">
                       <option value="">Select Fabric</option>
-                      {FABRICS.map(f => <option key={f}>{f}</option>)}
+                      {availableFabrics.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Style</label>
                     <select name="style" value={form.style} onChange={handleChange} className="input-field">
                       <option value="">Select Style</option>
-                      {STYLES.map(s => <option key={s}>{s}</option>)}
+                      {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Sizes */}
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Sizes</h3>
               <div className="flex flex-wrap gap-2">
-                {SIZES.map(size => (
+                {availableSizes.map(size => (
                   <button type="button" key={size} onClick={() => toggleSize(size)}
                     className={`w-14 h-10 text-xs font-sans border-2 transition-all ${form.sizes.includes(size) ? 'border-gold-600 bg-gold-600 text-white' : 'border-gray-200 hover:border-gray-400'}`}>
                     {size}
@@ -172,184 +262,149 @@ export default function ProductForm() {
               </div>
             </div>
 
-            {/* Colors */}
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Colors</h3>
               <div className="flex gap-3 mb-3">
-                <input value={colorInput} onChange={e => setColorInput(e.target.value)}
-                  className="input-field flex-1" placeholder="e.g. Imperial Gold, Midnight, Ivory" />
+                <input value={colorInput} onChange={e => setColorInput(e.target.value)} className="input-field flex-1" placeholder="e.g. Imperial Gold" />
                 <button type="button" onClick={addColor} className="btn-outline">Add</button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {form.colors.map(c => (
                   <span key={c} className="flex items-center gap-2 text-xs font-sans bg-gray-100 px-3 py-1.5 rounded-full">
                     {c}
-                    <button type="button" onClick={() => removeColor(c)} className="text-gray-400 hover:text-red-500 transition-colors">×</button>
+                    <button type="button" onClick={() => removeColor(c)} className="text-gray-400">×</button>
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Images */}
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Product Images</h3>
-
-              {/* Existing Images */}
               {existingImages.length > 0 && (
                 <div className="mb-4">
                   <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Current Images</p>
                   <div className="flex flex-wrap gap-3">
                     {existingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img.startsWith('http') ? img : `${BACKEND_URL}${img}`} alt=""
-                          className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
-                        >
-                          ×
-                        </button>
+                        <img src={img.startsWith('http') ? img : `${BACKEND_URL}${img}`} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* New Images */}
-              {images.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">New Images to Upload</p>
-                  <div className="flex flex-wrap gap-3">
-                    {images.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <img src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Area */}
-              <label 
-                className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 hover:bg-gold-50/30 transition-all"
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  e.preventDefault();
-                  if (e.dataTransfer.files) {
-                    setImages([...images, ...Array.from(e.dataTransfer.files)]);
-                  }
-                }}
-              >
+              <label className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 transition-all">
                 <input type="file" accept="image/*" multiple onChange={e => setImages([...images, ...Array.from(e.target.files)])} className="hidden" />
                 <div className="flex flex-col items-center gap-2">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <Plus className="w-8 h-8 text-gray-300" />
                   <p className="text-sm font-sans text-gray-500">Click or Drag & Drop to upload images</p>
-                  <p className="text-xs font-sans text-gray-400">PNG, JPG, WEBP up to 10MB each</p>
                 </div>
               </label>
             </div>
           </div>
 
-          {/* Right panel */}
           <div className="space-y-6">
             <div className="card p-6">
-              <h3 className="font-serif text-lg text-charcoal mb-5">Pricing & Stock</h3>
+              <h3 className="font-serif text-lg text-charcoal mb-4">Pricing & Stock</h3>
+              <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-lg">
+                <button type="button" onClick={() => setPriceTab('INR')} className={`flex-1 py-2 text-[10px] font-bold uppercase transition-all ${priceTab === 'INR' ? 'bg-white text-charcoal shadow-sm' : 'text-gray-400'}`}>🇮🇳 India</button>
+                <button type="button" onClick={() => setPriceTab('USD')} className={`flex-1 py-2 text-[10px] font-bold uppercase transition-all ${priceTab === 'USD' ? 'bg-white text-charcoal shadow-sm' : 'text-gray-400'}`}>🇺🇸 USA</button>
+              </div>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Sale Price (₹) *</label>
-                  <input name="price" type="number" min="0" step="1" value={form.price} onChange={handleChange} className="input-field" required placeholder="e.g. 1499" />
-                </div>
-                <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Original Price (₹)</label>
-                  <input name="originalPrice" type="number" min="0" step="1" value={form.originalPrice} onChange={handleChange} className="input-field" placeholder="e.g. 1999 (leave empty if no discount)" />
-                </div>
-                <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Stock Quantity *</label>
-                  <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} className="input-field" required placeholder="0" />
-                </div>
-                <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Availability</label>
-                  <select name="availability" value={form.availability} onChange={handleChange} className="input-field">
-                    {AVAILABILITY.map(a => <option key={a}>{a}</option>)}
-                  </select>
-                </div>
+                {priceTab === 'INR' ? (
+                  <>
+                    <input name="price" type="number" value={form.price} onChange={handleChange} className="input-field" placeholder="Sale Price (₹)" required />
+                    <input name="originalPrice" type="number" value={form.originalPrice} onChange={handleChange} className="input-field" placeholder="Original Price (₹)" />
+                    <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" name="availableInIndia" checked={form.availableInIndia} onChange={handleChange} className="accent-green-600" /><span className="text-xs font-sans">Available in India</span></label>
+                  </>
+                ) : (
+                  <>
+                    <input name="priceUSD" type="number" value={form.priceUSD} onChange={handleChange} className="input-field" placeholder="Sale Price ($)" />
+                    <input name="originalPriceUSD" type="number" value={form.originalPriceUSD} onChange={handleChange} className="input-field" placeholder="Original Price ($)" />
+                    <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" name="availableInUS" checked={form.availableInUS} onChange={handleChange} className="accent-blue-600" /><span className="text-xs font-sans">Available in USA</span></label>
+                  </>
+                )}
+                <input name="stock" type="number" value={form.stock} onChange={handleChange} className="input-field" placeholder="Stock Quantity" required />
+                <select name="availability" value={form.availability} onChange={handleChange} className="input-field">
+                  {AVAILABILITY.map(a => <option key={a}>{a}</option>)}
+                </select>
               </div>
             </div>
 
             <div className="card p-6">
               <h3 className="font-serif text-lg text-charcoal mb-5">Status & Labels</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-1.5">Product Label</label>
-                  <select name="label" value={form.label} onChange={handleChange} className="input-field">
-                    {LABELS.map(l => <option key={l} value={l}>{l || '— None —'}</option>)}
-                  </select>
-                </div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="bestseller" checked={form.bestseller} onChange={handleChange} className="accent-gold-600 w-4 h-4" />
-                  <span className="text-sm font-sans text-charcoal">Mark as Bestseller</span>
-                </label>
-              </div>
+              <select name="label" value={form.label} onChange={handleChange} className="input-field mb-4">
+                {LABELS.map(l => <option key={l} value={l}>{l || '— None —'}</option>)}
+              </select>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="bestseller" checked={form.bestseller} onChange={handleChange} className="accent-gold-600" />
+                <span className="text-sm font-sans">Mark as Bestseller</span>
+              </label>
+            </div>
+
+            {/* Flash Offers */}
+            <div className="card p-6 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
+               <h3 className="font-serif text-lg text-charcoal mb-4">Flash Sale Offers</h3>
+               <div className="space-y-4">
+                  <div className="bg-white p-3 rounded border border-amber-100">
+                     <p className="text-[10px] font-bold mb-2">🇮🇳 India Offer</p>
+                     <label className="flex items-center gap-2 mb-2"><input type="checkbox" name="offerActiveIndia" checked={form.offerActiveIndia} onChange={handleChange} /><span className="text-[10px]">Active</span></label>
+                     {form.offerActiveIndia && (
+                        <div className="space-y-2">
+                           <input type="datetime-local" name="offerEndTimeIndia" value={form.offerEndTimeIndia} onChange={handleChange} className="text-[10px] w-full border p-1" />
+                           <input type="number" name="offerPriceIndia" value={form.offerPriceIndia} onChange={handleChange} placeholder="Offer Price (₹)" className="text-[10px] w-full border p-1" />
+                        </div>
+                     )}
+                  </div>
+                  <div className="bg-white p-3 rounded border border-blue-100">
+                     <p className="text-[10px] font-bold mb-2">🇺🇸 USA Offer</p>
+                     <label className="flex items-center gap-2 mb-2"><input type="checkbox" name="offerActiveUSA" checked={form.offerActiveUSA} onChange={handleChange} /><span className="text-[10px]">Active</span></label>
+                     {form.offerActiveUSA && (
+                        <div className="space-y-2">
+                           <input type="datetime-local" name="offerEndTimeUSA" value={form.offerEndTimeUSA} onChange={handleChange} className="text-[10px] w-full border p-1" />
+                           <input type="number" name="offerPriceUSDUSA" value={form.offerPriceUSDUSA} onChange={handleChange} placeholder="Offer Price ($)" className="text-[10px] w-full border p-1" />
+                        </div>
+                     )}
+                  </div>
+               </div>
             </div>
 
             <div className="flex flex-col gap-3">
-              <button type="button" onClick={() => setIsPreview(true)} className="btn-outline w-full justify-center">
-                Preview Product
-              </button>
+              <button type="button" onClick={() => setIsPreview(true)} className="btn-outline w-full py-2">Preview</button>
               <div className="flex gap-2">
-                <button type="button" onClick={(e) => handleSubmit(e, 'Draft')} disabled={loading} className="btn-outline flex-1 justify-center disabled:opacity-60 text-[10px] tracking-widest uppercase font-sans py-2.5">
-                  Save Draft
-                </button>
-                <button type="button" onClick={(e) => handleSubmit(e, 'Publish')} disabled={loading} className="btn-primary flex-1 justify-center disabled:opacity-60 text-[10px] tracking-widest uppercase font-sans py-2.5">
-                  {isEdit ? 'Update' : 'Publish'}
-                </button>
-                <button type="button" onClick={() => navigate('/products')} className="btn-outline px-3 flex items-center justify-center">
-                   <span className="text-gray-400">Cancel</span>
-                </button>
+                <button type="button" onClick={(e) => handleSubmit(e, 'Draft')} disabled={loading} className="btn-outline flex-1">Draft</button>
+                <button type="button" onClick={(e) => handleSubmit(e, 'Publish')} disabled={loading} className="btn-primary flex-1">{isEdit ? 'Update' : 'Publish'}</button>
               </div>
+              <button type="button" onClick={() => navigate('/products')} className="btn-outline w-full">Cancel</button>
             </div>
           </div>
         </div>
       </form>
 
-      {/* Product Preview Modal */}
-      {isPreview && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-sm max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
-               <button onClick={() => setIsPreview(false)} className="absolute top-4 right-4 text-xl text-gray-400 hover:text-charcoal">×</button>
-               <h3 className="font-serif text-charcoal text-lg mb-4 border-b pb-2">Product Preview</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden">
-                     {images.length > 0 ? (
-                        <img src={URL.createObjectURL(images[0])} alt="" className="w-full h-full object-cover" />
-                     ) : existingImages.length > 0 ? (
-                        <img src={existingImages[0].startsWith('http') ? existingImages[0] : `${BACKEND_URL}${existingImages[0]}`} alt="" className="w-full h-full object-cover" />
-                     ) : <div className="text-gray-400 text-xs">No image provided</div>}
-                  </div>
-                  <div className="space-y-2">
-                     <span className="text-[10px] tracking-wider text-gray-400 uppercase">{form.category} • {form.subcategory || 'Standard'}</span>
-                     <h2 className="font-serif text-xl font-bold text-charcoal">{form.name || 'Unnamed Product'}</h2>
-                     <p className="font-sans text-sm text-gray-500 min-h-[50px]">{form.description || 'No description provided'}</p>
-                     <div className="py-2">
-                        <span className="font-sans text-lg font-semibold text-charcoal mr-2">₹{form.price || 0}</span>
-                        {form.originalPrice && <span className="font-sans text-xs text-gray-400 line-through">₹{form.originalPrice}</span>}
-                     </div>
-                     <div>
-                         <span className="text-[10px] text-gray-500 block mb-1">Stock: {form.stock || 0}</span>
-                         <span className="text-[10px] text-gray-500 block">Status: {status}</span>
-                     </div>
-                  </div>
-               </div>
+      {isEdit && form.reviews && (
+        <div className="mt-12 pt-12 border-t pb-20">
+           <div className="flex justify-between items-center mb-8">
+              <h3 className="font-serif text-2xl text-charcoal">Customer Perspectives</h3>
+              <div className="flex gap-4">
+                 <div className="text-right"><p className="text-xl font-bold font-serif">{(form.averageRating || 0).toFixed(1)}</p><p className="text-[9px] uppercase tracking-widest text-gray-400">Avg Rating</p></div>
+                 <div className="text-right"><p className="text-xl font-bold font-serif">{form.reviews.length}</p><p className="text-[9px] uppercase tracking-widest text-gray-400">Reviews</p></div>
+              </div>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {form.reviews.map((r, idx) => (
+                <div key={idx} className="bg-white p-6 rounded-xl border relative group">
+                  <button onClick={async () => {
+                    if (window.confirm('Delete review?')) {
+                      await API.delete(`/products/${id}/reviews/${r._id}`);
+                      setForm(prev => ({ ...prev, reviews: prev.reviews.filter(item => item._id !== r._id) }));
+                    }
+                  }} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
+                  <p className="text-sm font-bold">{r.name}</p>
+                  <div className="flex text-gold-500">{'★'.repeat(r.rating)}</div>
+                  <p className="text-sm italic mt-2">"{r.comment}"</p>
+                  <p className="text-[10px] text-gray-400 mt-4">{new Date(r.createdAt).toLocaleDateString()}</p>
+                </div>
+              ))}
            </div>
         </div>
       )}

@@ -37,16 +37,16 @@ export default function ExitIntentPopup() {
       style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.55)' }}>
       <div className="relative bg-white max-w-lg w-full shadow-2xl overflow-hidden rounded-2xl animate-fade-in">
         {/* Blue top accent */}
-        <div className="h-1 bg-blue-600 w-full" />
+        <div className="h-1 bg-black w-full" />
 
         <button onClick={() => setVisible(false)}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition-colors text-2xl leading-none">×</button>
 
         <div className="p-10 text-center">
-          <span className="text-blue-600 font-bold text-[10px] uppercase tracking-[0.4em] mb-3 block">Exclusive Offer</span>
+          <span className="text-black font-bold text-[10px] uppercase tracking-[0.4em] mb-3 block">Exclusive Offer</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">Before You Go...</h2>
           <p className="text-gray-500 text-sm mb-2 font-light">Join Thaarai and receive</p>
-          <p className="text-5xl font-serif font-bold text-blue-600 mb-3">10% Off</p>
+          <p className="text-5xl font-serif font-bold text-black mb-3">10% Off</p>
           <p className="text-gray-400 text-xs mb-8 uppercase tracking-widest font-bold">Your First Order</p>
 
           {submitted ? (
@@ -62,10 +62,10 @@ export default function ExitIntentPopup() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="flex-1 border border-gray-200 px-5 py-3.5 text-sm text-gray-900 placeholder-gray-300 outline-none focus:border-blue-600 transition-all rounded-xl"
+                className="flex-1 border border-gray-200 px-5 py-3.5 text-sm text-gray-900 placeholder-gray-300 outline-none focus:border-black transition-all rounded-xl"
               />
               <button type="submit"
-                className="bg-blue-600 text-white font-bold uppercase tracking-widest text-xs px-6 py-3.5 hover:bg-blue-700 transition-all rounded-xl whitespace-nowrap">
+                className="bg-black text-white font-bold uppercase tracking-widest text-xs px-6 py-3.5 hover:bg-blue-700 transition-all rounded-xl whitespace-nowrap">
                 Claim Offer
               </button>
             </form>

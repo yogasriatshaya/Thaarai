@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
-import logo from '../assets/logo.png';
+import { useCurrency } from '../context/CurrencyContext';
+import { getProductPrice } from '../utils/priceUtils';
+import CountrySwitcher from './CountrySwitcher';
+
 
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -25,7 +28,9 @@ const UserIcon = () => (
 );
 
 export default function Navbar() {
-  const { cartCount, user, logout, wishlist, products, BACKEND_URL } = useShop();
+  const { cartCount, user, logout, wishlist, products, categories, BACKEND_URL } = useShop();
+  const wishlistCount = products.filter(p => wishlist.includes(p._id)).length;
+  const { formatPrice, country, currency, currencySymbol } = useCurrency();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
@@ -34,10 +39,17 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [visible, setVisible] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({});
   const scrollPosRef = useRef(window.scrollY);
   const searchRef = useRef(null);
   const userRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Extract Categories and Subcategories for the sidebar (Now using the master Category list from DB)
+  const categoriesList = categories.map(cat => ({
+    name: cat.name,
+    subs: (cat.subcategories || []).map(sub => typeof sub === 'string' ? sub : sub?.name || '')
+  }));
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -81,7 +93,7 @@ export default function Navbar() {
   ];
 
   const handleSearch = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/collection?search=${searchQuery}`);
       setSearchOpen(false);
@@ -92,149 +104,183 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? 'bg-white shadow-xl'
-          : 'bg-[#fcfbf7] border-b border-gray-100'
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-gray-100 ${scrolled
+          ? 'bg-white shadow-lg'
+          : 'bg-white'
           }`}
       >
-        <div className="py-1 px-4 text-center" style={{ backgroundColor: '#aba0e3' }}>
-          <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-white">
-            Fashion Frenzy: Up to 60% off on all styles &nbsp;·&nbsp; Free Shipping Over {'\u20B9'}500
+        <div className="py-2 px-4 text-center bg-black">
+          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white">
+            Fashion Frenzy: Up to 60% off on all styles &nbsp;·&nbsp; Free Shipping Over {currencySymbol}{country === 'US' ? '50' : '500'}
           </p>
         </div>
 
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
-          {/* Logo */}
-          <Link to="/" className="shrink-0 flex items-center group">
-            <img
-              src={logo}
-              alt="Thaarai"
-              className="h-8 sm:h-10 md:h-12 w-auto object-contain transition-all duration-500"
-            />
-          </Link>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300 relative ${scrolled ? 'h-16' : 'h-20'}`}>
+          {/* Left: Hamburger Menu (Shop) */}
+          <div className="flex items-center lg:w-1/3">
+            <button
+              className="flex items-center gap-2 group p-2 px-0"
+              onClick={() => setMobileOpen(true)}
+            >
+              <div className="flex flex-col gap-1 w-5">
+                <span className="h-[1.5px] w-full bg-gray-900"></span>
+                <span className="h-[1.5px] w-3/4 bg-gray-900 group-hover:w-full transition-all"></span>
+                <span className="h-[1.5px] w-full bg-gray-900"></span>
+              </div>
+              <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-[0.2em] text-gray-900">Shop</span>
+            </button>
+          </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.to;
-
-              if (link.dropdown) {
-                return (
-                  <div key={link.label} className="relative group/dropdown">
-                    <Link to={link.to} className="uppercase tracking-[0.1em] text-gray-600 font-normal text-[11px] hover:text-gray-900 pb-1 flex items-center gap-1 group">
-                      {link.label}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover/dropdown:rotate-180 transition-transform duration-300">
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </Link>
-                    <div className="absolute top-full left-0 w-48 bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover/dropdown:opacity-100 group-hover/dropdown:visible transition-all duration-300 z-50 py-2">
-                      {link.dropdown.map(sub => (
-                        <Link key={sub.label} to={sub.to} className="block px-4 py-2 text-[10px] uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                          {sub.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <Link key={link.label} to={link.to}
-                  className={`uppercase tracking-[0.1em] transition-all duration-300 relative group ${isActive ? 'font-semibold text-[12px] pb-1' : 'text-gray-600 font-normal text-[11px] hover:text-gray-900'
-                    }`}
-                  style={isActive ? { color: '#aba0e3', borderBottom: '2px solid #aba0e3' } : {}}
-                >
-                  {link.label}
-                  {!isActive && <span className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full" style={{ backgroundColor: '#aba0e3' }} />}
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Center: Logo */}
+          <div className="absolute lg:static left-1/2 lg:left-auto lg:transform-none -translate-x-1/2 lg:translate-x-0 flex justify-center z-10 lg:w-1/3">
+            <Link to="/" className="shrink-0 flex items-center">
+              <img
+                src="/tharrai-logo.png"
+                alt="Thaarai"
+                className="h-10 sm:h-14 w-auto object-contain py-1 block"
+                onError={(e) => {
+                   console.log('Logo failed to load', e); 
+                   e.target.style.display = 'none';
+                }}
+              />
+              <span className="lg:hidden text-lg font-serif font-bold tracking-tighter" style={{ display: 'none' }}>THAARAI</span>
+            </Link>
+          </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-end gap-1 lg:w-1/3">
             {/* Search */}
-            <div ref={searchRef} className="flex items-center relative z-50">
-              <div className={`transition-all duration-300 overflow-hidden flex items-center bg-gray-50 rounded-full border border-gray-200 ${searchOpen ? 'w-48 sm:w-56 lg:w-64 opacity-100 px-4 py-1.5 mr-1' : 'w-0 opacity-0 p-0 mr-0 border-transparent'}`}>
+            <div ref={searchRef} className="flex items-center relative gap-1">
+              {/* Desktop Search Bar (Inline) */}
+              <div className={`hidden lg:flex transition-all duration-300 overflow-hidden items-center border-b border-gray-200 ${searchOpen ? 'w-64 opacity-100 py-1 mr-2' : 'w-0 opacity-0 p-0 mr-0 border-transparent'}`}>
                 <form onSubmit={handleSearch} className="w-full flex items-center gap-2">
                   <input
                     autoFocus={searchOpen}
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search..."
-                    className="w-full text-xs text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+                    placeholder="SEARCH"
+                    className="w-full text-[10px] font-bold tracking-widest text-gray-900 placeholder-gray-400 outline-none bg-transparent uppercase"
                   />
-                  {searchQuery && (
-                    <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-900 shrink-0">
-                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  )}
                 </form>
               </div>
+
+              {/* Mobile Search Overlay */}
+              <div className={`lg:hidden fixed inset-x-0 bg-white border-b border-gray-100 px-4 py-3 z-[60] transition-all duration-300 transform ${searchOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`} style={{ top: scrolled ? '88px' : '104px' }}>
+                <form onSubmit={handleSearch} className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100 shadow-sm">
+                   <div className="text-gray-400 scale-75"><SearchIcon /></div>
+                   <input
+                     autoFocus={searchOpen}
+                     value={searchQuery}
+                     onChange={e => setSearchQuery(e.target.value)}
+                     placeholder="SEARCH OUR COLLECTION"
+                     className="flex-1 text-[11px] font-bold tracking-widest text-gray-900 placeholder-gray-400 outline-none bg-transparent uppercase"
+                   />
+                   <button 
+                     type="button" 
+                     onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+                     className="text-gray-400 text-[9px] font-bold uppercase tracking-widest px-2"
+                   >
+                     CLOSE
+                   </button>
+                </form>
+
+                {/* Mobile Search Results Dropdown */}
+                {searchQuery.length > 0 && products.filter(p => !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
+                   <div className="mt-4 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in max-h-[60vh] overflow-y-auto">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-[#000000] px-4 py-3 bg-gray-50/50 border-b border-gray-50">Results for "{searchQuery}"</p>
+                      {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
+                         <div
+                           key={p._id}
+                           onClick={() => { navigate(`/product/${p._id}`); setSearchOpen(false); setSearchQuery(''); }}
+                           className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-all border-b border-gray-50 last:border-0 cursor-pointer"
+                         >
+                           <div className="w-12 h-12 bg-gray-100 overflow-hidden rounded-xl shrink-0 border border-gray-100">
+                             <img
+                               src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`}
+                               alt={p.name}
+                               className="w-full h-full object-cover"
+                               onError={e => { e.target.src = '/tharrai-logo.png'; }}
+                             />
+                           </div>
+                           <div className="flex-1">
+                             <h4 className="text-xs font-bold text-black uppercase tracking-tight">{p.name}</h4>
+                             <p className="text-[9px] text-gray-500 mt-0.5 font-bold uppercase tracking-widest">{p.category}</p>
+                           </div>
+                           <p className="text-xs font-bold text-gray-900">{currencySymbol}{p.price}</p>
+                         </div>
+                      ))}
+                      <button 
+                        onClick={() => { handleSearch(); setSearchOpen(false); }}
+                        className="w-full p-4 text-[10px] font-bold uppercase tracking-widest text-center bg-black text-white hover:bg-gray-900 transition-colors"
+                      >
+                        View All Results
+                      </button>
+                   </div>
+                )}
+              </div>
+
               <button
                 onClick={() => {
                   setSearchOpen(!searchOpen);
                   if (searchOpen) setSearchQuery('');
                 }}
-                className={`p-2.5 transition-all rounded-full ${searchOpen ? 'text-[#8b7fc0] bg-gray-50' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
+                className={`p-2.5 transition-all ${searchOpen ? 'text-gray-900' : 'text-gray-900 hover:opacity-60'}`}
               >
                 <SearchIcon />
               </button>
 
-              {/* Live Inline Search Results Dropdown */}
+              {/* Live Inline Search Results Dropdown (Desktop Only) */}
               {searchOpen && (
-                <div className="absolute top-[120%] right-0 w-[300px] sm:w-[360px] bg-white border border-gray-100 shadow-2xl rounded-2xl animate-fade-in overflow-hidden z-[100]">
+                <div className="hidden lg:block absolute top-[110%] right-0 w-[460px] bg-white border border-gray-100 shadow-2xl rounded-2xl animate-fade-in overflow-hidden z-[100] mt-2">
                   {searchQuery.length <= 1 ? (
                     <div className="p-4 flex flex-col gap-2 bg-gray-50/30">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-[#8b7fc0] px-2 py-1 mb-1">Suggested for you</p>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-[#000000] px-2 py-1 mb-1">Suggested for you</p>
                       {products.slice(0, 3).map(p => (
-                        <Link
+                        <div
                           key={p._id}
-                          to={`/product/${p._id}`}
-                          onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                          className="flex items-center gap-4 group p-2 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-gray-100"
+                          onClick={() => { navigate(`/product/${p._id}`); setSearchOpen(false); setSearchQuery(''); }}
+                          className="flex items-center gap-4 group p-2 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-gray-100 cursor-pointer"
                         >
                           <div className="w-10 h-10 bg-gray-100 overflow-hidden rounded-full shrink-0 shadow-sm border border-gray-100">
                             <img
                               src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`}
                               alt={p.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={e => { e.target.src = logo; }}
+                              onError={e => { e.target.src = '/tharrai-logo.png'; }}
                             />
                           </div>
                           <div>
-                            <h4 className="text-xs font-bold text-gray-900 transition-colors" style={{ '--hover-color': '#8b7fc0' }} onMouseEnter={e => e.currentTarget.style.color = '#8b7fc0'} onMouseLeave={e => e.currentTarget.style.color = ''}>{p.name}</h4>
-                            <p className="text-[9px] text-gray-400 mt-0.5">{p.category}</p>
+                            <h4 className="text-xs font-bold text-black hover-underline">{p.name}</h4>
+                            <p className="text-[9px] text-gray-500 mt-0.5">{p.category}</p>
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
                   ) : searchResults.length > 0 ? (
                     <div className="p-4 flex flex-col gap-2">
                       <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 px-2 py-1">Products</p>
                       {searchResults.map(p => (
-                        <Link
+                        <div
                           key={p._id}
-                          to={`/product/${p._id}`}
-                          onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                          className="flex items-center gap-4 group p-2 hover:bg-gray-50 rounded-xl transition-all"
+                          onClick={() => { navigate(`/product/${p._id}`); setSearchOpen(false); setSearchQuery(''); }}
+                          className="flex items-center gap-4 group p-2 hover:bg-gray-50 rounded-xl transition-all cursor-pointer"
                         >
                           <div className="w-12 h-16 bg-gray-100 overflow-hidden rounded-md shrink-0 shadow-sm border border-gray-100">
                             <img
                               src={p.images?.[0]?.startsWith('http') ? p.images[0] : `${BACKEND_URL}${p.images?.[0]}`}
                               alt={p.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={e => { e.target.src = logo; }}
+                              onError={e => { e.target.src = '/tharrai-logo.png'; }}
                             />
                           </div>
                           <div>
-                            <h4 className="text-xs font-bold text-gray-900 transition-colors" style={{ '--hover-color': '#8b7fc0' }} onMouseEnter={e => e.currentTarget.style.color = '#8b7fc0'} onMouseLeave={e => e.currentTarget.style.color = ''}>{p.name}</h4>
-                            <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5">{p.category}</p>
-                            <p className="text-[11px] font-semibold text-gray-900 mt-1">₹{p.price}</p>
+                            <h4 className="text-xs font-bold text-black hover-underline">{p.name}</h4>
+                            <p className="text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">{p.category}</p>
+                            <p className="text-[11px] font-semibold text-black mt-1">{formatPrice(getProductPrice(p, country))}</p>
                           </div>
-                        </Link>
+                        </div>
                       ))}
-                      <button onClick={handleSearch} className="mt-2 w-full py-2.5 text-[10px] font-bold uppercase tracking-widest bg-[#8b7fc0] hover:bg-[#7b6ea8] text-white rounded-xl transition-colors shadow-sm">
+                      <button onClick={handleSearch} className="mt-2 w-full py-3 text-[10px] font-bold uppercase tracking-widest bg-black text-white transition-colors">
                         View All Results
                       </button>
                     </div>
@@ -251,7 +297,7 @@ export default function Navbar() {
             <div ref={userRef} className="relative hidden sm:block">
               <button
                 onClick={() => setUserDropdown(!userDropdown)}
-                className="p-2.5 text-gray-400 hover:text-gray-900 transition-all"
+                className="p-2.5 text-gray-900 hover:opacity-60 transition-all"
               >
                 <UserIcon />
               </button>
@@ -268,9 +314,7 @@ export default function Navbar() {
                         My Orders
                       </Link>
                       <button onClick={() => { logout(); setUserDropdown(false); }}
-                        className="block w-full text-left px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors" style={{ color: '#aba0e3' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(171, 160, 227, 0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
+                        className="block w-full text-left px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors hover:bg-gray-50">
                         Sign Out
                       </button>
                     </>
@@ -280,10 +324,12 @@ export default function Navbar() {
                         className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                         Sign In
                       </Link>
+                      <Link to="/track-order" onClick={() => setUserDropdown(false)}
+                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors border-t border-gray-50">
+                        Track Order
+                      </Link>
                       <Link to="/register" onClick={() => setUserDropdown(false)}
-                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors" style={{ color: '#aba0e3' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(171, 160, 227, 0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
+                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors hover:bg-gray-50">
                         Create Account
                       </Link>
                     </>
@@ -292,116 +338,206 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Country Switcher */}
+            <div className="hidden sm:block">
+              <CountrySwitcher />
+            </div>
+
             {/* Wishlist */}
-            <Link to="/wishlist" className="relative hidden sm:block p-2.5 text-gray-400 transition-all" style={{ '--hover-color': '#aba0e3' }} onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'} onMouseLeave={e => e.currentTarget.style.color = ''}>
+            <Link to="/wishlist" className="relative hidden sm:block p-2.5 text-gray-900 transition-all hover:opacity-60">
               <WishlistIcon />
-              {wishlist.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-lg animate-pulse-subtle" style={{ backgroundColor: '#aba0e3' }}>
-                  {wishlist.length}
+              {wishlistCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-lg animate-pulse-subtle bg-red-500">
+                  {wishlistCount}
                 </span>
               )}
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" className="relative p-2.5 text-gray-400 hover:text-gray-900 transition-all hidden sm:block">
+            <Link to="/cart" className="relative p-2.5 text-gray-900 hover:opacity-60 transition-all hidden sm:block">
               <CartIcon />
               {cartCount > 0 && (
-                <span className="absolute top-1 right-1 bg-gray-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transform translate-x-1 -translate-y-1">
                   {cartCount}
                 </span>
               )}
             </Link>
 
-            {/* Mobile menu */}
-            <button
-              className="lg:hidden p-2.5 text-gray-400 hover:bg-gray-50 rounded-sm ml-1"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                {mobileOpen
-                  ? <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
-                  : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
-                }
-              </svg>
-            </button>
+            {/* Mobile menu removed to keep only left side toggle */}
           </div>
         </div>
-
-
-
       </header>
 
-      {/* Mobile Nav Drawer */}
-      <div className={`fixed inset-0 z-[9999] lg:hidden transition-all duration-300 ${mobileOpen ? 'visible' : 'invisible pointer-events-none'}`}>
+      {/* Shop / Mobile Nav Drawer */}
+      <div className={`fixed inset-0 z-[9999] transition-all duration-500 ${mobileOpen ? 'visible' : 'invisible pointer-events-none'}`}>
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 bg-black/30 backdrop-blur-[2px] transition-opacity duration-500 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setMobileOpen(false)}
         />
 
         {/* Panel */}
-        <div className={`absolute top-0 right-0 w-72 h-[100dvh] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-6 flex items-center justify-between border-b border-gray-100 mt-2">
-            <div className="flex items-center gap-2">
-              <span className="font-serif text-lg font-bold text-gray-900">Menu</span>
-            </div>
-            <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400 hover:text-gray-900">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
+        <div className={`absolute top-0 left-0 w-full sm:w-[450px] h-[100dvh] bg-white shadow-2xl flex flex-col transform transition-transform duration-500 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          {/* Drawer Header */}
+          <div className="p-8 pb-4 flex items-center justify-between">
+            <h2 className="font-serif text-2xl font-bold tracking-widest text-black">SHOP</h2>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-1 hover:opacity-50 transition-all border border-transparent"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1.5">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 bg-white custom-scrollbar pb-10">
-            <nav className="divide-y divide-gray-50 mb-8">
-              {navLinks.map(({ to, label }) => {
-                const isActive = location.pathname === to;
-                return (
-                  <Link key={label} to={to} onClick={() => setMobileOpen(false)}
-                    className={`block py-3.5 uppercase tracking-widest text-xs font-bold transition-all ${isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    style={isActive ? { color: '#aba0e3' } : {}}>
-                    {label}
-                  </Link>
-                );
-              })}
-              <Link to="/wishlist" onClick={() => setMobileOpen(false)}
-                className="block py-3.5 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
-                style={{ '--hover-color': '#aba0e3' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
-                onMouseLeave={e => e.currentTarget.style.color = ''}>
-                Wishlist ({wishlist.length})
-              </Link>
-              <Link to="/cart" onClick={() => setMobileOpen(false)}
-                className="block py-3.5 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
-                style={{ '--hover-color': '#aba0e3' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#aba0e3'}
-                onMouseLeave={e => e.currentTarget.style.color = ''}>
-                Cart ({cartCount})
-              </Link>
-            </nav>
-
-            <div className="pt-6 border-t border-gray-100 space-y-4">
-              {user ? (
-                <>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
-                  <p className="text-sm font-bold text-gray-900 truncate mb-4">{user.name}</p>
-                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-primary w-full text-center py-3 text-xs">My Orders</Link>
-                  <button onClick={() => { logout(); setMobileOpen(false); }} className="w-full text-center py-3 text-xs font-bold border border-gray-200 rounded-xl text-gray-600">Sign Out</button>
-                </>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary flex justify-center items-center py-3 px-4 text-xs whitespace-nowrap">Sign In</Link>
-                  <Link to="/register" onClick={() => setMobileOpen(false)} className="border border-gray-200 py-3 px-4 text-xs font-bold rounded-xl text-gray-900 flex justify-center items-center whitespace-nowrap">Join</Link>
-                </div>
-              )}
+          <div className="flex-1 overflow-y-auto px-10 py-6 custom-scrollbar pb-20">
+            {/* Search inside Drawer */}
+            <div className="mb-10 relative">
+              <form onSubmit={handleSearch} className="flex items-center gap-3 border-b border-gray-200 py-2">
+                <SearchIcon />
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="WHAT ARE YOU LOOKING FOR?"
+                  className="w-full text-[10px] font-bold tracking-widest text-black placeholder-gray-300 outline-none uppercase"
+                />
+              </form>
             </div>
+
+            {/* Structured Navigation */}
+            <nav className="space-y-12">
+              {/* Category Suggestions Section */}
+              <div className="space-y-8">
+                <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400">Shop by Category</p>
+                <div className="grid grid-cols-1 gap-6">
+                  {categoriesList.length > 0 ? categoriesList.map(cat => {
+                    const isExpanded = expandedCategories[cat.name] ?? cat.subs.length === 0;
+                    const toggleExpand = () => {
+                      setExpandedCategories(prev => ({
+                        ...prev,
+                        [cat.name]: !prev[cat.name]
+                      }));
+                    };
+                    return (
+                    <div key={cat.name} className="group/cat">
+                      <div className="flex items-center justify-between">
+                        <Link
+                          to={`/collection?category=${cat.name}`}
+                          onClick={() => setMobileOpen(false)}
+                          className="text-sm font-bold tracking-widest text-black flex-1 group-hover/cat:pl-1 transition-all"
+                        >
+                          {cat.name.toUpperCase()}
+                        </Link>
+                        {cat.subs.length > 0 && (
+                          <button
+                            onClick={toggleExpand}
+                            className="text-black hover:text-gray-600 transition-all p-1 flex-shrink-0"
+                            aria-label="Toggle subcategories"
+                          >
+                            <svg 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                            >
+                              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {cat.subs.length > 0 && isExpanded && (
+                        <div className="mt-4 flex flex-col gap-3 pl-1 border-l border-gray-100 ml-1">
+                          {cat.subs.map(sub => {
+                            const subName = typeof sub === 'string' ? sub : (sub?.name || '');
+                            if (!subName) return null;
+                            return (
+                              <Link
+                                key={subName}
+                                to={`/collection?category=${cat.name}&subcategory=${subName}`}
+                                onClick={() => setMobileOpen(false)}
+                                className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase"
+                              >
+                                {subName}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                  }) : (
+                    <>
+                      <Link to="/collection" onClick={() => setMobileOpen(false)} className="text-sm font-bold tracking-widest text-black uppercase hover-underline">All Collections</Link>
+                      <ul className="mt-4 flex flex-col gap-3 pl-1 border-l border-gray-100 ml-1">
+                        <Link to="/collection?category=Kurti" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Kurtis</Link>
+                        <Link to="/collection?category=Maxi" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Maxi Dresses</Link>
+                        <Link to="/collection?category=Handbags" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Handbags</Link>
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Collections Highlight Section */}
+              <div className="space-y-6">
+                <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400">Featured</p>
+                <div className="space-y-4">
+                  <Link to="/collection" onClick={() => setMobileOpen(false)} className="block group">
+                    <p className="text-sm font-bold tracking-widest text-black uppercase group-hover:pl-1 transition-all">New Arrivals</p>
+                    <p className="text-[9px] text-gray-400 tracking-widest uppercase mt-1">Explore our latest additions</p>
+                  </Link>
+                  <Link to="/collection" onClick={() => setMobileOpen(false)} className="block group">
+                    <p className="text-sm font-bold tracking-widest text-black uppercase group-hover:pl-1 transition-all">Best Sellers</p>
+                    <p className="text-[9px] text-gray-400 tracking-widest uppercase mt-1">Top picks of the season</p>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Account / Support Section */}
+              <div className="pt-8 border-t border-gray-100 grid grid-cols-2 gap-8">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400 mb-4">Account</p>
+                  <div className="space-y-3">
+                    {user ? (
+                      <button onClick={() => { logout(); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign Out</button>
+                    ) : (
+                      <Link to="/login" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign In</Link>
+                    )}
+                    <Link to="/orders" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block text-left">Track Order</Link>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400 mb-4">Support</p>
+                  <div className="space-y-3">
+                    <Link to="/contact" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Contact Us</Link>
+                    <Link to="/about" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Our Story</Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Promotional Highlight Image */}
+              <div className="pt-4">
+                <Link to="/collection" onClick={() => setMobileOpen(false)} className="relative block h-40 overflow-hidden group">
+                  <img
+                    src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=400&fit=crop"
+                    alt="Promotional"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold uppercase tracking-[0.4em] border border-white px-6 py-2.5">Spring 2026</span>
+                  </div>
+                </Link>
+              </div>
+            </nav>
           </div>
         </div>
       </div>
 
-      <div className="h-[74px]" />
+      <div className={`${scrolled ? 'h-[90px]' : 'h-[120px]'} transition-all duration-300`} />
     </>
   );
 }
-

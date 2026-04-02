@@ -3,10 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../api';
 import ProductCard from '../components/ProductCard';
 import { useShop } from '../context/ShopContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { getProductPrice, getProductOriginalPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 import { toast } from 'react-toastify';
 import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { createPortal } from 'react-dom';
+import ConfirmModal from '../components/ConfirmModal';
 
 const StarIcon = ({ filled }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={filled ? "#d4a017" : "none"} stroke="#d4a017" strokeWidth="1.5">
@@ -36,6 +39,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, BACKEND_URL, isWishlisted, toggleWishlist, user, token } = useShop();
+  const { formatPrice, country, currencySymbol } = useCurrency();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -43,9 +47,10 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState('');
   const [loading, setLoading] = useState(true);
   const [openSection, setOpenSection] = useState('details');
-  const [stockLeft] = useState(() => Math.floor(Math.random() * 4) + 1); // 1–4 units
-  const [countdown, setCountdown] = useState({ h: 3, m: 47, s: 22 });
+  const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
+  const [offerExpired, setOfferExpired] = useState(false);
   const isSoldOut = product ? (product.stock <= 0 || product.label === 'Sold Out') : false;
+  const stockLow = product ? product.stock <= 10 && product.stock > 0 : false;
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -55,6 +60,13 @@ export default function ProductDetail() {
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [editComment, setEditComment] = useState('');
   const [editRating, setEditRating] = useState(5);
+  const [confirmModal, setConfirmModal] = useState({ open: false, reviewId: null });
+
+
+  const isNotAvailableInCurrentCountry = product ? (
+    (country === 'IN' && product.availableInIndia === false) ||
+    (country === 'US' && product.availableInUS === false)
+  ) : false;
 
   const handleUpdateReview = async (reviewId) => {
     try {
@@ -67,8 +79,13 @@ export default function ProductDetail() {
     } catch (err) { toast.error(err.response?.data?.message || 'Update failed'); }
   };
 
-  const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Delete this review?')) return;
+  const handleDeleteReview = (reviewId) => {
+    setConfirmModal({ open: true, reviewId });
+  };
+
+  const executeDeleteReview = async () => {
+    const { reviewId } = confirmModal;
+    setConfirmModal({ ...confirmModal, open: false });
     try {
       const res = await API.delete(`/products/${id}/reviews/${reviewId}`);
       if (res.data.success) {
@@ -190,18 +207,39 @@ export default function ProductDetail() {
 
   useEffect(() => {
     setShareUrl(window.location.href);
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        let { h, m, s } = prev;
-        if (s > 0) return { h, m, s: s - 1 };
-        if (m > 0) return { h, m: m - 1, s: 59 };
-        if (h > 0) return { h: h - 1, m: 59, s: 59 };
-        clearInterval(timer);
-        return { h: 0, m: 0, s: 0 };
-      });
-    }, 1000);
+    
+    // Calculate countdown from region-specific offerEndTime
+    const calculateCountdown = () => {
+      // Determine which offer to use based on country
+      const offerEndTime = country === 'US' ? product?.offerEndTimeUSA : product?.offerEndTimeIndia;
+      const offerActive = country === 'US' ? product?.offerActiveUSA : product?.offerActiveIndia;
+
+      if (!offerEndTime || !offerActive) {
+        setOfferExpired(true);
+        setCountdown({ h: 0, m: 0, s: 0 });
+        return;
+      }
+
+      const endTime = new Date(offerEndTime).getTime();
+      const now = new Date().getTime();
+      const timeDiff = endTime - now;
+
+      if (timeDiff <= 0) {
+        setOfferExpired(true);
+        setCountdown({ h: 0, m: 0, s: 0 });
+      } else {
+        const h = Math.floor(timeDiff / (1000 * 60 * 60));
+        const m = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((timeDiff % (1000 * 60)) / 1000);
+        setOfferExpired(false);
+        setCountdown({ h, m, s });
+      }
+    };
+
+    calculateCountdown();
+    const timer = setInterval(calculateCountdown, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [product, country]);
 
   // Freeze scroll for Size Guide Modal
   useEffect(() => {
@@ -239,18 +277,26 @@ export default function ProductDetail() {
   const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
   const images = product.images?.length > 0 ? product.images : [PRODUCT_FALLBACK];
 
-  const ratingBars = [5, 4, 3, 2, 1].map(n => ({
-    n,
-    count: product.reviews?.filter(r => r.rating === n).length || 0,
-    pct: product.reviews?.length ? Math.round((product.reviews.filter(r => r.rating === n).length / product.reviews.length) * 100) : (n === 5 ? 92 : n === 4 ? 6 : n === 3 ? 2 : 0)
-  }));
+  const ratingBars = [5, 4, 3, 2, 1].map(n => {
+    const count = product.reviews?.filter(r => r.rating === n).length || 0;
+    const total = product.reviews?.length || 0;
+    return {
+      n,
+      count,
+      pct: total > 0 ? Math.round((count / total) * 100) : 0
+    };
+  });
 
   const handleAddToCart = () => {
+    if (country === 'IN' && product.availableInIndia === false) { toast.error('This product is not available in India'); return; }
+    if (country === 'US' && product.availableInUS === false) { toast.error('This product is not available in USA'); return; }
     if (product.sizes?.length > 0 && !selectedSize) { toast.error('Please select a size'); return; }
     addToCart(product._id, selectedSize, selectedColor);
   };
 
   const handleBuyNow = async () => {
+    if (country === 'IN' && product.availableInIndia === false) { toast.error('This product is not available in India'); return; }
+    if (country === 'US' && product.availableInUS === false) { toast.error('This product is not available in USA'); return; }
     if (product.sizes?.length > 0 && !selectedSize) { toast.error('Please select a size'); return; }
     await addToCart(product._id, selectedSize, selectedColor);
     navigate('/checkout');
@@ -276,7 +322,7 @@ export default function ProductDetail() {
                 <div className="flex md:flex-col gap-3 overflow-auto no-scrollbar md:w-20 shrink-0">
                   {images.map((img, i) => (
                     <button key={i} onClick={() => setSelectedImage(i)}
-                      className={`shrink-0 w-16 md:w-full aspect-[3/4] overflow-hidden border transition-all duration-500 rounded-lg ${selectedImage === i ? 'border-blue-600 shadow-xl scale-105' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200'}`}>
+                      className={`shrink-0 w-16 md:w-full aspect-[3/4] overflow-hidden border transition-all duration-500 rounded-lg ${selectedImage === i ? 'border-black shadow-xl scale-105' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200'}`}>
                       <img src={getImg(img)} alt="" className="w-full h-full object-cover"
                         loading="lazy" decoding="async"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
@@ -290,7 +336,7 @@ export default function ProductDetail() {
                     onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
                   <button
                     onClick={() => toggleWishlist(product._id)}
-                    className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-blue-600'
+                    className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-black border-black text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-black'
                       }`}
                   >
                     <svg width="18" height="18" fill={isWishlisted(product._id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -319,7 +365,9 @@ export default function ProductDetail() {
               {/* Category */}
               <div className="flex items-center gap-3">
                 <span className="w-8 h-px bg-purple-400" />
-                <span className="text-purple-500 font-bold text-[10px] uppercase tracking-[0.3em]">{product.subcategory || product.category}</span>
+                <span className="text-purple-500 font-bold text-[10px] uppercase tracking-[0.3em]">
+                  {product.category && product.subcategory ? `${product.category} • ${product.subcategory}` : (product.subcategory || product.category)}
+                </span>
               </div>
 
               {/* Title */}
@@ -328,33 +376,46 @@ export default function ProductDetail() {
               {/* Price Section */}
               <div className="space-y-3">
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <p className="text-3xl md:text-4xl font-serif font-bold text-gray-900 flex items-baseline gap-1">
-                    <span className="font-sans text-2xl md:text-3xl">₹</span>
-                    {product.price?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </p>
-                  {product.originalPrice && product.originalPrice > product.price && (
+                  {getOfferActive(product, country) && !offerExpired && getOfferPrice(product, country) > 0 ? (
                     <>
-                      <span className="text-xl text-gray-400 line-through flex items-baseline gap-0.5">
-                        <span className="font-sans text-lg">₹</span>
-                        {product.originalPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      <p className="text-3xl md:text-4xl font-serif font-bold text-black">
+                        {formatPrice(getOfferPrice(product, country))}
+                      </p>
+                      <span className="text-xl text-gray-400 line-through">
+                        {formatPrice(getProductPrice(product, country))}
                       </span>
-                      <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                        {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                      <span className="text-sm font-bold text-white bg-teal-600 px-3 py-1 rounded-full">
+                        {Math.round(((getProductPrice(product, country) - getOfferPrice(product, country)) / getProductPrice(product, country)) * 100)}% OFF
                       </span>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-3xl md:text-4xl font-serif font-bold text-gray-900">
+                        {formatPrice(getProductPrice(product, country))}
+                      </p>
+                      {getProductOriginalPrice(product, country) > 0 && getProductOriginalPrice(product, country) > getProductPrice(product, country) && (
+                        <>
+                          <span className="text-xl text-gray-400 line-through">
+                            {formatPrice(getProductOriginalPrice(product, country))}
+                          </span>
+                          <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                            {Math.round(((getProductOriginalPrice(product, country) - getProductPrice(product, country)) / getProductOriginalPrice(product, country)) * 100)}% OFF
+                          </span>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
 
-                {/* Rating */}
                 <div className="flex items-center gap-3">
-                  <div className="flex text-amber-500">{[1, 2, 3, 4, 5].map(i => <StarIcon key={i} filled={i <= Math.round(product.averageRating || 4.5)} />)}</div>
-                  <span className="text-[11px] font-medium text-gray-500">{product.reviewCount || 128} Reviews</span>
+                  <div className="flex text-amber-500">{[1, 2, 3, 4, 5].map(i => <StarIcon key={i} filled={i <= Math.round(product.averageRating || 0)} />)}</div>
+                  <span className="text-[11px] font-medium text-gray-500">{product.reviewCount || 0} Reviews</span>
                 </div>
               </div>
 
               {/* Description */}
               <div className="border-l-2 border-purple-200 pl-4">
-                <p className="text-gray-600 leading-relaxed text-sm">
+                <p className="text-gray-600 leading-snug text-sm line-clamp-2">
                   {product.description || "A masterfully crafted piece designed for those who appreciate the finer details. Sustainable, elegant, and timeless."}
                 </p>
               </div>
@@ -418,18 +479,22 @@ export default function ProductDetail() {
 
               {/* Stock & Offer Alerts */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-red-700 text-xs font-semibold">
-                    Only {stockLeft} left in stock — order soon!
-                  </span>
-                </div>
-                <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5">
-                  <span className="text-amber-700 text-xs font-semibold">Limited offer ends in</span>
-                  <span className="font-mono font-bold text-amber-800 text-sm">
-                    {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
-                  </span>
-                </div>
+                {stockLow && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-red-700 text-xs font-semibold">
+                      Only {product.stock} left in stock — order soon!
+                    </span>
+                  </div>
+                )}
+                {((country === 'US' ? product?.offerActiveUSA : product?.offerActiveIndia) && !offerExpired) && (
+                  <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5">
+                    <span className="text-amber-700 text-xs font-semibold">Limited offer ends in</span>
+                    <span className="font-mono font-bold text-amber-800 text-sm">
+                      {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -437,6 +502,10 @@ export default function ProductDetail() {
                 {isSoldOut ? (
                   <button disabled className="w-full py-4 bg-gray-200 text-gray-400 font-bold text-sm uppercase tracking-wider rounded-xl cursor-not-allowed text-center">
                     SOLD OUT
+                  </button>
+                ) : isNotAvailableInCurrentCountry ? (
+                  <button disabled className="w-full py-4 bg-gray-200 text-gray-400 font-bold text-sm uppercase tracking-wider rounded-xl cursor-not-allowed text-center">
+                    NOT AVAILABLE IN THIS REGION
                   </button>
                 ) : (
                   <>
@@ -467,7 +536,7 @@ export default function ProductDetail() {
                   </a>
                   {/* Facebook */}
                   <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
-                    className="p-2 text-blue-600 bg-blue-50 border border-blue-100 rounded-full hover:bg-blue-100 hover:scale-105 transition-all" title="Facebook">
+                    className="p-2 text-black bg-blue-50 border border-blue-100 rounded-full hover:bg-blue-100 hover:scale-105 transition-all" title="Facebook">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 320 512"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" /></svg>
                   </a>
                   {/* Twitter / X */}
@@ -487,7 +556,7 @@ export default function ProductDetail() {
               <div className="space-y-3 pt-4">
                 {[
                   { id: 'details', label: 'Product Details', content: `Fabric: ${product.fabric || product.material || 'Premium Cotton'}\nStyle: ${product.style || 'Traditional'}\nAvailability: ${product.availability || 'Available'}\nCollection: ${product.subcategory || 'Latest Collection'}` },
-                  { id: 'shipping', label: 'Delivery & Returns', content: 'Free shipping on orders above ₹999. Standard delivery within 5-7 business days. Returns accepted within 7 days of delivery for exchange or store credit.' },
+                  { id: 'shipping', label: 'Delivery & Returns', content: `Free shipping on orders above ${currencySymbol}${country === 'US' ? '50' : '999'}. Standard delivery within ${country === 'US' ? '7-10' : '5-7'} business days. Returns accepted within 7 days of delivery for exchange or store credit.` },
                   { id: 'care', label: 'Care Instructions', content: 'Hand wash or gentle machine wash in cold water. Do not bleach. Dry in shade. Iron on medium heat. Do not tumble dry.' }
                 ].map(section => (
                   <div key={section.id} className="border border-gray-100 rounded-xl overflow-hidden">
@@ -513,10 +582,10 @@ export default function ProductDetail() {
               <span className="text-purple-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-3 block">Client Perspectives</span>
               <h2 className="font-serif text-4xl lg:text-5xl font-bold text-gray-900 mb-8">The Experience</h2>
               <div className="flex items-baseline gap-4 mb-4">
-                <span className="text-6xl font-serif font-bold text-gray-900">{product.averageRating?.toFixed(1) || '4.5'}</span>
+                <span className="text-6xl font-serif font-bold text-gray-900">{(product.averageRating || 0).toFixed(1)}</span>
                 <span className="text-gray-400 font-medium text-sm">out of 5</span>
               </div>
-              <div className="flex gap-1 mb-6 text-amber-500">{[1, 2, 3, 4, 5].map(i => <StarIcon key={i} filled={i <= Math.round(product.averageRating || 4.5)} />)}</div>
+              <div className="flex gap-1 mb-6 text-amber-500">{[1, 2, 3, 4, 5].map(i => <StarIcon key={i} filled={i <= Math.round(product.averageRating || 0)} />)}</div>
               <p className="text-gray-500 text-sm">Based on {product.reviewCount || 0} verified reviews</p>
             </div>
             <div className="space-y-4">
@@ -580,7 +649,9 @@ export default function ProductDetail() {
             <div className="lg:col-span-8 space-y-6">
               <h3 className="font-serif text-lg font-bold text-gray-900 mb-2">Customer Reviews ({product.reviews?.length || 0})</h3>
               {(!product.reviews || product.reviews.length === 0) ? (
-                <p className="text-sm text-gray-400 font-sans italic py-10">No reviews yet. Be the first to add one!</p>
+                <div className="py-12 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-400 font-medium italic text-sm">No reviews yet. Be the first to share your experience!</p>
+                </div>
               ) : (
                 <div className="divide-y divide-gray-100">
                   {product.reviews.map((r, i) => {
@@ -705,6 +776,14 @@ export default function ProductDetail() {
         </div>,
         document.body
       )}
+
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        title="Delete Review"
+        message="Are you sure you want to remove your review? This action cannot be undone."
+        onConfirm={executeDeleteReview}
+        onCancel={() => setConfirmModal({ ...confirmModal, open: false })}
+      />
     </div>
   );
 }

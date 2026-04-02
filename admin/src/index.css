@@ -5,6 +5,17 @@
 @layer base {
   body { @apply font-sans text-charcoal bg-gray-50; }
   h1, h2, h3 { @apply font-serif; }
+
+  /* Disable scroll on number inputs (prevent wheel event) */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 @layer components {

@@ -31,8 +31,11 @@ router.post('/wishlist', authMiddleware, async (req, res) => {
 // Get all users (admin)
 router.get('/all', adminMiddleware, async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
-    res.json({ success: true, users });
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await User.countDocuments();
+    const users = await User.find().select('-password').sort({ createdAt: -1 }).skip(skip).limit(Number(limit));
+    res.json({ success: true, users, total });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -43,6 +46,19 @@ router.get('/abandoned', adminMiddleware, async (req, res) => {
   try {
     const users = await User.find({ cartData: { $type: 'object', $ne: {} } }).select('-password').sort({ updatedAt: -1 });
     res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+// Update user preferences (country/currency)
+router.put('/preferences', authMiddleware, async (req, res) => {
+  try {
+    const { preferredCountry, preferredCurrency } = req.body;
+    const update = {};
+    if (preferredCountry) update.preferredCountry = preferredCountry;
+    if (preferredCurrency) update.preferredCurrency = preferredCurrency;
+    const user = await User.findByIdAndUpdate(req.user.id, update, { new: true }).select('-password');
+    res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

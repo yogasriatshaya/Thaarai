@@ -21,6 +21,15 @@ const nav = [
     )
   },
   { 
+    to: '/categories', 
+    label: 'Categories', 
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+      </svg>
+    )
+  },
+  { 
     to: '/inventory', 
     label: 'Inventory', 
     icon: (
@@ -85,7 +94,7 @@ export default function Sidebar() {
         <p className="text-[9px] tracking-[0.3em] uppercase text-white/40 font-sans mt-0.5">Admin Panel</p>
       </div>
       <nav className="flex-1 px-3 py-6 space-y-1">
-        {nav.filter(({ to }) => to !== '/settings').map(({ to, label, icon }) => (
+        {nav.map(({ to, label, icon }) => (
           <NavLink key={to} to={to}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 text-xs tracking-[0.15em] uppercase font-sans transition-all rounded-sm ${isActive ? 'bg-gold-600 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`

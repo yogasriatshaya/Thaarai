@@ -8,10 +8,20 @@ const { adminMiddleware, authMiddleware } = require('../middleware/auth');
 // @desc    Get Stock movement logs
 router.get('/logs', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { productId, action, page = 1, limit = 20 } = req.query;
+        const { productId, action, page = 1, limit = 20, date, startDate, endDate } = req.query;
         const query = {};
         if (productId) query.productId = productId;
         if (action) query.action = action;
+        
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+            query.createdAt = { $gte: startOfDay, $lte: endOfDay };
+        } else if (startDate && endDate) {
+            query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
 
         const logs = await StockLog.find(query)
             .populate('productId', 'name images')
@@ -22,7 +32,41 @@ router.get('/logs', authMiddleware, adminMiddleware, async (req, res) => {
 
         const total = await StockLog.countDocuments(query);
 
-        res.json({ success: true, logs, total, pages: Math.ceil(total / Number(limit)) });
+        // Calculate total removed (decrements) within the same query scope
+        const removedAgg = await StockLog.aggregate([
+            { $match: { ...query, action: 'decrement' } },
+            { $group: { _id: null, total: { $sum: '$quantity' } } }
+        ]);
+        const totalRemoved = removedAgg.length > 0 ? removedAgg[0].total : 0;
+
+        res.json({ success: true, logs, total, totalRemoved, pages: Math.ceil(total / Number(limit)) });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// @route   GET /api/inventory/sold-stats
+// @desc    Get sold count for all products in a specific range
+router.get('/sold-stats', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const query = { action: 'decrement' };
+        
+        if (startDate && endDate) {
+            query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
+
+        const statsAgg = await StockLog.aggregate([
+            { $match: query },
+            { $group: { _id: '$productId', totalSold: { $sum: '$quantity' } } }
+        ]);
+
+        const stats = {};
+        statsAgg.forEach(item => {
+            if (item._id) stats[item._id.toString()] = item.totalSold;
+        });
+
+        res.json({ success: true, stats });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

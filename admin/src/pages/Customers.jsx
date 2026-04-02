@@ -5,13 +5,23 @@ import API from '../api';
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    API.get('/users/all')
-      .then(r => setCustomers(r.data.users || []))
-      .catch(err => console.error('Customers load error:', err.response?.status, err.response?.data?.message))
-      .finally(() => setLoading(false));
-  }, []);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await API.get(`/users/all?page=${page}&limit=${limit}`);
+      setCustomers(res.data.users || []);
+      setTotal(res.data.total || 0);
+    } catch (err) {
+      console.error('Customers load error:', err.response?.status, err.response?.data?.message);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [page, limit]);
 
   return (
     <Layout title="Customers">
@@ -55,6 +65,44 @@ export default function Customers() {
               ))}
             </tbody>
           </table>
+        )}
+        
+        {/* Pagination Footer */}
+        {!loading && customers.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 px-6 py-4 border-t border-gray-50 bg-white font-sans">
+              <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      <span>Rows per page:</span>
+                      <select 
+                        value={limit} 
+                        onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
+                        className="bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-charcoal hover:border-gold-500 transition-colors cursor-pointer"
+                      >
+                        {[10, 25, 50].map(v => <option key={v} value={v}>{v}</option>)}
+                      </select>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-tight text-gray-400">
+                      Showing {total === 0 ? 0 : ((page-1)*limit)+1} - {Math.min(page*limit, total)} of {total}
+                  </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setPage(p => Math.max(1, p - 1))} 
+                    disabled={page === 1}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gold-600 border border-gray-100 rounded-md disabled:opacity-20 transition-all font-sans"
+                  >
+                    Prev
+                  </button>
+                  <button 
+                    onClick={() => setPage(p => p + 1)} 
+                    disabled={page * limit >= total}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gold-600 border border-gray-100 rounded-md disabled:opacity-20 transition-all font-sans"
+                  >
+                    Next
+                  </button>
+              </div>
+          </div>
         )}
       </div>
     </Layout>

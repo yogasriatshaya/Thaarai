@@ -6,14 +6,14 @@ export default function About() {
   return (
     <div className="bg-white min-h-screen animate-fade-in">
       {/* Hero Section */}
-      <section className="relative py-24 bg-gradient-to-b from-[#aba0e3]/10 to-white">
+      <section className="relative py-24 bg-gradient-to-b from-[#000000]/10 to-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto">
-            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.3em] mb-6" style={{ color: '#aba0e3' }}>
+            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.3em] mb-6" style={{ color: '#000000' }}>
               Our Story
             </span>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Welcome to <span className="italic" style={{ color: '#8b7fc0' }}>Thaarai</span>
+              Welcome to <span className="italic" style={{ color: '#000000' }}>Thaarai</span>
               <br />The Designer Studio
             </h1>
             <p className="text-gray-600 text-lg leading-relaxed">
@@ -30,7 +30,7 @@ export default function About() {
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">The Thaarai Story</span>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4 mb-8">
               Crafted for Women Who Love
-              <span className="italic block" style={{ color: '#8b7fc0' }}>Tradition with a Modern Edge</span>
+              <span className="italic block" style={{ color: '#000000' }}>Tradition with a Modern Edge</span>
             </h2>
           </div>
 
@@ -77,7 +77,7 @@ export default function About() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#8b7fc0' }}>Our Philosophy</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#000000' }}>Our Philosophy</span>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4">
               More Than Just Apparel
             </h2>
@@ -114,7 +114,7 @@ export default function About() {
               },
             ].map((item, i) => (
               <div key={i} className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 text-center group">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'rgba(171, 160, 227, 0.1)', color: '#aba0e3' }}>
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'rgba(171, 160, 227, 0.1)', color: '#000000' }}>
                   {item.icon}
                 </div>
                 <h3 className="font-serif text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
@@ -136,7 +136,7 @@ export default function About() {
               { target: 24, suffix: '/7', label: 'Customer Support' },
             ].map((stat, i) => (
               <div key={i} className="text-center">
-                <p className="font-serif text-4xl md:text-5xl font-bold" style={{ color: '#aba0e3' }}>
+                <p className="font-serif text-4xl md:text-5xl font-bold" style={{ color: '#000000' }}>
                   <StatCounter target={stat.target} suffix={stat.suffix} />
                 </p>
                 <p className="text-sm text-gray-500 mt-2 uppercase tracking-wider">{stat.label}</p>
@@ -147,7 +147,7 @@ export default function About() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-r from-[#aba0e3]/10 to-[#aba0e3]/5">
+      <section className="py-24 bg-gradient-to-r from-[#000000]/10 to-[#000000]/5">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mb-6">
             Ready to Explore Our Collection?

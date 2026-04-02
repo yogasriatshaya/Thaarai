@@ -4,6 +4,17 @@ import API from '../api';
 import { toast } from 'react-toastify';
 import { Save, Mail, ShieldAlert, Globe } from 'lucide-react';
 
+const DEFAULT_COUNTRY_CONFIG = {
+  IN: {
+    currency: 'INR', currencySymbol: '₹', taxName: 'GST', taxPercentage: 18,
+    taxInclusive: true, shippingFee: 0, freeShippingThreshold: 500, codAvailable: true, paymentGateway: 'razorpay'
+  },
+  US: {
+    currency: 'USD', currencySymbol: '$', taxName: 'Sales Tax', taxPercentage: 0,
+    taxInclusive: false, shippingFee: 10, freeShippingThreshold: 50, codAvailable: false, paymentGateway: 'stripe'
+  }
+};
+
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(true);
@@ -14,10 +25,17 @@ export default function Settings() {
     siteName: '',
     contactEmail: '',
     contactPhone: '',
-    currency: 'INR',
-    taxPercentage: 0,
-    shippingFee: 0,
-    socialLinks: { instagram: '', facebook: '', pinterest: '' }
+    defaultCountry: 'IN',
+    returnWindowDays: 7,
+    countryConfig: DEFAULT_COUNTRY_CONFIG,
+    socialLinks: { instagram: '', facebook: '', pinterest: '' },
+    notifications: {
+      adminNotificationEmail: '',
+      orderConfirmation: true,
+      returnRequest: true,
+      lowStockAlert: true,
+      dailyReport: false
+    }
   });
   
   const [testEmail, setTestEmail] = useState('');
@@ -28,7 +46,23 @@ export default function Settings() {
       try {
         const res = await API.get('/settings');
         if (res.data.success) {
-          setSettings(res.data.settings);
+          const s = res.data.settings;
+          // Merge with defaults to ensure all fields exist
+          setSettings({
+            ...s,
+            countryConfig: {
+              IN: { ...DEFAULT_COUNTRY_CONFIG.IN, ...(s.countryConfig?.IN || {}) },
+              US: { ...DEFAULT_COUNTRY_CONFIG.US, ...(s.countryConfig?.US || {}) }
+            },
+            notifications: {
+              adminNotificationEmail: '',
+              orderConfirmation: true,
+              returnRequest: true,
+              lowStockAlert: true,
+              dailyReport: false,
+              ...(s.notifications || {})
+            }
+          });
         }
       } catch (err) {
         toast.error('Failed to load settings');
@@ -56,20 +90,30 @@ export default function Settings() {
     setSendingTest(true);
     try {
       const res = await API.post('/settings/test-email', { to: testEmail });
-      if (res.data.success) {
-        toast.success(res.data.message);
-      }
+      if (res.data.success) toast.success(res.data.message);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Test email failed');
-    } finally {
-      setSendingTest(false);
-    }
+    } finally { setSendingTest(false); }
+  };
+
+  const updateCountryConfig = (countryCode, field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      countryConfig: {
+        ...prev.countryConfig,
+        [countryCode]: {
+          ...prev.countryConfig[countryCode],
+          [field]: value
+        }
+      }
+    }));
   };
 
   const tabs = [
-    { id: 'general', label: 'General', icon: <globe size={16} /> },
-    { id: 'mail', label: 'Email Configuration', icon: <mail size={16} /> },
-    { id: 'maintenance', label: 'Maintenance Mode', icon: <shieldalert size={16} /> },
+    { id: 'general', label: 'General', icon: <Save size={16} /> },
+    { id: 'regional', label: 'Regional & Tax', icon: <Globe size={16} /> },
+    { id: 'mail', label: 'Email Configuration', icon: <Mail size={16} /> },
+    { id: 'maintenance', label: 'Maintenance Mode', icon: <ShieldAlert size={16} /> },
   ];
 
   if (loading) return (
@@ -78,26 +122,74 @@ export default function Settings() {
     </Layout>
   );
 
+  const renderCountryConfigPanel = (code, label, flag) => {
+    const config = settings.countryConfig?.[code] || {};
+    return (
+      <div className="border border-gray-100 rounded-lg p-5 space-y-4 bg-gray-50/30">
+        <div className="flex items-center gap-2 border-b pb-3">
+          <span className="text-xl">{flag}</span>
+          <h4 className="font-serif text-sm font-bold text-charcoal">{label}</h4>
+          <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100">{config.currency || code}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label className="block text-gray-400 mb-1">Tax Name</label>
+            <input type="text" value={config.taxName || ''} onChange={e => updateCountryConfig(code, 'taxName', e.target.value)} className="input-field" placeholder="GST / Sales Tax" />
+          </div>
+          <div>
+            <label className="block text-gray-400 mb-1">Tax Rate (%)</label>
+            <input type="number" step="0.01" value={config.taxPercentage ?? ''} onChange={e => updateCountryConfig(code, 'taxPercentage', e.target.value)} className="input-field" placeholder="18" />
+          </div>
+          <div>
+            <label className="block text-gray-400 mb-1">Shipping Fee ({config.currencySymbol})</label>
+            <input type="number" value={config.shippingFee ?? ''} onChange={e => updateCountryConfig(code, 'shippingFee', e.target.value)} className="input-field" placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-gray-400 mb-1">Free Shipping Above ({config.currencySymbol})</label>
+            <input type="number" value={config.freeShippingThreshold ?? ''} onChange={e => updateCountryConfig(code, 'freeShippingThreshold', e.target.value)} className="input-field" placeholder="500" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 border-t border-gray-100 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={config.taxInclusive || false} onChange={e => updateCountryConfig(code, 'taxInclusive', e.target.checked)} className="accent-gold-600 rounded" />
+            <span className="text-gray-600">Prices include tax</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={config.codAvailable || false} onChange={e => updateCountryConfig(code, 'codAvailable', e.target.checked)} className="accent-gold-600 rounded" />
+            <span className="text-gray-600">COD Available</span>
+          </label>
+          <div className="flex items-center gap-2 text-gray-400">
+            <span>Payment:</span>
+            <span className="font-bold text-charcoal">{config.paymentGateway || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <layout title="Settings">
-      <div className="flex gap-6 items-start">
-        {/* Sidebar Tabs */}
-        <div className="w-64 flex flex-col gap-2">
+    <Layout title="Settings">
+      <div className="flex flex-col gap-6">
+        {/* Top Tabs Navigation */}
+        <div className="bg-white flex border-b border-gray-100 rounded-lg shadow-sm overflow-x-auto no-scrollbar">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded text-xs font-sans tracking-wider uppercase transition-all
-                ${activeTab === t.id ? 'bg-charcoal text-white font-medium' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-charcoal'}`}>
-              {t.id === 'general' && <Globe size={16} />}
-              {t.id === 'mail' && <Mail size={16} />}
-              {t.id === 'maintenance' && <ShieldAlert size={16} />}
+            <button 
+              key={t.id} 
+              onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-2 px-8 py-4 text-[10px] sm:text-xs font-sans tracking-[0.2em] uppercase transition-all border-b-2 whitespace-nowrap
+                ${activeTab === t.id 
+                  ? 'border-gold-600 text-charcoal font-bold bg-gold-50/20' 
+                  : 'border-transparent text-gray-400 hover:text-charcoal hover:bg-gray-50'}`}
+            >
+              <span className={activeTab === t.id ? 'text-gold-600' : ''}>{t.icon}</span>
               {t.label}
             </button>
           ))}
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 card p-6 font-sans">
-          <form onSubmit={handleSave} className="space-y-6">
+        <div className="card p-8 animate-fade-in min-h-[500px]">
+          <form onSubmit={handleSave} className="space-y-8 max-w-4xl">
             
             {activeTab === 'general' && (
               <div className="space-y-4 animate-fade-in">
@@ -105,27 +197,26 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <label className="block text-gray-400 mb-1">Website Title</label>
-                    <input type="text" value={settings.siteName} onChange={e => setSettings({...settings, siteName: e.target.value})} className="input-field" placeholder="Thaarai Designers" />
+                    <input type="text" value={settings.siteName || ''} onChange={e => setSettings({...settings, siteName: e.target.value})} className="input-field" placeholder="Thaarai Designers" />
                   </div>
                   <div>
-                    <label className="block text-gray-400 mb-1">Currency Code</label>
-                    <input type="text" value={settings.currency} onChange={e => setSettings({...settings, currency: e.target.value})} className="input-field" placeholder="INR" />
+                    <label className="block text-gray-400 mb-1">Default Country</label>
+                    <select value={settings.defaultCountry || 'IN'} onChange={e => setSettings({...settings, defaultCountry: e.target.value})} className="input-field">
+                      <option value="IN">🇮🇳 India</option>
+                      <option value="US">🇺🇸 United States</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Support Email</label>
-                    <input type="email" value={settings.contactEmail} onChange={e => setSettings({...settings, contactEmail: e.target.value})} className="input-field" placeholder="support@thaarai.test" />
+                    <input type="email" value={settings.contactEmail || ''} onChange={e => setSettings({...settings, contactEmail: e.target.value})} className="input-field" placeholder="support@thaarai.test" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Support Phone</label>
-                    <input type="text" value={settings.contactPhone} onChange={e => setSettings({...settings, contactPhone: e.target.value})} className="input-field" placeholder="+91 90000 00000" />
+                    <input type="text" value={settings.contactPhone || ''} onChange={e => setSettings({...settings, contactPhone: e.target.value})} className="input-field" placeholder="+91 90000 00000" />
                   </div>
                   <div>
-                    <label className="block text-gray-400 mb-1">Shipping Fee (₹)</label>
-                    <input type="number" value={settings.shippingFee} onChange={e => setSettings({...settings, shippingFee: Number(e.target.value)})} className="input-field" placeholder="0" />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 mb-1">Tax Percentage (%)</label>
-                    <input type="number" value={settings.taxPercentage} onChange={e => setSettings({...settings, taxPercentage: Number(e.target.value)})} className="input-field" placeholder="0" />
+                    <label className="block text-gray-400 mb-1">Return Window (Days)</label>
+                    <input type="number" min="0" value={settings.returnWindowDays ?? ''} onChange={e => setSettings({...settings, returnWindowDays: e.target.value})} className="input-field" placeholder="7" />
                   </div>
                 </div>
                 
@@ -143,6 +234,15 @@ export default function Settings() {
               </div>
             )}
 
+            {activeTab === 'regional' && (
+              <div className="space-y-6 animate-fade-in">
+                <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">Regional Pricing & Tax Configuration</h3>
+                <p className="text-xs text-gray-400 -mt-2">Configure tax rates, shipping fees, and payment options for each country. These settings control how prices, taxes, and checkout options appear to customers in each region.</p>
+                {renderCountryConfigPanel('IN', 'India', '🇮🇳')}
+                {renderCountryConfigPanel('US', 'United States', '🇺🇸')}
+              </div>
+            )}
+
             {activeTab === 'mail' && (
               <div className="space-y-4 animate-fade-in">
                 <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">Email Setup (SMTP)</h3>
@@ -153,7 +253,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">SMTP Port</label>
-                    <input type="number" value={settings.smtpConfig?.port || 587} onChange={e => setSettings({...settings, smtpConfig: {...settings.smtpConfig, port: Number(e.target.value)}})} className="input-field" placeholder="587" />
+                    <input type="number" value={settings.smtpConfig?.port ?? ''} onChange={e => setSettings({...settings, smtpConfig: {...settings.smtpConfig, port: e.target.value}})} className="input-field" placeholder="587" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Auth Username</label>
@@ -173,7 +273,70 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* Test Email Verification */}
+                {/* Email Notification Toggles */}
+                <div className="border-t pt-6 mt-8">
+                  <h3 className="font-serif text-sm text-charcoal mb-4 uppercase tracking-wider">Email Notification Presets</h3>
+                  
+                  <div className="mb-6">
+                    <label className="block text-[10px] text-gray-400 uppercase mb-1 tracking-wider">Admin Notification Receiver Email</label>
+                    <input 
+                      type="email" 
+                      value={settings.notifications?.adminNotificationEmail || ''} 
+                      onChange={e => setSettings({...settings, notifications: {...settings.notifications, adminNotificationEmail: e.target.value}})} 
+                      className="input-field max-w-sm" 
+                      placeholder="admin-alerts@thaarai.test" 
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1 italic">This email will receive all system alerts, daily reports, and order notifications.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                     <label className="flex items-center justify-between p-3 border border-gray-100 rounded hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-gray-700">Order & Confirmation</span>
+                           <span className="text-[10px] text-gray-400">Send mail on order placement and shipping updates</span>
+                        </div>
+                        <input type="checkbox" 
+                          checked={settings.notifications?.orderConfirmation ?? true} 
+                          onChange={e => setSettings({...settings, notifications: {...settings.notifications, orderConfirmation: e.target.checked}})} 
+                          className="w-4 h-4 accent-gold-600 rounded" />
+                     </label>
+
+                     <label className="flex items-center justify-between p-3 border border-gray-100 rounded hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-gray-700">Return & Requests</span>
+                           <span className="text-[10px] text-gray-400">Receive alert when customer requests a product return</span>
+                        </div>
+                        <input type="checkbox" 
+                          checked={settings.notifications?.returnRequest ?? true} 
+                          onChange={e => setSettings({...settings, notifications: {...settings.notifications, returnRequest: e.target.checked}})} 
+                          className="w-4 h-4 accent-gold-600 rounded" />
+                     </label>
+
+                     <label className="flex items-center justify-between p-3 border border-gray-100 rounded hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-gray-700">Low Stock Alarms</span>
+                           <span className="text-[10px] text-gray-400">Inventory alerts when products are low or out of stock</span>
+                        </div>
+                        <input type="checkbox" 
+                          checked={settings.notifications?.lowStockAlert ?? true} 
+                          onChange={e => setSettings({...settings, notifications: {...settings.notifications, lowStockAlert: e.target.checked}})} 
+                          className="w-4 h-4 accent-gold-600 rounded" />
+                     </label>
+
+                     <label className="flex items-center justify-between p-3 border border-gray-100 rounded hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-gray-700">Daily Sales Summary</span>
+                           <span className="text-[10px] text-gray-400">Receive automated daily summary of sales and visitor traffic</span>
+                        </div>
+                        <input type="checkbox" 
+                          checked={settings.notifications?.dailyReport ?? false} 
+                          onChange={e => setSettings({...settings, notifications: {...settings.notifications, dailyReport: e.target.checked}})} 
+                          className="w-4 h-4 accent-gold-600 rounded" />
+                     </label>
+                  </div>
+                </div>
+
+                {/* Test Email */}
                 <div className="border-t pt-4 mt-8">
                   <h4 className="font-serif text-sm text-charcoal mb-2">Trigger Test Delivery</h4>
                   <div className="flex gap-2 text-xs">
@@ -214,6 +377,6 @@ export default function Settings() {
           </form>
         </div>
       </div>
-    </layout>
+    </Layout>
   );
 }
