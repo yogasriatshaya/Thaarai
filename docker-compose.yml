@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: thaarai-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - thaarai-network
+    restart: unless-stopped
+
+  backend:
+    image: cubeaidocker/thaarai-backend:latest
+    container_name: thaarai-backend
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/thaarai
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - thaarai-network
+    restart: unless-stopped
+
+  frontend:
+    image: cubeaidocker/thaarai-frontend:latest
+    container_name: thaarai-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - thaarai-network
+    restart: unless-stopped
+
+  admin:
+    image: cubeaidocker/thaarai-admin:latest
+    container_name: thaarai-admin
+    ports:
+      - "5174:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - thaarai-network
+    restart: unless-stopped
+
+networks:
+  thaarai-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

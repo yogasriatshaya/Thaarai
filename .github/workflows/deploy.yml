@@ -1,0 +1,123 @@
+name: Deploy Thaarai E-Commerce
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  security-scan:
+    name: Security & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true # Warning only for now
+
+      - name: Dockerfile Lint (Hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          ignore: DL3008,DL3018 # Alpine specific ignores
+        continue-on-error: true
+
+  build-and-push:
+    name: Build & Push Images
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-backend:latest
+
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5001/api
+            VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5001
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-frontend:latest
+
+      - name: Build & Push Admin
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin
+          push: true
+          build-args: |
+            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5001/api
+            VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5001
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-admin:latest
+
+  vulnerability-scan:
+    name: Image Vulnerability Scan (Trivy)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan Backend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/thaarai-backend:latest'
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: vulnerability-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/thaarai-app
+            cd ~/thaarai-app
+            # The compose file is sent via SCP in a separate step or just kept here
+            # For simplicity, we can just echo the compose file into the server if it's small, 
+            # but ideally we transfer it.
+            
+      - name: Transfer Docker Compose
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/thaarai-app"
+
+      - name: Restart Services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/thaarai-app
+            docker compose pull
+            docker compose up -d
