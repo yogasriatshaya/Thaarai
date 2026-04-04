@@ -12,7 +12,8 @@ const statusColors = {
   processing: 'bg-yellow-100 text-yellow-800',
   shipped: 'bg-blue-100 text-blue-800',
   delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800'
+  cancelled: 'bg-red-100 text-red-800',
+  refunded: 'bg-purple-100 text-purple-800'
 };
 
 export default function Orders() {
@@ -96,8 +97,8 @@ export default function Orders() {
     const orderData = data.map(o => ({
       'Order ID': o._id.toUpperCase(),
       Date: new Date(o.createdAt).toLocaleString(),
-      Customer: o.address?.fullName || o.userId?.name || 'Guest',
-      Email: o.address?.email || o.userId?.email || o.guestEmail || 'N/A',
+      'Customer Name': o.address?.fullName || o.userId?.name || 'Guest',
+      'Mail ID': o.address?.email || o.userId?.email || o.guestEmail || 'N/A',
       Items: o.items?.length || 0,
       'Total Amount': `${o.currency === 'USD' ? '$' : '₹'}${o.totalAmount}`,
       Tax: `${o.taxName || 'Tax'} (${o.taxPercentage || 0}%) - ${o.currency === 'USD' ? '$' : '₹'}${o.taxAmount || 0}`,
@@ -127,11 +128,12 @@ export default function Orders() {
     
     autoTable(doc, {
       startY: 20,
-      head: [['ID', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Status']],
+      head: [['ID', 'Date', 'Customer Name', 'Mail ID', 'Items', 'Total', 'Payment', 'Status']],
       body: data.map(o => [
         `#${o._id.slice(-8).toUpperCase()}`,
         new Date(o.createdAt).toLocaleDateString(),
         o.address?.fullName || o.userId?.name || 'Guest',
+        o.address?.email || o.userId?.email || o.guestEmail || 'N/A',
         o.items?.length || 0,
         `${o.currency === 'USD' ? '$' : 'INR '}${o.totalAmount}`,
         `${o.paymentMethod} (${o.paymentStatus})`,
@@ -139,7 +141,7 @@ export default function Orders() {
       ]),
       theme: 'grid',
       headStyles: { fillColor: [139, 127, 192] },
-      styles: { fontSize: 8 }
+      styles: { fontSize: 7 }
     });
 
     const fileName = (startDate && endDate) ? `Orders_Report_${startDate}_to_${endDate}.pdf` : `Orders_Report_Full.pdf`;
@@ -268,7 +270,7 @@ export default function Orders() {
                         onClick={e => e.stopPropagation()}
                         onChange={e => updateStatus(order._id, 'paymentStatus', e.target.value)}
                         className="text-[10px] tracking-wider uppercase font-sans border border-gray-200 px-2 py-1 focus:outline-none focus:border-gold-500 cursor-pointer">
-                        {['pending', 'paid', 'failed'].map(s => <option key={s} value={s}>{s}</option>)}
+                        {['pending', 'paid', 'failed', 'refunded'].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
                   </tr>,
@@ -283,7 +285,11 @@ export default function Orders() {
                               {order.items?.map((item, idx) => (
                                 <div key={idx} className="flex items-center gap-4 bg-white p-3 border border-gray-100 rounded-lg">
                                   {item.image && (
-                                    <img src={item.image.startsWith('http') ? item.image.replace(/^http:\/\/localhost:\d+/, BACKEND_URL) : `${BACKEND_URL}${item.image}`} alt={item.name} className="w-12 h-14 object-cover rounded-sm border" />
+                                    <img 
+                                      src={item.image.startsWith('http') ? item.image : `${BACKEND_URL.replace(/\/$/, '')}/${item.image.replace(/^\//, '')}`} 
+                                      alt={item.name} 
+                                      className="w-12 h-14 object-cover rounded-sm border" 
+                                    />
                                   )}
                                   <div className="flex-1">
                                     <p className="text-xs font-medium text-charcoal">{item.name}</p>
@@ -352,7 +358,7 @@ export default function Orders() {
                                         <span className="font-bold text-[10px] text-gray-500 uppercase tracking-widest block mb-1">Attached Evidence:</span>
                                          <div className="flex gap-2.5 overflow-x-auto pb-1">
                                             {order.returnImages.map((img, idx) => (
-                                               <img key={idx} src={img.startsWith('http') ? img.replace(/^http:\/\/localhost:\d+/, BACKEND_URL) : `${BACKEND_URL}${img}`} alt="damage" className="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform" onClick={() => window.open(img.startsWith('http') ? img.replace(/^http:\/\/localhost:\d+/, BACKEND_URL) : `${BACKEND_URL}${img}`, '_blank')} />
+                                               <img key={idx} src={img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`)} alt="damage" className="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform" onClick={() => window.open(img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`), '_blank')} />
                                             ))}
                                          </div>
                                      </div>
@@ -521,7 +527,7 @@ export default function Orders() {
                                )}
                                {(printOrder.taxAmount > 0 || printOrder.taxPercentage > 0) && (
                                    <tr className="text-gray-500">
-                                       <td className="py-1 px-2 text-right font-medium">{printOrder.taxName || 'Sales Tax'} ({printOrder.taxPercentage || 0}%)</td>
+                                       <td className="py-1 px-2 text-right font-medium">{printOrder.taxName || 'Sales Tax'} ({printOrder.taxPercentage || 0}%){Math.abs(((printOrder.subtotal || 0) + (printOrder.shippingAmount || 0) - (printOrder.discountAmount || 0)) - (printOrder.totalAmount || 0)) < 0.01 ? ' (Included)' : ''}</td>
                                        <td className="py-1 px-2 text-right text-charcoal font-semibold">
                                            {printOrder.currency === 'USD' ? '$' : '₹'}{printOrder.taxAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                        </td>

@@ -7,7 +7,7 @@ import { Save, Mail, ShieldAlert, Globe } from 'lucide-react';
 const DEFAULT_COUNTRY_CONFIG = {
   IN: {
     currency: 'INR', currencySymbol: '₹', taxName: 'GST', taxPercentage: 18,
-    taxInclusive: true, shippingFee: 0, freeShippingThreshold: 500, codAvailable: true, paymentGateway: 'razorpay'
+    taxInclusive: false, shippingFee: 0, freeShippingThreshold: 500, codAvailable: true, paymentGateway: 'razorpay'
   },
   US: {
     currency: 'USD', currencySymbol: '$', taxName: 'Sales Tax', taxPercentage: 0,
@@ -21,7 +21,7 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     maintenanceMode: false,
     maintenanceMessage: '',
-    smtpConfig: { host: '', port: 587, secure: false, user: '', pass: '', from: '' },
+    smtpConfig: { host: '', port: 465, secure: true, user: '', pass: '', from: '' },
     siteName: '',
     contactEmail: '',
     contactPhone: '',
@@ -37,6 +37,7 @@ export default function Settings() {
       dailyReport: false
     }
   });
+  const [originalSettings, setOriginalSettings] = useState(null);
   
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
@@ -47,8 +48,7 @@ export default function Settings() {
         const res = await API.get('/settings');
         if (res.data.success) {
           const s = res.data.settings;
-          // Merge with defaults to ensure all fields exist
-          setSettings({
+          const merged = {
             ...s,
             countryConfig: {
               IN: { ...DEFAULT_COUNTRY_CONFIG.IN, ...(s.countryConfig?.IN || {}) },
@@ -62,7 +62,9 @@ export default function Settings() {
               dailyReport: false,
               ...(s.notifications || {})
             }
-          });
+          };
+          setSettings(merged);
+          setOriginalSettings(JSON.stringify(merged));
         }
       } catch (err) {
         toast.error('Failed to load settings');
@@ -73,12 +75,23 @@ export default function Settings() {
     fetchSettings();
   }, []);
 
+  const isDirty = originalSettings !== JSON.stringify(settings);
+
+  const switchTab = (tabId) => {
+    if (isDirty) {
+      toast.warning('Please click "Update Details" to save your changes before switching tabs.');
+      return;
+    }
+    setActiveTab(tabId);
+  };
+
   const handleSave = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
       const res = await API.put('/settings', settings);
       if (res.data.success) {
         toast.success(res.data.message || 'Settings updated');
+        setOriginalSettings(JSON.stringify(settings));
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed');
@@ -175,7 +188,7 @@ export default function Settings() {
           {tabs.map(t => (
             <button 
               key={t.id} 
-              onClick={() => setActiveTab(t.id)}
+              onClick={() => switchTab(t.id)}
               className={`flex items-center gap-2 px-8 py-4 text-[10px] sm:text-xs font-sans tracking-[0.2em] uppercase transition-all border-b-2 whitespace-nowrap
                 ${activeTab === t.id 
                   ? 'border-gold-600 text-charcoal font-bold bg-gold-50/20' 
@@ -253,7 +266,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">SMTP Port</label>
-                    <input type="number" value={settings.smtpConfig?.port ?? ''} onChange={e => setSettings({...settings, smtpConfig: {...settings.smtpConfig, port: e.target.value}})} className="input-field" placeholder="587" />
+                    <input type="number" value={settings.smtpConfig?.port ?? ''} onChange={e => setSettings({...settings, smtpConfig: {...settings.smtpConfig, port: e.target.value}})} className="input-field" placeholder="465" />
                   </div>
                   <div>
                     <label className="block text-gray-400 mb-1">Auth Username</label>
@@ -369,9 +382,17 @@ export default function Settings() {
             )}
 
             <div className="border-t pt-4 flex justify-end">
-              <button type="submit" className="btn-primary flex items-center gap-2">
-                <Save size={16} /> Update Details
-              </button>
+               <div className="flex items-center gap-4">
+                  {isDirty && (
+                    <span className="text-[10px] text-gold-600 font-bold uppercase tracking-widest animate-pulse flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 bg-gold-600 rounded-full"></span>
+                       Unsaved Changes
+                    </span>
+                  )}
+                  <button type="submit" className="btn-primary flex items-center gap-2 px-6">
+                    <Save size={16} /> Update Details
+                  </button>
+               </div>
             </div>
 
           </form>

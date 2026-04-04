@@ -135,11 +135,27 @@ export default function Dashboard() {
       {/* Alerts */}
       {alerts.length > 0 && (
          <div className="space-y-2 mb-6">
-           {alerts.map((alt, idx) => (
-             <div key={idx} className={`p-3 rounded-md border text-xs flex items-center gap-2 ${alt.type === 'danger' ? 'bg-red-50 text-red-700 border-red-100' : alt.type === 'warning' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
-               <AlertTriangle size={14} /> <span>{alt.message}</span>
-             </div>
-           ))}
+           {alerts.map((alt, idx) => {
+             const isLowStock = alt.message.toLowerCase().includes('low in stock');
+             const isOutStock = alt.message.toLowerCase().includes('out of stock');
+             const isReturn = alt.message.toLowerCase().includes('return');
+             const isOrder = alt.message.toLowerCase().includes('order');
+
+             return (
+               <div key={idx} className={`p-3 rounded-md border text-xs flex items-center justify-between gap-2 shadow-sm animate-in slide-in-from-right-4 duration-500
+                 ${alt.type === 'danger' ? 'bg-red-50 text-red-700 border-red-100' : 
+                   alt.type === 'warning' ? 'bg-orange-50 text-orange-700 border-orange-100' : 
+                   'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                 <div className="flex items-center gap-2">
+                    {isReturn ? <ShoppingBag size={14} /> : isOutStock || isLowStock ? <Package size={14} /> : <Clock size={14} />}
+                    <span className="font-medium">{alt.message}</span>
+                 </div>
+                 {isReturn && <a href="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Manage Returns →</a>}
+                 {isOrder && <a href="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">View Orders →</a>}
+                 {(isLowStock || isOutStock) && <a href="/inventory" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Restock →</a>}
+               </div>
+             );
+           })}
          </div>
       )}
 

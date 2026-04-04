@@ -34,9 +34,22 @@ router.put('/:id', adminMiddleware, async (req, res) => {
     if (!oldCat) return res.status(404).json({ success: false, message: 'Category not found' });
 
     const oldName = oldCat.name;
-    const update = { name, subcategories, description, isActive, defaultFabrics, defaultStyles, availableSizes };
+    const update = { 
+      name, 
+      subcategories: subcategories || [], 
+      description, 
+      isActive: isActive !== undefined ? isActive : true, 
+      defaultFabrics, 
+      defaultStyles, 
+      availableSizes 
+    };
     
-    const updatedCat = await Category.findByIdAndUpdate(req.params.id, update, { new: true });
+    // Explicitly update all fields and run validators
+    const updatedCat = await Category.findByIdAndUpdate(
+      req.params.id, 
+      { $set: update }, 
+      { new: true, runValidators: true }
+    );
 
     // If name changed, update all products with this category
     if (name && name !== oldName) {
@@ -45,9 +58,11 @@ router.put('/:id', adminMiddleware, async (req, res) => {
 
     res.json({ success: true, category: updatedCat });
   } catch (err) {
+    console.error('Update Category Error:', err);
     res.status(400).json({ success: false, message: err.message });
   }
 });
+
 
 // 4. Rename subcategory globally
 router.put('/:id/rename-subcategory', adminMiddleware, async (req, res) => {

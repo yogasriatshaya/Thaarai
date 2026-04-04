@@ -296,6 +296,39 @@ export default function Collection() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-4 pb-12">
+        {/* Sub-category Visual Navigator */}
+        {urlCategory && categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase())?.subcategories?.length > 0 && (
+          <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-px flex-1 bg-gray-100" />
+              <h3 className="text-[10px] uppercase font-bold tracking-[0.3em] text-gray-400">Explore {urlCategory}</h3>
+              <div className="h-px flex-1 bg-gray-100" />
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2">
+              <button 
+                onClick={() => handleSubcategoryClick('')}
+                className={`shrink-0 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all border
+                  ${!urlSubcategory ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'}`}
+              >
+                All {urlCategory}
+              </button>
+              {categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase()).subcategories.map(sub => {
+                const subName = typeof sub === 'string' ? sub : sub.name;
+                const isActive = urlSubcategory.toLowerCase() === subName.toLowerCase();
+                return (
+                  <button 
+                    key={subName}
+                    onClick={() => handleSubcategoryClick(subName)}
+                    className={`shrink-0 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all border
+                      ${isActive ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'}`}
+                  >
+                    {subName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-10 bg-gray-50 p-3 px-5 rounded-md border border-gray-200 w-fit">
           <Link to="/" className="hover:text-gray-900 transition-colors">Home</Link>

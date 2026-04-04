@@ -118,13 +118,15 @@ export default function Cart() {
               {cartItems.map((item) => {
                 const isItemUnavailable = (country === 'IN' && item.availableInIndia === false) ||
                                           (country === 'US' && item.availableInUS === false);
+                const cartVariant = item.variants?.find(v => v.color === item.color);
+                const displayImage = cartVariant?.image ? cartVariant.image : item.images?.[0];
                 return (
                 <div key={item.key} className={`p-4 sm:p-6 flex flex-col sm:flex-row gap-6 ${isItemUnavailable ? 'opacity-60 bg-red-50/20' : ''}`}>
                   {/* Left: Image & Qty */}
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-24 h-28 sm:w-28 sm:h-32 bg-transparent flex items-center justify-center relative group">
                       <img
-                        src={getImg(item.images?.[0])}
+                        src={getImg(displayImage)}
                         alt={item.name}
                         className="w-full h-full object-contain mix-blend-multiply"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }}

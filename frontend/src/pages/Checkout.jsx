@@ -137,8 +137,10 @@ export default function Checkout() {
 
     const orderItems = cartItems.map(i => {
       let imageUrl = '';
-      if (i.images?.[0]) {
-        imageUrl = i.images[0].startsWith('http') ? i.images[0] : `${BACKEND_URL}${i.images[0]}`;
+      const cartVariant = i.variants?.find(v => v.color === i.color);
+      const displayImage = cartVariant?.image ? cartVariant.image : i.images?.[0];
+      if (displayImage) {
+        imageUrl = displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`;
       }
       const itemToSave = {
         name: i.name,
@@ -366,12 +368,14 @@ export default function Checkout() {
                 {cartItems.map((item, i) => {
                   const isItemUnavailable = (country === 'IN' && item.availableInIndia === false) ||
                                             (country === 'US' && item.availableInUS === false);
+                  const cartVariant = item.variants?.find(v => v.color === item.color);
+                  const displayImage = cartVariant?.image ? cartVariant.image : item.images?.[0];
                   return (
                   <div key={i} className={`flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0 ${isItemUnavailable ? 'opacity-50' : ''}`}>
                     <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
                       {isItemUnavailable && <div className="absolute inset-0 bg-red-500/10 z-10"></div>}
                       <img
-                        src={item.images?.[0] ? (item.images[0].startsWith('http') ? item.images[0] : `${BACKEND_URL}${item.images[0]}`) : PRODUCT_FALLBACK}
+                        src={displayImage ? (displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`) : PRODUCT_FALLBACK}
                         alt={item.name}
                         className="w-full h-full object-cover"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }}

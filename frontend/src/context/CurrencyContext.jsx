@@ -28,34 +28,62 @@ export const CurrencyProvider = ({ children }) => {
       return;
     }
 
-    // Try to detect country from logged-in user profile
-    const token = localStorage.getItem('token');
-    if (token) {
-      API.get('/users/profile').then(r => {
-        if (r.data.user?.preferredCountry) {
-          setCountryState(r.data.user.preferredCountry);
-          localStorage.setItem('thaarai_country', r.data.user.preferredCountry);
-          setGeoDetected(true);
-        }
-      }).catch(() => {});
-      return;
-    }
+    const performDetection = async () => {
+      // 1. Try to detect country from logged-in user profile
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const r = await API.get('/users/profile');
+          if (r.data.user?.preferredCountry) {
+            const pref = r.data.user.preferredCountry;
+            setCountryState(pref);
+            localStorage.setItem('thaarai_country', pref);
+            setGeoDetected(true);
+            return;
+          }
+        } catch (err) {}
+      }
 
-    // Simple timezone-based detection fallback
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      if (tz.startsWith('America/')) {
-        setCountryState('US');
-        localStorage.setItem('thaarai_country', 'US');
-      } else {
+      // 2. Try IP-based Geo Detection (Most accurate)
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        if (data.country_code === 'US' || data.country_name === 'United States') {
+          setCountryState('US');
+          localStorage.setItem('thaarai_country', 'US');
+          setGeoDetected(true);
+          console.log('Location detected: USA. Switched to $ prices.');
+          return;
+        } else if (data.country_code === 'IN' || data.country_name === 'India') {
+          setCountryState('IN');
+          localStorage.setItem('thaarai_country', 'IN');
+          setGeoDetected(true);
+          console.log('Location detected: India. Switched to ₹ prices.');
+          return;
+        }
+      } catch (err) {
+        console.warn('Geo-IP detection failed, using timezone fallback.');
+      }
+
+      // 3. Simple timezone-based detection fallback
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        if (tz.startsWith('America/') || tz.startsWith('US/')) {
+          setCountryState('US');
+          localStorage.setItem('thaarai_country', 'US');
+        } else {
+          setCountryState('IN');
+          localStorage.setItem('thaarai_country', 'IN');
+        }
+        setGeoDetected(true);
+      } catch (err) {
+        // Absolute fallback to base default
         setCountryState('IN');
         localStorage.setItem('thaarai_country', 'IN');
       }
-      setGeoDetected(true);
-    } catch {
-      setCountryState('IN');
-      localStorage.setItem('thaarai_country', 'IN');
-    }
+    };
+
+    performDetection();
   }, []);
 
   const setCountry = useCallback((code) => {

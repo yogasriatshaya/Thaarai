@@ -56,15 +56,17 @@ export function Orders() {
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedReturnOrder, setSelectedReturnOrder] = useState(null);
   const [returnReason, setReturnReason] = useState('');
-  const [returnImage, setReturnImage] = useState('');
+  const [returnImage, setReturnImage] = useState(''); // preview url
+  const [returnFile, setReturnFile] = useState(null); // actual file object
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Image must be smaller than 2MB");
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image must be smaller than 10MB");
         return;
       }
+      setReturnFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setReturnImage(reader.result);
       reader.readAsDataURL(file);
@@ -74,8 +76,14 @@ export function Orders() {
   const submitReturn = async () => {
     if (!returnReason.trim()) return toast.error("Return reason is required");
     try {
-      const payload = { reason: returnReason, images: returnImage ? [returnImage] : [] };
-      const res = await API.post(`/orders/${selectedReturnOrder}/return`, payload);
+      const formData = new FormData();
+      formData.append('reason', returnReason);
+      if (returnFile) {
+        formData.append('images', returnFile);
+      }
+      const res = await API.post(`/orders/${selectedReturnOrder}/return`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       if (res.data.success) {
         toast.success("Return request submitted successfully");
         setOrders(orders.map(o => o._id === selectedReturnOrder ? { ...o, returnRequested: true, returnStatus: 'pending' } : o));
@@ -83,6 +91,7 @@ export function Orders() {
         setSelectedReturnOrder(null);
         setReturnReason('');
         setReturnImage('');
+        setReturnFile(null);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit return request");

@@ -146,6 +146,20 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
     if (lowStockCount > 0) alerts.push({ type: 'warning', message: `${lowStockCount} products are low in stock.` });
     if (outOfStockCount > 0) alerts.push({ type: 'danger', message: `${outOfStockCount} products are out of stock.` });
     if (pendingOrders > 0) alerts.push({ type: 'info', message: `${pendingOrders} orders are pending processing.` });
+    
+    // Return Alerts
+    const pendingReturnsCount = await Order.countDocuments({ ...dateFilter, returnStatus: 'pending' });
+    if (pendingReturnsCount > 0) {
+      alerts.push({ type: 'warning', message: `${pendingReturnsCount} return request(s) are pending approval.` });
+    }
+    const receivedReturnsCount = await Order.countDocuments({ ...dateFilter, returnStatus: 'received' });
+    if (receivedReturnsCount > 0) {
+      alerts.push({ type: 'warning', message: `${receivedReturnsCount} return(s) received. Pending refund.` });
+    }
+
+    // Sort by priority
+    const priority = { danger: 0, warning: 1, info: 2 };
+    alerts.sort((a, b) => priority[a.type] - priority[b.type]);
 
     res.json({
       success: true,

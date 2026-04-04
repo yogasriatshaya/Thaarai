@@ -21,7 +21,7 @@ export default function ProductCard({ product }) {
   
   const getFullImgUrl = (path) => {
     if (!path) return '';
-    return path.startsWith('http') ? path : `${BACKEND_URL}${path}`;
+    return path.startsWith('http') ? path : `${BACKEND_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
   };
 
   const nextImg = (e) => {

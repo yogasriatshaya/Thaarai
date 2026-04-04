@@ -9,6 +9,12 @@ const reviewSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const variantSchema = new mongoose.Schema({
+  color: { type: String, required: true },
+  image: { type: String }, // specific image for this color
+  stock: { type: Number, default: 0 }
+});
+
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
@@ -27,6 +33,7 @@ const productSchema = new mongoose.Schema({
   sizes: [{ type: String }],
   colors: [{ type: String }],
   images: [{ type: String }],
+  variants: [variantSchema],
   stock: { type: Number, default: 0 },
   bestseller: { type: Boolean, default: false },
   label: { type: String, default: '' },

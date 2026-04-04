@@ -127,37 +127,62 @@ export default function Categories() {
   };
 
   const updateSubOptions = (idx, field, value) => {
-    const newSubs = [...form.subcategories];
-    // To allow commas whilst typing in the inline subcategory fields, we'll store as array only on change
-    // but the issue mentioned is also here.
-    // Let's use a simpler approach: allow empty strings during split to preserve commas
-    newSubs[idx][field] = value.split(',').map(s => s.trim());
-    setForm({ ...form, subcategories: newSubs });
+    setForm(prev => {
+      const newSubs = prev.subcategories.map((s, i) => 
+        i === idx ? { ...s, [field]: value.split(',').map(v => v.trim()) } : s
+      );
+      return { ...prev, subcategories: newSubs };
+    });
+  };
+
+  const getAllSubcategories = () => {
+    const list = [];
+    categories.forEach(cat => {
+      if (cat.subcategories) {
+        cat.subcategories.forEach(sub => {
+          list.push({
+            name: typeof sub === 'string' ? sub : sub.name,
+            parent: cat.name,
+            parentId: cat._id,
+            fabrics: typeof sub === 'string' ? [] : (sub.fabrics || []),
+            styles: typeof sub === 'string' ? [] : (sub.styles || []),
+            catRef: cat
+          });
+        });
+      }
+    });
+    return list.sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const handleRenameSub = (oldName) => {
     setRenameSubModal({ open: true, oldName, newName: oldName, cat: editingCat });
   };
 
+  const handleGlobalRenameSub = (oldName, parentCat) => {
+    setRenameSubModal({ open: true, oldName, newName: oldName, cat: parentCat });
+  };
+
   const confirmRenameSub = async () => {
     const { oldName, newName, cat } = renameSubModal;
-    if (!newName || newName === oldName) return setRenameSubModal({ ...renameSubModal, open: false });
+    if (!newName || newName.trim() === oldName) return setRenameSubModal({ ...renameSubModal, open: false });
 
     if (!cat) {
-      setForm({ 
-        ...form, 
-        subcategories: form.subcategories.map(s => s.name === oldName ? { ...s, name: newName.trim() } : s) 
-      });
+      setForm(prev => ({ 
+        ...prev, 
+        subcategories: prev.subcategories.map(s => s.name === oldName ? { ...s, name: newName.trim() } : s) 
+      }));
       setRenameSubModal({ ...renameSubModal, open: false });
     } else {
       try {
         const res = await API.put(`/categories/${cat._id}/rename-subcategory`, { oldName, newName: newName.trim() });
         if (res.data.success) {
           toast.success(res.data.message);
-          setForm({ 
-            ...form, 
-            subcategories: form.subcategories.map(s => s.name === oldName ? { ...s, name: newName.trim() } : s) 
-          });
+          if (editingCat && editingCat._id === cat._id) {
+            setForm(prev => ({ 
+              ...prev, 
+              subcategories: prev.subcategories.map(s => s.name === oldName ? { ...s, name: newName.trim() } : s) 
+            }));
+          }
           setRenameSubModal({ ...renameSubModal, open: false });
           fetchCategories();
         }
@@ -180,9 +205,9 @@ export default function Categories() {
       defaultStyles: stylesText.split(',').map(s => s.trim()).filter(Boolean),
       subcategories: form.subcategories.map(s => ({
         ...s,
-        name: s.name.trim(),
-        fabrics: s.fabrics.map(f => f.trim()).filter(Boolean),
-        styles: s.styles.map(st => st.trim()).filter(Boolean)
+        name: (s.name || '').trim(),
+        fabrics: (s.fabrics || []).map(f => (f || '').trim()).filter(Boolean),
+        styles: (s.styles || []).map(st => (st || '').trim()).filter(Boolean)
       }))
     };
 
@@ -205,6 +230,8 @@ export default function Categories() {
     setSizesText(sizes.join(', '));
   };
 
+  const allSubs = getAllSubcategories();
+
   return (
     <Layout title="Categories & Subcategories">
       <div className="flex justify-between items-center mb-8">
@@ -212,45 +239,111 @@ export default function Categories() {
           <h2 className="text-sm text-gray-400 font-sans uppercase tracking-[0.2em]">Store Catalog</h2>
           <p className="text-xs text-gray-500 mt-1 italic">Note: Changing a category name updates products automatically.</p>
         </div>
-        <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-          <Plus size={16} /> Add Category
-        </button>
+        <div className="flex gap-4">
+           {/* Anchor links to sections */}
+           <a href="#subcategory-list" className="btn-outline flex items-center gap-2 text-[10px]">
+             View All Sub-categories
+           </a>
+           <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+             <Plus size={16} /> Add Category
+           </button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="animate-pulse space-y-4">
-          {[1,2,3].map(i => <div key={i} className="h-24 bg-white rounded-lg border" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map(cat => (
-            <div key={cat._id} className="card p-5 group flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-serif text-lg font-bold text-charcoal">{cat.name}</h3>
-                    {cat.description && <p className="text-[11px] text-gray-400 line-clamp-1">{cat.description}</p>}
+      <div className="mb-12">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] mb-6 border-l-4 border-charcoal pl-4">Parent Categories</h3>
+        {loading ? (
+          <div className="animate-pulse space-y-4">
+            {[1,2,3].map(i => <div key={i} className="h-24 bg-white rounded-lg border" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories.map(cat => (
+              <div key={cat._id} className="card p-5 group flex flex-col justify-between hover:border-gold-500/50 transition-all">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-charcoal">{cat.name}</h3>
+                      {cat.description && <p className="text-[11px] text-gray-400 line-clamp-1">{cat.description}</p>}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleOpenModal(cat)} className="p-2 text-gray-400 hover:text-gold-600 rounded-full"><Edit2 size={14}/></button>
+                      <button onClick={() => {
+                        if(window.confirm(`Delete ${cat.name}?`)) {
+                          API.delete(`/categories/${cat._id}`).then(() => fetchCategories()).catch(e => toast.error(e.response?.data?.message || 'Delete failed'));
+                        }
+                      }} className="p-2 text-gray-400 hover:text-red-500 rounded-full"><Trash2 size={14}/></button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleOpenModal(cat)} className="p-2 text-gray-400 hover:text-gold-600 rounded-full"><Edit2 size={14}/></button>
-                    <button onClick={() => API.delete(`/categories/${cat._id}`).then(() => fetchCategories())} className="p-2 text-gray-400 hover:text-red-500 rounded-full"><Trash2 size={14}/></button>
+                  <div className="space-y-2">
+                     <p className="text-[10px] uppercase tracking-widest text-gray-300 font-bold">Sub-categories ({cat.subcategories?.length || 0})</p>
+                     <div className="flex flex-wrap gap-1.5">
+                        {cat.subcategories?.map(sub => (
+                          <span key={typeof sub === 'string' ? sub : sub.name} className="px-2 py-0.5 bg-gray-50 text-[10px] text-gray-500 rounded border">
+                             {typeof sub === 'string' ? sub : sub.name}
+                          </span>
+                        ))}
+                        {(!cat.subcategories || cat.subcategories.length === 0) && <span className="text-[10px] text-gray-300">None</span>}
+                     </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                   <p className="text-[10px] uppercase tracking-widest text-gray-300 font-bold">Sub-categories</p>
-                   <div className="flex flex-wrap gap-1.5">
-                      {cat.subcategories?.map(sub => (
-                        <span key={typeof sub === 'string' ? sub : sub.name} className="px-2 py-0.5 bg-gray-50 text-[10px] text-gray-500 rounded border">
-                           {typeof sub === 'string' ? sub : sub.name}
-                        </span>
-                      ))}
-                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* NEW GLOBAL SUBCATEGORY LIST */}
+      <div id="subcategory-list" className="pt-8 border-t mt-12">
+        <div className="flex justify-between items-center mb-6">
+           <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">All Sub-categories Overview</h3>
         </div>
-      )}
+        
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+           <table className="w-full text-left">
+              <thead>
+                 <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Sub-category</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Parent Category</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Details</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500 text-right">Actions</th>
+                 </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                 {allSubs.length > 0 ? allSubs.map((sub, idx) => (
+                    <tr key={`${sub.parent}-${sub.name}-${idx}`} className="hover:bg-gray-50/50 transition-colors group">
+                       <td className="px-6 py-4">
+                          <span className="text-sm font-bold text-charcoal">{sub.name}</span>
+                       </td>
+                       <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 bg-charcoal text-white text-[9px] uppercase tracking-widest rounded-sm">{sub.parent}</span>
+                       </td>
+                       <td className="px-6 py-4">
+                          <div className="space-y-1">
+                             <p className="text-[9px] text-gray-400">Fabrics: <span className="text-gray-600">{sub.fabrics.length > 0 ? sub.fabrics.join(', ') : 'Category Default'}</span></p>
+                             <p className="text-[9px] text-gray-400">Styles: <span className="text-gray-600">{sub.styles.length > 0 ? sub.styles.join(', ') : 'Category Default'}</span></p>
+                          </div>
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                             <button onClick={() => handleGlobalRenameSub(sub.name, sub.catRef)} className="p-2 text-gray-300 hover:text-gold-600 transition-colors">
+                                <Edit2 size={14} />
+                             </button>
+                             <button onClick={() => handleOpenModal(sub.catRef)} className="p-2 text-gray-300 hover:text-charcoal transition-colors">
+                                <Plus size={14} />
+                             </button>
+                          </div>
+                       </td>
+                    </tr>
+                 )) : (
+                    <tr>
+                       <td colSpan="4" className="px-6 py-12 text-center text-gray-400 italic text-sm">No sub-categories created yet.</td>
+                    </tr>
+                 )}
+              </tbody>
+           </table>
+        </div>
+      </div>
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -271,43 +364,45 @@ export default function Categories() {
                 <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input-field min-h-[80px]" />
               </div>
 
-              <div>
-                <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-2">Sub-categories</label>
-                <div className="flex gap-2 mb-3">
+              <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-100">
+                <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-4 font-bold border-b pb-2">Sub-categories Manager</label>
+                <div className="flex gap-2 mb-4">
                   <input type="text" value={subInput} onChange={e => setSubInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddSub())} className="input-field flex-1" placeholder="e.g. Shirts" />
-                  <button type="button" onClick={handleAddSub} className="p-2 bg-charcoal text-white rounded"><Plus /></button>
+                  <button type="button" onClick={handleAddSub} className="p-2 bg-charcoal text-white rounded hover:bg-black transition-colors"><Plus /></button>
                 </div>
-                <div className="space-y-4 p-4 bg-gray-50 rounded border">
+                <div className="space-y-4">
                   {form.subcategories.map((sub, idx) => (
-                    <div key={idx} className="bg-white p-3 border rounded shadow-sm">
+                    <div key={idx} className="bg-white p-4 border rounded shadow-sm hover:border-gold-300 transition-all">
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs font-bold">{sub.name}</span>
-                        <div className="flex gap-2">
-                           <button type="button" onClick={() => handleRenameSub(sub.name)} className="text-gray-400 hover:text-gold-600"><Pencil size={12}/></button>
-                           <button type="button" onClick={() => handleRemoveSub(sub.name)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-[#000000]">{sub.name}</span>
+                        <div className="flex gap-3">
+                           <button type="button" title="Rename" onClick={() => handleRenameSub(sub.name)} className="text-gray-300 hover:text-gold-600 transition-colors"><Pencil size={12}/></button>
+                           <button type="button" title="Remove" onClick={() => handleRemoveSub(sub.name)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
                         <div>
-                          <label className="block text-[8px] uppercase tracking-widest text-gray-400 mb-1">Fabrics (comma sep.)</label>
+                          <label className="block text-[8px] uppercase tracking-widest text-gray-400 mb-1.5">Fabrics (comma sep.)</label>
                           <input 
                             value={sub.fabrics.join(', ')} 
                             onChange={(e) => updateSubOptions(idx, 'fabrics', e.target.value)}
-                            className="w-full text-[10px] border px-2 py-1 rounded" 
+                            className="w-full text-[10px] border px-2 py-1.5 rounded focus:border-gold-300 outline-none" 
+                            placeholder="Chiffon, Silk..."
                           />
                         </div>
                         <div>
-                          <label className="block text-[8px] uppercase tracking-widest text-gray-400 mb-1">Styles (comma sep.)</label>
+                          <label className="block text-[8px] uppercase tracking-widest text-gray-400 mb-1.5">Styles (comma sep.)</label>
                           <input 
                             value={sub.styles.join(', ')} 
                             onChange={(e) => updateSubOptions(idx, 'styles', e.target.value)}
-                            className="w-full text-[10px] border px-2 py-1 rounded" 
+                            className="w-full text-[10px] border px-2 py-1.5 rounded focus:border-gold-300 outline-none" 
+                            placeholder="Straight, A-Line..."
                           />
                         </div>
                       </div>
                     </div>
                   ))}
-                  {form.subcategories.length === 0 && <p className="text-[10px] text-gray-300 italic">No sub-categories added</p>}
+                  {form.subcategories.length === 0 && <p className="text-[10px] text-gray-300 italic py-4 text-center">No sub-categories defined for this category.</p>}
                 </div>
               </div>
 
@@ -387,3 +482,4 @@ export default function Categories() {
     </Layout>
   );
 }
+

@@ -11,15 +11,14 @@ router.get('/', async (req, res) => {
     if (!settings) {
       settings = await Settings.create({});
     } else {
-      // Ensure defaults if fields are 0/empty
       let changed = false;
-      if (!settings.countryConfig.IN.taxPercentage) {
+      if (settings.countryConfig.IN.taxPercentage === undefined || settings.countryConfig.IN.taxPercentage === null) {
         settings.countryConfig.IN.taxPercentage = 18;
         settings.countryConfig.IN.taxName = 'GST';
-        settings.countryConfig.IN.taxInclusive = true;
+        settings.countryConfig.IN.taxInclusive = false;
         changed = true;
       }
-      if (!settings.countryConfig.US.taxPercentage) {
+      if (settings.countryConfig.US.taxPercentage === undefined || settings.countryConfig.US.taxPercentage === null) {
         settings.countryConfig.US.taxPercentage = 8;
         settings.countryConfig.US.taxName = 'Sales Tax';
         settings.countryConfig.US.taxInclusive = false;
@@ -40,7 +39,15 @@ router.put('/', adminMiddleware, async (req, res) => {
     if (!settings) {
       settings = await Settings.create(req.body);
     } else {
-      Object.assign(settings, req.body);
+      // Loop over keys to ensure Mongoose detects nested object changes
+      for (const key in req.body) {
+        settings[key] = req.body[key];
+      }
+      settings.markModified('smtpConfig');
+      settings.markModified('countryConfig');
+      settings.markModified('notifications');
+      settings.markModified('socialLinks');
+      
       await settings.save();
     }
     res.json({ success: true, settings, message: 'Settings updated successfully' });
@@ -63,11 +70,8 @@ router.post('/test-email', adminMiddleware, async (req, res) => {
     const transporter = nodemailer.createTransport({
       host,
       port,
-      secure, // true for 465, false for other ports
-      auth: { user, pass },
-      tls: {
-          rejectUnauthorized: false // Helps avoid SSL validation errors on some SMTP hosts
-      }
+      secure: Number(port) === 465, // Force secure if port is 465
+      auth: { user, pass }
     });
 
     const info = await transporter.sendMail({

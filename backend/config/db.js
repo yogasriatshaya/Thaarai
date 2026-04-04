@@ -10,8 +10,8 @@ const connectDB = async () => {
     await seedAdmin();
 
     // Seed storefront mock products into DB so admin can manage them
-    const seedProducts = require('./seedProducts');
-    await seedProducts();
+    // const seedProducts = require('./seedProducts');
+    // await seedProducts();
 
   } catch (error) {
     console.error('MongoDB connection error:', error.message);

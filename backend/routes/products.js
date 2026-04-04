@@ -21,10 +21,12 @@ const parseArray = (input) => {
 // Get all products with filters
 router.get('/', async (req, res) => {
   try {
+    /* 
     const existingCount = await Product.countDocuments();
     if (existingCount === 0) {
       await seedProducts();
     }
+    */
 
     const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12, country } = req.query;
     const query = {};
@@ -120,14 +122,20 @@ router.get('/:id', async (req, res) => {
 });
 
 // Add product
-router.post('/', adminMiddleware, upload.array('images', 10), async (req, res) => {
+router.post('/', adminMiddleware, upload.any(), async (req, res) => {
   try {
     const { name, description, category, subcategory, price, originalPrice, priceUSD, originalPriceUSD, 
             sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, status, 
             offerEndTimeIndia, offerActiveIndia, offerPriceIndia, offerPriceUSDIndia,
-            offerEndTimeUSA, offerActiveUSA, offerPriceUSDUSA } = req.body;
+            offerEndTimeUSA, offerActiveUSA, offerPriceUSDUSA, variants } = req.body;
     
-    const imagePaths = (req.files || []).map(f => f.path.replace(/\\/g, '/'));
+    const imagePaths = (req.files || []).filter(f => f.fieldname === 'images').map(f => f.path.replace(/\\/g, '/'));
+    
+    const parsedVariants = parseArray(variants).map((v, i) => {
+      const vFile = (req.files || []).find(f => f.fieldname === `variantImage_${i}`);
+      if (vFile) v.image = vFile.path.replace(/\\/g, '/');
+      return v;
+    });
 
     const product = await Product.create({
       name, description, category, subcategory,
@@ -140,6 +148,7 @@ router.post('/', adminMiddleware, upload.array('images', 10), async (req, res) =
       sizes: parseArray(sizes),
       colors: parseArray(colors),
       images: imagePaths,
+      variants: parsedVariants,
       stock: Number(stock) || 0,
       bestseller: bestseller === 'true' || bestseller === true,
       label: (Number(stock) <= 0) ? 'Sold Out' : (label || ''),
@@ -164,15 +173,30 @@ router.post('/', adminMiddleware, upload.array('images', 10), async (req, res) =
 });
 
 // Update product
-router.put('/:id', adminMiddleware, upload.array('images', 10), async (req, res) => {
+router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
   try {
     const { name, description, category, subcategory, price, originalPrice, priceUSD, originalPriceUSD, 
             sizes, colors, stock, bestseller, label, fabric, style, availability, material, heritage, existingImages, status, 
             offerEndTimeIndia, offerActiveIndia, offerPriceIndia, offerPriceUSDIndia,
-            offerEndTimeUSA, offerActiveUSA, offerPriceUSDUSA } = req.body;
+            offerEndTimeUSA, offerActiveUSA, offerPriceUSDUSA, variants, existingVariants } = req.body;
 
-    const newImages = (req.files || []).map(f => f.path.replace(/\\/g, '/'));
+    const newImages = (req.files || []).filter(f => f.fieldname === 'images').map(f => f.path.replace(/\\/g, '/'));
     const keptImages = parseArray(existingImages);
+
+    // Variants handling
+    // existingVariants would hold any images already present before update
+    const parsedVariants = parseArray(variants).map((v, i) => {
+      const vFile = (req.files || []).find(f => f.fieldname === `variantImage_${i}`);
+      if (vFile) {
+         v.image = vFile.path.replace(/\\/g, '/');
+      } else {
+         // Keep existing if no new file is uploaded
+         // In frontend, we send variants back with the `.image` string if it exists
+         // The parsed v already has v.image if we sent it as JSON, or we can check
+         // But FormData JSON.stringify preserves v.image
+      }
+      return v;
+    });
 
     const updateData = {
       name, description, category, subcategory,
@@ -188,12 +212,15 @@ router.put('/:id', adminMiddleware, upload.array('images', 10), async (req, res)
       availableInUS: req.body.availableInUS === 'true' || req.body.availableInUS === true,
       sizes: parseArray(sizes),
       colors: parseArray(colors),
+      variants: parsedVariants,
       stock: Number(stock) || 0,
       bestseller: bestseller === 'true' || bestseller === true,
       images: [...keptImages, ...newImages]
     };
 
-    if (updateData.stock <= 0) updateData.label = 'Sold Out';
+    if (updateData.stock <= 0 && (!parsedVariants || parsedVariants.reduce((a,v) => a+Number(v.stock||0), 0) <= 0)) {
+       updateData.label = 'Sold Out';
+    }
     else if (label !== undefined) updateData.label = label;
 
     if (offerEndTimeIndia) updateData.offerEndTimeIndia = new Date(offerEndTimeIndia);

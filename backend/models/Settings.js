@@ -19,8 +19,8 @@ const settingsSchema = new mongoose.Schema({
   // SMTP Config
   smtpConfig: {
     host: { type: String, default: '' },
-    port: { type: Number, default: 587 },
-    secure: { type: Boolean, default: false },
+    port: { type: Number, default: 465 },
+    secure: { type: Boolean, default: true },
     user: { type: String, default: '' },
     pass: { type: String, default: '' },
     from: { type: String, default: '' }
@@ -42,7 +42,7 @@ const settingsSchema = new mongoose.Schema({
         currencySymbol: '₹',
         taxName: 'GST',
         taxPercentage: 18,
-        taxInclusive: true,
+        taxInclusive: false,
         shippingFee: 0,
         freeShippingThreshold: 500,
         codAvailable: true,

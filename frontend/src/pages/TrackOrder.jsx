@@ -12,7 +12,8 @@ export default function TrackOrder() {
   const [order, setOrder] = useState(null);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnReason, setReturnReason] = useState('');
-  const [returnImages, setReturnImages] = useState([]);
+  const [returnPreviews, setReturnPreviews] = useState([]); // Base64 for display
+  const [returnFiles, setReturnFiles] = useState([]); // File objects for upload
   const [uploadingImages, setUploadingImages] = useState(false);
   const [submittingReturn, setSubmittingReturn] = useState(false);
 
@@ -45,6 +46,8 @@ export default function TrackOrder() {
     if (!files.length) return;
     
     setUploadingImages(true);
+    setReturnFiles(prev => [...prev, ...files]);
+
     const promises = files.map(file => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -55,7 +58,7 @@ export default function TrackOrder() {
 
     try {
       const base64Images = await Promise.all(promises);
-      setReturnImages(prev => [...prev, ...base64Images]);
+      setReturnPreviews(prev => [...prev, ...base64Images]);
     } catch (err) {
       toast.error('Failed to process images');
     } finally {
@@ -71,25 +74,31 @@ export default function TrackOrder() {
       return;
     }
 
-    if (returnImages.length === 0) {
+    if (returnFiles.length === 0) {
       toast.error('Please upload at least one image showing the condition of the items');
       return;
     }
 
     setSubmittingReturn(true);
     try {
-      const res = await API.post('/orders/guest-return', { 
-        orderId: order._id, 
-        email: email, 
-        reason: returnReason,
-        images: returnImages 
+      const formData = new FormData();
+      formData.append('orderId', order._id);
+      formData.append('email', email);
+      formData.append('reason', returnReason);
+      returnFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
+      const res = await API.post('/orders/guest-return', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.success) {
         toast.success('Return request submitted successfully!');
         setOrder(res.data.order);
         setShowReturnForm(false);
         setReturnReason('');
-        setReturnImages([]);
+        setReturnPreviews([]);
+        setReturnFiles([]);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit return request');
@@ -286,12 +295,15 @@ export default function TrackOrder() {
                          <div className="space-y-3">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Photo Evidence (Mandatory)</label>
                             <div className="flex flex-wrap gap-3">
-                               {returnImages.map((img, i) => (
+                               {returnPreviews.map((img, i) => (
                                   <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-orange-100 group">
                                      <img src={img} alt="" className="w-full h-full object-cover" />
                                      <button 
                                        type="button"
-                                       onClick={() => setReturnImages(prev => prev.filter((_, idx) => idx !== i))}
+                                       onClick={() => {
+                                          setReturnPreviews(prev => prev.filter((_, idx) => idx !== i));
+                                          setReturnFiles(prev => prev.filter((_, idx) => idx !== i));
+                                       }}
                                        className="absolute top-1 right-1 bg-black/60 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                      >
                                        ✕
@@ -308,7 +320,7 @@ export default function TrackOrder() {
 
                          <button 
                            type="submit"
-                           disabled={submittingReturn || uploadingImages || returnImages.length === 0}
+                           disabled={submittingReturn || uploadingImages || returnFiles.length === 0}
                            className="w-full py-4 bg-orange-600 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-orange-700 transition-all rounded-xl shadow-lg shadow-orange-600/20 disabled:opacity-50"
                          >
                            {submittingReturn ? 'Submitting...' : 'Submit Return Request'}
@@ -338,7 +350,7 @@ export default function TrackOrder() {
                             <div className="flex gap-2">
                                {order.returnImages.map((img, i) => (
                                   <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 ring-2 ring-white">
-                                     <img src={img} alt="" className="w-full h-full object-cover" />
+                                     <img src={img.startsWith('data:') ? img : `${API.defaults.baseURL.replace(/\/api$/, '')}/${img.replace(/^\//, '')}`} alt="" className="w-full h-full object-cover" />
                                   </div>
                                ))}
                             </div>

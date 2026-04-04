@@ -49,8 +49,6 @@ export default function ProductDetail() {
   const [openSection, setOpenSection] = useState('details');
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [offerExpired, setOfferExpired] = useState(false);
-  const isSoldOut = product ? (product.stock <= 0 || product.label === 'Sold Out') : false;
-  const stockLow = product ? product.stock <= 10 && product.stock > 0 : false;
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -61,6 +59,12 @@ export default function ProductDetail() {
   const [editComment, setEditComment] = useState('');
   const [editRating, setEditRating] = useState(5);
   const [confirmModal, setConfirmModal] = useState({ open: false, reviewId: null });
+
+  const currentVariant = product?.variants?.find(v => v.color === selectedColor);
+  const displayStock = currentVariant && typeof currentVariant.stock === 'number' ? currentVariant.stock : product?.stock;
+  
+  const isSoldOut = product ? (displayStock <= 0 || product.label === 'Sold Out') : false;
+  const stockLow = product ? displayStock <= 10 && displayStock > 0 : false;
 
 
   const isNotAvailableInCurrentCountry = product ? (
@@ -161,7 +165,8 @@ export default function ProductDetail() {
       const realProduct = r.data.product;
       setProduct(realProduct);
       if (realProduct.sizes?.length > 0) setSelectedSize(realProduct.sizes[0]);
-      if (realProduct.colors?.length > 0) setSelectedColor(realProduct.colors[0]);
+      if (realProduct.variants?.length > 0) setSelectedColor(realProduct.variants[0].color);
+      else if (realProduct.colors?.length > 0) setSelectedColor(realProduct.colors[0]);
       return API.get(`/products?category=${realProduct.category}&limit=6`);
     }).then(r => {
       let realRelated = r.data.products?.filter(p => p._id !== id) || [];
@@ -330,7 +335,7 @@ export default function ProductDetail() {
                   ))}
                 </div>
                 <div className="flex-1 relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
-                  <img src={getImg(images[selectedImage])} alt={product.name}
+                  <img src={currentVariant?.image ? getImg(currentVariant.image) : getImg(images[selectedImage])} alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                     fetchpriority="high" decoding="async"
                     onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
@@ -460,18 +465,22 @@ export default function ProductDetail() {
               )}
 
               {/* Color Selector */}
-              {product.colors?.length > 0 && (
+              {(product.variants?.length > 0 || product.colors?.length > 0) && (
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3">
                     Color: <span className="text-gray-900 normal-case ml-1">{selectedColor}</span>
                   </p>
                   <div className="flex gap-3">
-                    {product.colors.map(color => (
-                      <button key={color} onClick={() => setSelectedColor(color)}
-                        className={`group relative w-9 h-9 rounded-full transition-all duration-300 ${selectedColor === color ? 'ring-2 ring-gray-900 ring-offset-2 scale-110' : 'ring-1 ring-gray-200 hover:scale-105'}`}
-                        style={{ backgroundColor: color.toLowerCase() === 'imperial gold' ? '#d4a017' : color.toLowerCase() === 'midnight' ? '#1a1a2e' : color?.toLowerCase() === 'ivory' ? '#faf8f3' : color }}
-                        title={color}
-                      />
+                    {(product.variants?.length > 0 ? product.variants : product.colors.map(c => ({ color: c }))).map(v => (
+                      <button key={v.color} onClick={() => setSelectedColor(v.color)}
+                        className={`relative w-10 h-10 rounded-full transition-all duration-300 flex items-center justify-center overflow-hidden ${selectedColor === v.color ? 'ring-2 ring-gray-900 ring-offset-2 scale-110 shadow-lg' : 'ring-1 ring-gray-200 hover:scale-105'}`}
+                        style={{ backgroundColor: v.color.toLowerCase() === 'imperial gold' ? '#d4a017' : v.color.toLowerCase() === 'midnight' ? '#1a1a2e' : v.color?.toLowerCase() === 'ivory' ? '#faf8f3' : v.color }}
+                        title={v.color}
+                      >
+                         {v.image && (
+                           <img src={getImg(v.image)} alt={v.color} className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                         )}
+                      </button>
                     ))}
                   </div>
                 </div>

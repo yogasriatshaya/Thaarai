@@ -88,7 +88,7 @@ export default function Products() {
     } catch { toast.error('Failed to delete product'); }
   };
 
-  const getImg = img => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
+  const getImg = img => img?.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`;
 
   return (
     <Layout title="Products">

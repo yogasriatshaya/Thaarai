@@ -13,7 +13,7 @@ const AVAILABILITY = ['Available', 'Limited Stock', 'Made to Order', 'Pre-Order'
 const initialForm = {
   name: '', description: '', category: 'Kurti', subcategory: '', price: '',
   originalPrice: '', stock: '', fabric: '', style: '', label: '', bestseller: false,
-  availability: 'Available', sizes: [], colors: [],
+  availability: 'Available', sizes: [], colors: [], variants: [],
   priceUSD: '', originalPriceUSD: '', availableInIndia: true, availableInUS: false,
   offerEndTimeIndia: '', offerActiveIndia: false, offerPriceIndia: '', offerPriceUSDIndia: '',
   offerEndTimeUSA: '', offerActiveUSA: false, offerPriceUSDUSA: ''
@@ -73,7 +73,7 @@ export default function ProductForm() {
           stock: p.stock, fabric: p.fabric || p.material || '', style: p.style || '',
           label: p.label || '', bestseller: p.bestseller || false,
           availability: p.availability || 'Available',
-          sizes: p.sizes || [], colors: p.colors || [],
+          sizes: p.sizes || [], colors: p.colors || [], variants: p.variants || [],
           priceUSD: p.priceUSD || '', originalPriceUSD: p.originalPriceUSD || '',
           availableInIndia: p.availableInIndia !== false, availableInUS: p.availableInUS || false,
           offerEndTimeIndia: formatDateTimeLocal(p.offerEndTimeIndia),
@@ -170,7 +170,20 @@ export default function ProductForm() {
     try {
       const data = new FormData();
       Object.entries(form).forEach(([k, v]) => {
-        if (k === 'sizes' || k === 'colors') data.append(k, JSON.stringify(v));
+        if (k === 'sizes' || k === 'colors' || k === 'variants') {
+           if (k === 'variants') {
+              const cleanVariants = v.map(varItem => ({ color: varItem.color, stock: varItem.stock, image: varItem.image }));
+              data.append(k, JSON.stringify(cleanVariants));
+              
+              v.forEach((varItem, i) => {
+                 if (varItem.file) {
+                    data.append(`variantImage_${i}`, varItem.file);
+                 }
+              });
+           } else {
+              data.append(k, JSON.stringify(v));
+           }
+        }
         else if ((k === 'offerEndTimeIndia' || k === 'offerEndTimeUSA') && v) {
           data.append(k, new Date(v).toISOString());
         }
@@ -263,19 +276,47 @@ export default function ProductForm() {
             </div>
 
             <div className="card p-6">
-              <h3 className="font-serif text-lg text-charcoal mb-5">Colors</h3>
-              <div className="flex gap-3 mb-3">
-                <input value={colorInput} onChange={e => setColorInput(e.target.value)} className="input-field flex-1" placeholder="e.g. Imperial Gold" />
-                <button type="button" onClick={addColor} className="btn-outline">Add</button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {form.colors.map(c => (
-                  <span key={c} className="flex items-center gap-2 text-xs font-sans bg-gray-100 px-3 py-1.5 rounded-full">
-                    {c}
-                    <button type="button" onClick={() => removeColor(c)} className="text-gray-400">×</button>
-                  </span>
+              <h3 className="font-serif text-lg text-charcoal mb-5">Color Variants</h3>
+              <div className="space-y-4 mb-4">
+                {form.variants.map((v, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-lg relative">
+                    <button type="button" onClick={() => setForm(f => ({ ...f, variants: f.variants.filter((_, idx) => idx !== i) }))} className="absolute -top-2 -right-2 bg-red-100 border border-red-200 text-red-600 rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs hover:bg-red-200 transition-colors z-10">&times;</button>
+                    
+                    <div className="flex-1 w-full">
+                       <label className="block text-[9px] uppercase tracking-widest text-gray-500 mb-1">Color Name</label>
+                       <input value={v.color} onChange={e => setForm(f => ({ ...f, variants: f.variants.map((varItem, idx) => idx === i ? { ...varItem, color: e.target.value } : varItem) }))} placeholder="e.g. Red" className="input-field bg-white" />
+                    </div>
+                    
+                    <div className="w-full sm:w-24">
+                       <label className="block text-[9px] uppercase tracking-widest text-gray-500 mb-1">Stock</label>
+                       <input type="number" value={v.stock} onChange={e => setForm(f => ({ ...f, variants: f.variants.map((varItem, idx) => idx === i ? { ...varItem, stock: parseInt(e.target.value) || 0 } : varItem) }))} placeholder="0" className="input-field bg-white" />
+                    </div>
+
+                    <div className="w-full sm:w-auto">
+                       <label className="block text-[9px] uppercase tracking-widest text-gray-500 mb-1">Specific Image</label>
+                       <div className="flex items-center gap-2">
+                           {v.image && typeof v.image === 'string' && !v.file && (
+                               <img src={v.image.startsWith('http') ? v.image : `${BACKEND_URL.replace(/\/$/, '')}/${v.image.replace(/^\//, '')}`} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
+                           )}
+                           {v.file && (
+                               <img src={URL.createObjectURL(v.file)} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
+                           )}
+                           <label className="cursor-pointer bg-white border border-gray-200 px-3 py-2 rounded text-xs hover:border-gold-400 transition-colors whitespace-nowrap">
+                              {v.file || v.image ? 'Change' : '+ Upload'}
+                              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                                 if (e.target.files[0]) {
+                                     setForm(f => ({ ...f, variants: f.variants.map((varItem, idx) => idx === i ? { ...varItem, file: e.target.files[0] } : varItem) }));
+                                 }
+                              }} />
+                           </label>
+                       </div>
+                    </div>
+                  </div>
                 ))}
               </div>
+              <button type="button" onClick={() => setForm(f => ({ ...f, variants: [...f.variants, { color: '', stock: 0, image: '', file: null }] }))} className="w-full btn-outline flex items-center justify-center gap-2 border-dashed">
+                <Plus size={16} /> Add New Color Variant
+              </button>
             </div>
 
             <div className="card p-6">
@@ -286,7 +327,7 @@ export default function ProductForm() {
                   <div className="flex flex-wrap gap-3">
                     {existingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img.startsWith('http') ? img : `${BACKEND_URL}${img}`} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <img src={img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
                         <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                       </div>
                     ))}

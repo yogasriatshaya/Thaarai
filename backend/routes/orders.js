@@ -7,8 +7,66 @@ const StockLog = require('../models/StockLog');
 const Coupon = require('../models/Coupon');
 const Settings = require('../models/Settings');
 const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+const { sendEmail } = require('../utils/email');
 
-// Create order (COD)
+// Email dispatch helper for order lifecycle events
+const sendOrderEmailObj = async (order, type, customMessage = '') => {
+  try {
+    const settings = await Settings.findOne();
+    
+    // Resolve customer email - handle both populated and unpopulated userId
+    let customerEmail = order.isGuest ? order.guestEmail : null;
+    if (!customerEmail && order.userId) {
+      if (typeof order.userId === 'object' && order.userId.email) {
+        customerEmail = order.userId.email;
+      } else {
+        // userId is just an ObjectId, look up the user
+        const user = await User.findById(order.userId, 'email');
+        customerEmail = user?.email;
+      }
+    }
+    
+    const adminEmail = settings?.notifications?.adminNotificationEmail || settings?.contactEmail;
+    
+    const getItemsHtml = () => order.items.map(i => `${i.quantity}x ${i.name} ${i.color ? '(' + i.color + ')' : ''} ${i.size ? '- Size: ' + i.size : ''}`).join('<br>');
+    const orderIdShort = order._id.toString().slice(-8).toUpperCase();
+    const orderDetails = `<b>Order ID:</b> #${orderIdShort}<br><b>Amount:</b> ${order.currency || 'INR'} ${order.totalAmount}<br><b>Payment:</b> ${(order.paymentMethod || '').toUpperCase()}<br><br><b>Items:</b><br>${getItemsHtml()}`;
+
+    if (type === 'create' && settings?.notifications?.orderConfirmation) {
+       if (customerEmail) sendEmail(customerEmail, `Order Confirmed #${orderIdShort}`, 'Thank You for Your Order!', 'Your order has been successfully placed and is being processed. We will notify you once it ships.', orderDetails);
+       if (adminEmail) sendEmail(adminEmail, `New Order Received #${orderIdShort}`, 'New Order Alert', `A new order has been placed by <b>${customerEmail || 'Guest'}</b>.`, orderDetails);
+    }
+    else if (type === 'shipped' && settings?.notifications?.orderConfirmation) {
+       if (customerEmail) sendEmail(customerEmail, `Order Shipped #${orderIdShort}`, 'Your Order is On the Way!', `Great news! Your order has been shipped.<br><br><b>Carrier:</b> ${order.carrierName || 'Courier Partner'}<br><b>Tracking ID:</b> ${order.trackingId || 'Will be updated shortly'}`, orderDetails);
+    }
+    else if (type === 'delivered' && settings?.notifications?.orderConfirmation) {
+       if (customerEmail) sendEmail(customerEmail, `Order Delivered #${orderIdShort}`, 'Order Delivered!', 'Your order has been delivered successfully. We hope you love your purchase!', orderDetails);
+    }
+    else if (type === 'refunded') {
+       if (customerEmail) sendEmail(customerEmail, `Refund Processed #${orderIdShort}`, 'Refund Processed', 'We have successfully processed a refund for your order. The amount will be credited to your original payment method.', orderDetails);
+       if (adminEmail) sendEmail(adminEmail, `Refund Issued #${orderIdShort}`, 'Refund Alert', `A refund has been issued for order <b>#${orderIdShort}</b>.`, orderDetails);
+    }
+    else if (type === 'return_requested' && settings?.notifications?.returnRequest) {
+       if (customerEmail) sendEmail(customerEmail, `Return Request Received #${orderIdShort}`, 'Return Request Received', 'We have received your return request and our team will review it shortly. You will be notified once it is processed.', `<b>Return Reason:</b> ${order.returnReason || 'Not specified'}<br><br>` + orderDetails);
+       if (adminEmail) sendEmail(adminEmail, `Return Request #${orderIdShort}`, 'New Return Request', `A customer has requested a return for order <b>#${orderIdShort}</b>.`, `<b>Customer:</b> ${customerEmail}<br><b>Reason:</b> ${order.returnReason || 'Not specified'}<br><br>` + orderDetails);
+    }
+    else if (type === 'return_cancelled') {
+       if (customerEmail) sendEmail(customerEmail, `Return Cancelled #${orderIdShort}`, 'Return Request Cancelled', `Your return request for order <b>#${orderIdShort}</b> has been cancelled.${customMessage ? '<br><br><b>Reason:</b> ' + customMessage : ''}`, orderDetails);
+    }
+    else if (type === 'return_accepted') {
+       if (customerEmail) sendEmail(customerEmail, `Return Approved #${orderIdShort}`, 'Return Request Approved!', 'Your return request has been approved. Please ship the item back following the instructions provided by our support team.', orderDetails);
+    }
+    else if (type === 'item_received') {
+       if (customerEmail) sendEmail(customerEmail, `Item Received #${orderIdShort}`, 'Returned Item Received', 'We have successfully received your returned item. Your refund will be processed shortly.', orderDetails);
+    }
+    else if (type === 'cancelled') {
+       if (customerEmail) sendEmail(customerEmail, `Order Cancelled #${orderIdShort}`, 'Order Cancelled', 'Your order has been cancelled successfully. If you were charged, a refund will be processed.', orderDetails);
+       if (adminEmail) sendEmail(adminEmail, `Order Cancelled #${orderIdShort}`, 'Cancellation Alert', `Order <b>#${orderIdShort}</b> has been cancelled by the customer.`, orderDetails);
+    }
+  } catch (err) { console.error('Email dispatch error:', err); }
+};
+
 router.post('/create', optionalAuth, async (req, res) => {
   try {
     const { items, address, totalAmount, paymentMethod, couponId, guestEmail, guestPhone,
@@ -22,20 +80,36 @@ router.post('/create', optionalAuth, async (req, res) => {
     // Deduct Stock at Order Time
     for (const item of items) {
       if (item.productId) {
-        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        let prod = await Product.findById(item.productId);
         if (prod) {
-            await StockLog.create({
+           let updatedStock = 0; let prevStock = 0; let reasonText = req.user ? 'New Order (COD)' : 'Guest Order (COD)';
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+           
+           if (vIndex !== -1) {
+              prevStock = prod.variants[vIndex].stock || 0;
+              prod.variants[vIndex].stock = prevStock - item.quantity;
+              updatedStock = prod.variants[vIndex].stock;
+              reasonText += ` - Variant: ${item.color}`;
+           } else {
+              prevStock = prod.stock || 0;
+              prod.stock = prevStock - item.quantity;
+              updatedStock = prod.stock;
+           }
+           await prod.save();
+
+           await StockLog.create({
                 productId: prod._id,
                 userId: req.user ? req.user.id : null,
                 action: 'decrement',
                 quantity: item.quantity,
-                previousStock: prod.stock + item.quantity,
-                currentStock: prod.stock,
-                reason: req.user ? 'New Order (COD)' : 'Guest Order (COD)'
-            });
-            if (prod.stock <= 0) {
-               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
-            }
+                previousStock: prevStock,
+                currentStock: updatedStock,
+                reason: reasonText
+           });
+
+           if (updatedStock <= 0) {
+              await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+           }
         }
       }
     }
@@ -68,6 +142,9 @@ router.post('/create', optionalAuth, async (req, res) => {
       await User.findByIdAndUpdate(req.user.id, { cartData: {} });
     }
     
+    // Dispatch Email immediately for COD orders
+    sendOrderEmailObj(order, 'create');
+
     res.status(201).json({ success: true, order });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -116,20 +193,36 @@ router.post('/stripe', optionalAuth, async (req, res) => {
     // Deduct Stock at Order Time
     for (const item of items) {
       if (item.productId) {
-        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        let prod = await Product.findById(item.productId);
         if (prod) {
-            await StockLog.create({
+           let updatedStock = 0; let prevStock = 0; let reasonText = 'New Order (Stripe)';
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+           
+           if (vIndex !== -1) {
+              prevStock = prod.variants[vIndex].stock || 0;
+              prod.variants[vIndex].stock = prevStock - item.quantity;
+              updatedStock = prod.variants[vIndex].stock;
+              reasonText += ` - Variant: ${item.color}`;
+           } else {
+              prevStock = prod.stock || 0;
+              prod.stock = prevStock - item.quantity;
+              updatedStock = prod.stock;
+           }
+           await prod.save();
+
+           await StockLog.create({
                 productId: prod._id,
                 userId: req.user ? req.user.id : null,
                 action: 'decrement',
                 quantity: item.quantity,
-                previousStock: prod.stock + item.quantity,
-                currentStock: prod.stock,
-                reason: req.user ? 'New Order (Stripe)' : 'Guest Order (Stripe)'
-            });
-            if (prod.stock <= 0) {
-               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
-            }
+                previousStock: prevStock,
+                currentStock: updatedStock,
+                reason: reasonText
+           });
+
+           if (updatedStock <= 0) {
+              await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+           }
         }
       }
     }
@@ -151,6 +244,9 @@ router.post('/stripe', optionalAuth, async (req, res) => {
       paymentMethod: 'stripe', paymentStatus: 'pending',
       orderStatus: 'processing', stripeSessionId: session.id
     });
+
+    // Dispatch Email for Stripe order
+    sendOrderEmailObj(order, 'create');
     
     res.json({ success: true, sessionId: session.id, url: session.url, orderId: order._id });
   } catch (err) {
@@ -188,20 +284,36 @@ router.post('/razorpay', optionalAuth, async (req, res) => {
     // Deduct Stock at Order Time
     for (const item of items) {
       if (item.productId) {
-        const prod = await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } }, { new: true });
+        let prod = await Product.findById(item.productId);
         if (prod) {
-            await StockLog.create({
+           let updatedStock = 0; let prevStock = 0; let reasonText = 'New Order (Razorpay)';
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+           
+           if (vIndex !== -1) {
+              prevStock = prod.variants[vIndex].stock || 0;
+              prod.variants[vIndex].stock = prevStock - item.quantity;
+              updatedStock = prod.variants[vIndex].stock;
+              reasonText += ` - Variant: ${item.color}`;
+           } else {
+              prevStock = prod.stock || 0;
+              prod.stock = prevStock - item.quantity;
+              updatedStock = prod.stock;
+           }
+           await prod.save();
+
+           await StockLog.create({
                 productId: prod._id,
                 userId: req.user ? req.user.id : null,
                 action: 'decrement',
                 quantity: item.quantity,
-                previousStock: prod.stock + item.quantity,
-                currentStock: prod.stock,
-                reason: req.user ? 'New Order (Razorpay)' : 'Guest Order (Razorpay)'
-            });
-            if (prod.stock <= 0) {
-               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
-            }
+                previousStock: prevStock,
+                currentStock: updatedStock,
+                reason: reasonText
+           });
+
+           if (updatedStock <= 0) {
+              await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+           }
         }
       }
     }
@@ -239,7 +351,11 @@ router.post('/razorpay/verify', optionalAuth, async (req, res) => {
     const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(body).digest('hex');
     
     if (expected === razorpay_signature) {
-      await Order.findByIdAndUpdate(orderId, { paymentStatus: 'paid' });
+      const order = await Order.findByIdAndUpdate(orderId, { paymentStatus: 'paid' }, { new: true }).populate('userId', 'email');
+      
+      // Dispatch Order Confirmed Email
+      if (order) sendOrderEmailObj(order, 'create');
+      
       // Clear cart for logged in user
       if (req.user) {
         await User.findByIdAndUpdate(req.user.id, { cartData: {} });
@@ -302,9 +418,10 @@ router.post('/tracking', async (req, res) => {
 });
 
 // Guest Request Return
-router.post('/guest-return', async (req, res) => {
+router.post('/guest-return', upload.array('images', 5), async (req, res) => {
   try {
-    const { orderId, email, reason, images } = req.body;
+    const { orderId, email, reason } = req.body;
+    const images = req.files ? req.files.map(f => f.path.replace(/\\/g, '/')) : [];
     if (!orderId || !email) {
       return res.status(400).json({ success: false, message: 'Order ID and Email are required' });
     }
@@ -342,6 +459,10 @@ router.post('/guest-return', async (req, res) => {
     order.returnStatus = 'pending';
 
     await order.save();
+
+    // Dispatch Return Request Email (guest)
+    sendOrderEmailObj(order, 'return_requested');
+
     res.json({ success: true, message: 'Return request submitted successfully', order });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -372,12 +493,25 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
     // Add Stock back if order is cancelled
     for (const item of order.items) {
       if (item.productId) {
-        await Product.findByIdAndUpdate(item.productId, { $inc: { stock: item.quantity } });
+        let prod = await Product.findById(item.productId);
+        if (prod) {
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+           if (vIndex !== -1) {
+              prod.variants[vIndex].stock = (prod.variants[vIndex].stock || 0) + item.quantity;
+           } else {
+              prod.stock = (prod.stock || 0) + item.quantity;
+           }
+           await prod.save();
+        }
       }
     }
 
     order.orderStatus = 'cancelled';
     await order.save();
+
+    // Dispatch Cancellation Email
+    const populatedCancelOrder = await Order.findById(order._id).populate('userId', 'email');
+    sendOrderEmailObj(populatedCancelOrder || order, 'cancelled');
     
     res.json({ success: true, message: 'Order cancelled successfully', order });
   } catch (err) {
@@ -386,9 +520,10 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
 });
 
 // Request an order return (user action)
-router.post('/:id/return', authMiddleware, async (req, res) => {
+router.post('/:id/return', authMiddleware, upload.array('images', 5), async (req, res) => {
   try {
-    const { reason, images } = req.body;
+    const { reason } = req.body;
+    const images = req.files ? req.files.map(f => f.path.replace(/\\/g, '/')) : [];
     const order = await Order.findOne({ _id: req.params.id, userId: req.user.id });
     
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -417,6 +552,11 @@ router.post('/:id/return', authMiddleware, async (req, res) => {
     order.returnStatus = 'pending';
 
     await order.save();
+
+    // Dispatch Return Request Email (logged-in user)
+    const populatedReturnOrder = await Order.findById(order._id).populate('userId', 'email');
+    sendOrderEmailObj(populatedReturnOrder || order, 'return_requested');
+
     res.json({ success: true, message: 'Return request submitted successfully', order });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -457,14 +597,89 @@ router.put('/:id/status', adminMiddleware, async (req, res) => {
     if (paymentStatus) update.paymentStatus = paymentStatus;
     if (carrierName !== undefined) update.carrierName = carrierName;
     if (trackingId !== undefined) update.trackingId = trackingId;
-    if (returnStatus) update.returnStatus = returnStatus;
+    
+    if (returnStatus) {
+      // 1. INVENTORY RESTORATION: When an item is marked as "received" for the FIRST time in this return flow
+      if (returnStatus === 'received' && order.returnStatus !== 'received') {
+        for (const item of order.items) {
+           if (item.productId) {
+             let prod = await Product.findById(item.productId);
+             if (prod) {
+                let updatedStock = 0; let prevStock = 0; let baseReason = `Return Received: Order #${order._id.toString().slice(-8).toUpperCase()}`;
+                const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+
+                if (vIndex !== -1) {
+                   prevStock = prod.variants[vIndex].stock || 0;
+                   prod.variants[vIndex].stock = prevStock + item.quantity;
+                   updatedStock = prod.variants[vIndex].stock;
+                   baseReason += ` - Variant: ${item.color}`;
+                } else {
+                   prevStock = prod.stock || 0;
+                   prod.stock = prevStock + item.quantity;
+                   updatedStock = prod.stock;
+                }
+                
+                await prod.save();
+
+                // Record the inventory movement
+                await StockLog.create({
+                   productId: prod._id,
+                   userId: req.user.id,
+                   action: 'increment',
+                   quantity: item.quantity,
+                   previousStock: prevStock,
+                   currentStock: updatedStock,
+                   reason: baseReason
+                });
+                
+                // If it was sold out, clear the label
+                if (updatedStock > 0 && prod.label === 'Sold Out') {
+                   await Product.findByIdAndUpdate(item.productId, { label: '' });
+                }
+             }
+           }
+        }
+      }
+      
+      // 2. FINANCIAL SETTLEMENT: When the refund is finalized, update payment status
+      if (returnStatus === 'refunded') {
+        update.paymentStatus = 'refunded';
+      }
+      
+      update.returnStatus = returnStatus;
+    }
 
     // Automatic status change to shipped if tracking provided for a processing order
     if (trackingId && carrierName && (update.orderStatus === 'processing' || (!update.orderStatus && order.orderStatus === 'processing'))) {
       update.orderStatus = 'shipped';
     }
 
-    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
+    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, update, { new: true }).populate('userId', 'email');
+
+    // Dispatch Emails based on what changed
+    if (updatedOrder) {
+      // Order status change emails
+      if (update.orderStatus === 'shipped') {
+        sendOrderEmailObj(updatedOrder, 'shipped');
+      }
+      if (update.orderStatus === 'delivered') {
+        sendOrderEmailObj(updatedOrder, 'delivered');
+      }
+      // Return status change emails
+      if (returnStatus === 'approved') {
+        sendOrderEmailObj(updatedOrder, 'return_accepted');
+      }
+      if (returnStatus === 'rejected') {
+        sendOrderEmailObj(updatedOrder, 'return_cancelled');
+      }
+      if (returnStatus === 'received') {
+        sendOrderEmailObj(updatedOrder, 'item_received');
+      }
+      if (returnStatus === 'refunded') {
+        sendOrderEmailObj(updatedOrder, 'refunded');
+      }
+    }
+
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
