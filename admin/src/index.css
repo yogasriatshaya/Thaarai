@@ -6,6 +6,10 @@
   body { 
     @apply font-sans text-charcoal bg-gray-50; 
     zoom: 0.9;
+    -moz-transform: scale(0.9);
+    -moz-transform-origin: top left;
+    transform: scale(0.9);
+    transform-origin: top left;
   }
   h1, h2, h3 { @apply font-serif; }
 
