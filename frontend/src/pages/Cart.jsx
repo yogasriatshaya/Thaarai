@@ -5,6 +5,8 @@ import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice, getProductOriginalPrice } from '../utils/priceUtils';
 import API from '../api';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
+import { getFullImgUrl as resolveImg } from '../utils/imageUtils';
+import { PRODUCT_FALLBACK } from '../assets/images';
 
 export default function Cart() {
   const { cartData, updateCartQty, removeFromCart, BACKEND_URL, settings } = useShop();
@@ -68,7 +70,7 @@ export default function Cart() {
     (country === 'US' && item.availableInUS === false)
   );
 
-  const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
+  const getImg = (img) => resolveImg(img, BACKEND_URL);
 
   if (loading) return (
     <div className="max-w-7xl mx-auto px-6 py-12 bg-white min-h-screen">

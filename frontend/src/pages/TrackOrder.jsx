@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import API from '../api';
+import { useShop } from '../context/ShopContext';
+import { getFullImgUrl } from '../utils/imageUtils';
+import { PRODUCT_FALLBACK } from '../assets/images';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../utils/priceUtils';
 
 export default function TrackOrder() {
   const location = useLocation();
+  const { BACKEND_URL } = useShop();
   const [orderId, setOrderId] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -213,7 +217,12 @@ export default function TrackOrder() {
                    {order.items.map((item, i) => (
                       <div key={i} className="flex gap-4 items-center">
                          <div className="w-14 h-16 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                            <img src={item.image} alt="" className="w-full h-full object-cover" />
+                            <img 
+                              src={getFullImgUrl(item.image, BACKEND_URL)} 
+                              alt="" 
+                              className="w-full h-full object-cover" 
+                              onError={e => { e.target.src = PRODUCT_FALLBACK; }}
+                            />
                          </div>
                          <div className="flex-1">
                             <h4 className="font-bold text-sm text-gray-900">{item.name}</h4>
@@ -349,8 +358,13 @@ export default function TrackOrder() {
                          {order.returnImages?.length > 0 && (
                             <div className="flex gap-2">
                                {order.returnImages.map((img, i) => (
-                                  <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 ring-2 ring-white">
-                                     <img src={img.startsWith('data:') ? img : `${API.defaults.baseURL.replace(/\/api$/, '')}/${img.replace(/^\//, '')}`} alt="" className="w-full h-full object-cover" />
+                                   <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 ring-2 ring-white">
+                                     <img 
+                                       src={getFullImgUrl(img, BACKEND_URL)} 
+                                       alt="" 
+                                       className="w-full h-full object-cover" 
+                                       onError={e => { e.target.src = PRODUCT_FALLBACK; }}
+                                     />
                                   </div>
                                ))}
                             </div>

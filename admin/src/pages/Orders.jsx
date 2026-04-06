@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getImgUrl } from '../api';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -284,13 +284,18 @@ export default function Orders() {
                             <div className="space-y-3">
                               {order.items?.map((item, idx) => (
                                 <div key={idx} className="flex items-center gap-4 bg-white p-3 border border-gray-100 rounded-lg">
-                                  {item.image && (
-                                    <img 
-                                      src={item.image.startsWith('http') ? item.image : `${BACKEND_URL.replace(/\/$/, '')}/${item.image.replace(/^\//, '')}`} 
-                                      alt={item.name} 
-                                      className="w-12 h-14 object-cover rounded-sm border" 
-                                    />
-                                  )}
+                                    <a 
+                                      href={getImgUrl(item.image)} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="flex-shrink-0 cursor-pointer block"
+                                    >
+                                      <img 
+                                        src={getImgUrl(item.image)} 
+                                        alt={item.name} 
+                                        className="w-12 h-14 object-cover rounded-sm border hover:border-gold-400 transition-colors shadow-sm" 
+                                      />
+                                    </a>
                                   <div className="flex-1">
                                     <p className="text-xs font-medium text-charcoal">{item.name}</p>
                                     <div className="flex gap-4 text-[10px] text-gray-400 mt-1">
@@ -358,7 +363,19 @@ export default function Orders() {
                                         <span className="font-bold text-[10px] text-gray-500 uppercase tracking-widest block mb-1">Attached Evidence:</span>
                                          <div className="flex gap-2.5 overflow-x-auto pb-1">
                                             {order.returnImages.map((img, idx) => (
-                                               <img key={idx} src={img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`)} alt="damage" className="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform" onClick={() => window.open(img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`), '_blank')} />
+                                               <a 
+                                                 key={idx} 
+                                                 href={getImgUrl(img)} 
+                                                 target="_blank" 
+                                                 rel="noopener noreferrer"
+                                                 className="w-16 h-16 rounded border border-gray-200 overflow-hidden cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform flex-shrink-0"
+                                               >
+                                                 <img 
+                                                   src={getImgUrl(img)} 
+                                                   alt="damage" 
+                                                   className="w-full h-full object-cover" 
+                                                 />
+                                               </a>
                                             ))}
                                          </div>
                                      </div>

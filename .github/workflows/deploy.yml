@@ -5,24 +5,27 @@ on:
     branches:
       - deploy
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   security-scan:
     name: Security & Linting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Secret Scan (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true # Warning only for now
 
       - name: Dockerfile Lint (Hadolint)
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3
         with:
           dockerfile: backend/Dockerfile
           ignore: DL3008,DL3018 # Alpine specific ignores
@@ -34,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -43,14 +46,14 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & Push Backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-backend:latest
 
       - name: Build & Push Frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           push: true
@@ -60,7 +63,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-frontend:latest
 
       - name: Build & Push Admin
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./admin
           push: true
@@ -75,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Scan Backend Image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/thaarai-backend:latest'
           format: 'table'
@@ -87,10 +90,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
@@ -103,7 +106,7 @@ jobs:
             # but ideally we transfer it.
             
       - name: Transfer Docker Compose
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
@@ -112,7 +115,7 @@ jobs:
           target: "~/thaarai-app"
 
       - name: Restart Services
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu

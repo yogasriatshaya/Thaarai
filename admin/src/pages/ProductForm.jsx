@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getImgUrl } from '../api';
 import { toast } from 'react-toastify';
 import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
 
@@ -296,7 +296,9 @@ export default function ProductForm() {
                        <label className="block text-[9px] uppercase tracking-widest text-gray-500 mb-1">Specific Image</label>
                        <div className="flex items-center gap-2">
                            {v.image && typeof v.image === 'string' && !v.file && (
-                               <img src={v.image.startsWith('http') ? v.image : `${BACKEND_URL.replace(/\/$/, '')}/${v.image.replace(/^\//, '')}`} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
+                               <a href={getImgUrl(v.image)} target="_blank" rel="noopener noreferrer">
+                                 <img src={getImgUrl(v.image)} className="w-10 h-10 object-cover rounded border border-gray-200 hover:border-gold-400 transition-colors" alt="" />
+                               </a>
                            )}
                            {v.file && (
                                <img src={URL.createObjectURL(v.file)} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
@@ -327,8 +329,23 @@ export default function ProductForm() {
                   <div className="flex flex-wrap gap-3">
                     {existingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
-                        <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                        <a href={getImgUrl(img)} target="_blank" rel="noopener noreferrer">
+                          <img src={getImgUrl(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg hover:ring-2 hover:ring-gold-400 transition-all" />
+                        </a>
+                        <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {images.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Newly Added Images</p>
+                  <div className="flex flex-wrap gap-3">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                       </div>
                     ))}
                   </div>

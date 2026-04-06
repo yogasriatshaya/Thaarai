@@ -279,7 +279,13 @@ export default function ProductDetail() {
     </div>
   );
 
-  const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
+  const getImg = (path) => {
+    if (!path) return PRODUCT_FALLBACK;
+    if (path.startsWith('http')) return path;
+    const baseUrl = (BACKEND_URL || '').replace(/\/$/, '');
+    const cleanPath = path.replace(/^\//, '');
+    return `${baseUrl}/${cleanPath}`;
+  };
   const images = product.images?.length > 0 ? product.images : [PRODUCT_FALLBACK];
 
   const ratingBars = [5, 4, 3, 2, 1].map(n => {
