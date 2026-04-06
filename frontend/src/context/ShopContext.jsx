@@ -53,23 +53,29 @@ export const ShopProvider = ({ children }) => {
     if (!path) return '';
     const sPath = String(path);
     
-    // 1. Normalize slashes first
-    let normalized = sPath.replace(/\\/g, '/');
+    // 1. Get backend URL from environment, handling literal 'undefined' string
+    let envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (!envUrl || envUrl === 'undefined') {
+      envUrl = 'http://localhost:5001';
+    }
+    const backendUrl = envUrl.replace(/\/+$/, '');
     
-    // 2. If it contains "uploads/", extract it to ensure it uses CURRENT BACKEND_URL
+    // 2. Normalize slashes first
+    const normalized = sPath.replace(/\\/g, '/');
+    
+    // 3. If it contains "uploads/", extract it to ensure it uses CURRENT backendUrl
     const uIdx = normalized.indexOf('uploads/');
     if (uIdx !== -1) {
       const finalPath = normalized.substring(uIdx);
-      const base = BACKEND_URL.replace(/\/$/, '');
-      return `${base}/${finalPath}`;
+      return `${backendUrl}/${finalPath}`;
     }
 
-    // 3. If it starts with http but NO uploads/ (e.g. mock), return as is
-    if (sPath.startsWith('http') || sPath.startsWith('data:')) return sPath;
+    // 4. If it's already an absolute URL but doesn't have "uploads/", return as is
+    if (normalized.startsWith('http') || normalized.startsWith('data:')) return normalized;
 
-    // 4. Otherwise, treat as a relative path to BACKEND_URL
-    const base = BACKEND_URL.replace(/\/$/, '');
-    return `${base}/${normalized.replace(/^\//, '')}`;
+    // 5. Otherwise, treat as a relative path to backendUrl
+    const cleanPath = normalized.startsWith('/') ? normalized.substring(1) : normalized;
+    return `${backendUrl}/${cleanPath}`;
   };
 
 
