@@ -5,6 +5,8 @@ import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice, getProductOriginalPrice } from '../utils/priceUtils';
 import API from '../api';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
+import { PRODUCT_FALLBACK } from '../assets/images';
+
 
 export default function Cart() {
   const { cartData, updateCartQty, removeFromCart, BACKEND_URL, getFullImgUrl, settings } = useShop();

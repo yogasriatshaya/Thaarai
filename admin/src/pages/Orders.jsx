@@ -16,6 +16,15 @@ const statusColors = {
   refunded: 'bg-purple-100 text-purple-800'
 };
 
+const getFullUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('data:') || path.startsWith('http')) return path;
+  // Normalize: remove leading slash if any, then replace backslashes
+  const normalized = path.replace(/\\/g, '/').replace(/^\//, '');
+  const base = (BACKEND_URL || '').replace(/\/$/, '');
+  return `${base}/${normalized}`;
+};
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -286,7 +295,7 @@ export default function Orders() {
                                 <div key={idx} className="flex items-center gap-4 bg-white p-3 border border-gray-100 rounded-lg">
                                   {item.image && (
                                     <img 
-                                      src={item.image.startsWith('http') ? item.image : `${BACKEND_URL.replace(/\/$/, '')}/${item.image.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                                      src={getFullUrl(item.image)} 
                                       alt={item.name} 
                                       className="w-12 h-14 object-cover rounded-sm border" 
                                     />
@@ -357,9 +366,18 @@ export default function Orders() {
                                      <div className="mt-2">
                                         <span className="font-bold text-[10px] text-gray-500 uppercase tracking-widest block mb-1">Attached Evidence:</span>
                                          <div className="flex gap-2.5 overflow-x-auto pb-1">
-                                            {order.returnImages.map((img, idx) => (
-                                               <img key={idx} src={img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`)} alt="damage" className="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform" onClick={() => window.open(img.startsWith('data:') ? img : (img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`), '_blank')} />
-                                            ))}
+                                            {order.returnImages.map((img, idx) => {
+                                              const fullUrl = getFullUrl(img);
+                                              return (
+                                                <img 
+                                                  key={idx} 
+                                                  src={fullUrl} 
+                                                  alt="evidence" 
+                                                  className="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:border-red-400 hover:scale-[1.02] transition-transform" 
+                                                  onClick={() => window.open(fullUrl, '_blank')} 
+                                                />
+                                              );
+                                            })}
                                          </div>
                                      </div>
                                   )}
@@ -388,7 +406,6 @@ export default function Orders() {
                           </div>
                       </td>
                     </tr>
-                  )
                 ];
               })}
             </tbody>
