@@ -327,9 +327,14 @@ export default function ProductForm() {
                   <div className="flex flex-wrap gap-3">
                     {existingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg" />
+                        <img 
+                          src={img.startsWith('http') || img.startsWith('data:') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          alt="" 
+                          className="w-20 h-24 object-cover bg-gray-100 rounded-lg" 
+                        />
                         <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                       </div>
+
                     ))}
                   </div>
                 </div>
