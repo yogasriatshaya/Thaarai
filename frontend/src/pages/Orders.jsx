@@ -4,8 +4,11 @@ import API from '../api';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../utils/priceUtils';
 import ConfirmModal from '../components/ConfirmModal';
+import { useShop } from '../context/ShopContext';
+import { PRODUCT_FALLBACK } from '../assets/images';
 
 export function Orders() {
+  const { getFullImgUrl } = useShop();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -172,10 +175,10 @@ export function Orders() {
                           {/* Image */}
                           <div className="w-20 h-28 sm:w-20 sm:h-28 shrink-0 overflow-hidden relative group">
                             <img 
-                              src={item.image} 
+                              src={getFullImgUrl(item.image)} 
                               alt={item.name} 
                               className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300"
-                              onError={e => { e.target.style.display = 'none'; }}
+                              onError={e => { e.target.src = PRODUCT_FALLBACK; }}
                             />
                           </div>
                           

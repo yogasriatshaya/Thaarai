@@ -140,7 +140,7 @@ export default function Checkout() {
       const cartVariant = i.variants?.find(v => v.color === i.color);
       const displayImage = cartVariant?.image ? cartVariant.image : i.images?.[0];
       if (displayImage) {
-        imageUrl = displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`;
+        imageUrl = getFullImgUrl(displayImage);
       }
       const itemToSave = {
         name: i.name,

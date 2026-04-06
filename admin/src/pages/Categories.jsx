@@ -242,7 +242,7 @@ export default function Categories() {
         <div className="flex gap-4">
            {/* Anchor links to sections */}
            <a href="#subcategory-list" className="btn-outline flex items-center gap-2 text-[10px]">
-             View All Sub-categories
+             View Fabrics & Styles
            </a>
            <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
              <Plus size={16} /> Add Category
@@ -276,15 +276,7 @@ export default function Categories() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                     <p className="text-[10px] uppercase tracking-widest text-gray-300 font-bold">Sub-categories ({cat.subcategories?.length || 0})</p>
-                     <div className="flex flex-wrap gap-1.5">
-                        {cat.subcategories?.map(sub => (
-                          <span key={typeof sub === 'string' ? sub : sub.name} className="px-2 py-0.5 bg-gray-50 text-[10px] text-gray-500 rounded border">
-                             {typeof sub === 'string' ? sub : sub.name}
-                          </span>
-                        ))}
-                        {(!cat.subcategories || cat.subcategories.length === 0) && <span className="text-[10px] text-gray-300">None</span>}
-                     </div>
+                     <p className="text-[10px] uppercase tracking-widest text-gray-300 font-bold">Sub-categories: {cat.subcategories?.length || 0}</p>
                   </div>
                 </div>
               </div>
@@ -296,7 +288,7 @@ export default function Categories() {
       {/* NEW GLOBAL SUBCATEGORY LIST */}
       <div id="subcategory-list" className="pt-8 border-t mt-12">
         <div className="flex justify-between items-center mb-6">
-           <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">Fabrics &amp; Styles Management</h3>
+           <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">Fabrics, Styles Management</h3>
         </div>
         
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">

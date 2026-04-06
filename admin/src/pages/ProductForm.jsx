@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getFullUrl } from '../api';
 import { toast } from 'react-toastify';
 import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
 
@@ -296,7 +296,7 @@ export default function ProductForm() {
                        <label className="block text-[9px] uppercase tracking-widest text-gray-500 mb-1">Specific Image</label>
                        <div className="flex items-center gap-2">
                            {v.image && typeof v.image === 'string' && !v.file && (
-                               <img src={v.image.startsWith('http') ? v.image : `${BACKEND_URL.replace(/\/$/, '')}/${v.image.replace(/^\//, '')}`} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
+                               <img src={getFullUrl(v.image)} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
                            )}
                            {v.file && (
                                <img src={URL.createObjectURL(v.file)} className="w-10 h-10 object-cover rounded border border-gray-200" alt="" />
@@ -328,7 +328,7 @@ export default function ProductForm() {
                     {existingImages.map((img, i) => (
                       <div key={i} className="relative group">
                         <img 
-                          src={img.startsWith('http') || img.startsWith('data:') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          src={getFullUrl(img)} 
                           alt="" 
                           className="w-20 h-24 object-cover bg-gray-100 rounded-lg" 
                         />

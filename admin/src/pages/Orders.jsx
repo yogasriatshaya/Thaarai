@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getFullUrl } from '../api';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -14,15 +14,6 @@ const statusColors = {
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
   refunded: 'bg-purple-100 text-purple-800'
-};
-
-const getFullUrl = (path) => {
-  if (!path) return '';
-  if (path.startsWith('data:') || path.startsWith('http')) return path;
-  // Normalize: remove leading slash if any, then replace backslashes
-  const normalized = path.replace(/\\/g, '/').replace(/^\//, '');
-  const base = (BACKEND_URL || '').replace(/\/$/, '');
-  return `${base}/${normalized}`;
 };
 
 export default function Orders() {

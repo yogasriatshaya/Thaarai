@@ -38,7 +38,7 @@ const CartIcon = () => (
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, BACKEND_URL, isWishlisted, toggleWishlist, user, token } = useShop();
+  const { addToCart, getFullImgUrl, isWishlisted, toggleWishlist, user, token } = useShop();
   const { formatPrice, country, currencySymbol } = useCurrency();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -279,7 +279,6 @@ export default function ProductDetail() {
     </div>
   );
 
-  const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
   const images = product.images?.length > 0 ? product.images : [PRODUCT_FALLBACK];
 
   const ratingBars = [5, 4, 3, 2, 1].map(n => {
@@ -328,14 +327,14 @@ export default function ProductDetail() {
                   {images.map((img, i) => (
                     <button key={i} onClick={() => setSelectedImage(i)}
                       className={`shrink-0 w-16 md:w-full aspect-[3/4] overflow-hidden border transition-all duration-500 rounded-lg ${selectedImage === i ? 'border-black shadow-xl scale-105' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200'}`}>
-                      <img src={getImg(img)} alt="" className="w-full h-full object-cover"
+                      <img src={getFullImgUrl(img)} alt="" className="w-full h-full object-cover"
                         loading="lazy" decoding="async"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
                     </button>
                   ))}
                 </div>
                 <div className="flex-1 relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
-                  <img src={currentVariant?.image ? getImg(currentVariant.image) : getImg(images[selectedImage])} alt={product.name}
+                  <img src={currentVariant?.image ? getFullImgUrl(currentVariant.image) : getFullImgUrl(images[selectedImage])} alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                     fetchpriority="high" decoding="async"
                     onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
@@ -478,7 +477,7 @@ export default function ProductDetail() {
                         title={v.color}
                       >
                          {v.image && (
-                           <img src={getImg(v.image)} alt={v.color} className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                           <img src={getFullImgUrl(v.image)} alt={v.color} className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
                          )}
                       </button>
                     ))}

@@ -50,10 +50,22 @@ export const ShopProvider = ({ children }) => {
 
   // ROBUST IMAGE URL CONSTRUCTOR
   const getFullImgUrl = (path) => {
-    if (!path) return ''; // Let component handle placeholder if needed
-    if (path.startsWith('http') || path.startsWith('data:')) return path;
-    // Handle Windows backslashes and ensure clean leading/trailing slashes
-    const normalizedPath = path.replace(/\\/g, '/').replace(/^\//, '');
+    if (!path) return '';
+    if (String(path).startsWith('http') || String(path).startsWith('data:')) return path;
+    
+    // Convert to string and normalize slashes
+    let normalizedPath = String(path).replace(/\\/g, '/');
+    
+    // If the path contains "uploads/", we want everything from "uploads/" onwards
+    // This handles cases where absolute Windows paths (e.g. C:\users\...) were saved to DB
+    const uploadsIndex = normalizedPath.indexOf('uploads/');
+    if (uploadsIndex !== -1) {
+      normalizedPath = normalizedPath.substring(uploadsIndex);
+    } else {
+      // Just ensure no leading slash for clean concatenation
+      normalizedPath = normalizedPath.replace(/^\//, '');
+    }
+    
     const cleanBase = BACKEND_URL.replace(/\/$/, '');
     return `${cleanBase}/${normalizedPath}`;
   };

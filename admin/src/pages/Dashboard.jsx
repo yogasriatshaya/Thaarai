@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getFullUrl } from '../api';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 import { ShoppingBag, TrendingUp, AlertTriangle, Users, IndianRupee, DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -348,7 +348,7 @@ export default function Dashboard() {
                      {topProducts.map((prod, index) => (
                          <div key={prod._id} className="flex items-center gap-3 border-b border-gray-50 last:border-0 pb-3 hover:bg-gray-50 p-1 rounded-sm transition-colors">
                             <div className="w-9 h-9 bg-gray-50 rounded overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center">
-                                {prod.image ? <img src={prod.image.startsWith('http') ? prod.image.replace(/^http:\/\/localhost:\d+/, BACKEND_URL) : `${BACKEND_URL}${prod.image}`} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
+                                {prod.image ? <img src={getFullUrl(prod.image)} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-charcoal truncate">{prod.name || 'Unnamed'}</p>

@@ -10,6 +10,8 @@ const HeartIcon = ({ filled }) => (
   </svg>
 );
 
+import { PRODUCT_FALLBACK } from '../assets/images';
+
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { BACKEND_URL, getFullImgUrl, wishlist, toggleWishlist } = useShop();
@@ -17,7 +19,7 @@ export default function ProductCard({ product }) {
   const [currentImg, setCurrentImg] = useState(0);
   const isWishlisted = wishlist.includes(product._id);
 
-  const images = product.images && product.images.length > 0 ? product.images : ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'];
+  const images = product.images && product.images.length > 0 ? product.images : [PRODUCT_FALLBACK];
 
 
   const nextImg = (e) => {
@@ -40,7 +42,7 @@ export default function ProductCard({ product }) {
           src={getFullImgUrl(images[currentImg])}
           alt={product.name}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-          onError={e => { e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'; }}
+          onError={e => { e.target.src = PRODUCT_FALLBACK; }}
         />
         
         {/* Navigation Arrows for multi-image products */}
