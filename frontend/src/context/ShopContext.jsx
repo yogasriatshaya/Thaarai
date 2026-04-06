@@ -73,8 +73,12 @@ export const ShopProvider = ({ children }) => {
     // 4. If it's already an absolute URL but doesn't have "uploads/", return as is
     if (normalized.startsWith('http') || normalized.startsWith('data:')) return normalized;
 
-    // 5. Otherwise, treat as a relative path to backendUrl
+    // 5. Otherwise, treat as a relative path. 
+    // If it doesn't have "uploads/" by now, it's likely a legacy path or missing the prefix.
     const cleanPath = normalized.startsWith('/') ? normalized.substring(1) : normalized;
+    if (!cleanPath.startsWith('uploads/')) {
+      return `${backendUrl}/uploads/${cleanPath}`;
+    }
     return `${backendUrl}/${cleanPath}`;
   };
 
