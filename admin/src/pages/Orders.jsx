@@ -406,6 +406,7 @@ export default function Orders() {
                           </div>
                       </td>
                     </tr>
+                  )
                 ];
               })}
             </tbody>
