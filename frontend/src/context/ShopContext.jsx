@@ -48,6 +48,17 @@ export const ShopProvider = ({ children }) => {
   const isWishlisted = (productId) => wishlist.includes(productId);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001/';
 
+  // ROBUST IMAGE URL CONSTRUCTOR
+  const getFullImgUrl = (path) => {
+    if (!path) return ''; // Let component handle placeholder if needed
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    // Handle Windows backslashes and ensure clean leading/trailing slashes
+    const normalizedPath = path.replace(/\\/g, '/').replace(/^\//, '');
+    const cleanBase = BACKEND_URL.replace(/\/$/, '');
+    return `${cleanBase}/${normalizedPath}`;
+  };
+
+
   useEffect(() => {
     if (token) {
       API.get('/users/profile').then(r => {
@@ -208,7 +219,7 @@ export const ShopProvider = ({ children }) => {
     <ShopContext.Provider value={{
       user, products, categories, cartData, setCartData,
       addToCart, updateCartQty, removeFromCart, cartCount,
-      setProducts, BACKEND_URL, cartTotal,
+      setProducts, BACKEND_URL, getFullImgUrl, cartTotal,
       wishlist, toggleWishlist, isWishlisted, settings,
       login, logout, token
     }}>

@@ -12,17 +12,13 @@ const HeartIcon = ({ filled }) => (
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
-  const { BACKEND_URL, wishlist, toggleWishlist } = useShop();
+  const { BACKEND_URL, getFullImgUrl, wishlist, toggleWishlist } = useShop();
   const { formatPrice, country } = useCurrency();
   const [currentImg, setCurrentImg] = useState(0);
   const isWishlisted = wishlist.includes(product._id);
 
   const images = product.images && product.images.length > 0 ? product.images : ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'];
-  
-  const getFullImgUrl = (path) => {
-    if (!path) return '';
-    return path.startsWith('http') ? path : `${BACKEND_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
-  };
+
 
   const nextImg = (e) => {
     e.stopPropagation();

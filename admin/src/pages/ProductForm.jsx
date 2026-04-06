@@ -341,6 +341,21 @@ export default function ProductForm() {
                   <p className="text-sm font-sans text-gray-500">Click or Drag & Drop to upload images</p>
                 </div>
               </label>
+
+              {images.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Pending Uploads ({images.length})</p>
+                  <div className="flex flex-wrap gap-3">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg border border-gold-200" />
+                        <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
 

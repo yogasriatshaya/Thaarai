@@ -286,7 +286,7 @@ export default function Orders() {
                                 <div key={idx} className="flex items-center gap-4 bg-white p-3 border border-gray-100 rounded-lg">
                                   {item.image && (
                                     <img 
-                                      src={item.image.startsWith('http') ? item.image : `${BACKEND_URL.replace(/\/$/, '')}/${item.image.replace(/^\//, '')}`} 
+                                      src={item.image.startsWith('http') ? item.image : `${BACKEND_URL.replace(/\/$/, '')}/${item.image.replace(/\\/g, '/').replace(/^\//, '')}`} 
                                       alt={item.name} 
                                       className="w-12 h-14 object-cover rounded-sm border" 
                                     />

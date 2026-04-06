@@ -9,7 +9,7 @@ import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 export default function Checkout() {
-  const { cartData, setCartData, token, BACKEND_URL, removeFromCart, settings } = useShop();
+  const { cartData, setCartData, token, BACKEND_URL, getFullImgUrl, removeFromCart, settings } = useShop();
   const { formatPrice, country, currency, currencySymbol, countryName } = useCurrency();
   const navigate = useNavigate();
   const loadRazorpayScript = () => {
@@ -375,7 +375,8 @@ export default function Checkout() {
                     <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
                       {isItemUnavailable && <div className="absolute inset-0 bg-red-500/10 z-10"></div>}
                       <img
-                        src={displayImage ? (displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`) : PRODUCT_FALLBACK}
+                        src={displayImage ? getFullImgUrl(displayImage) : PRODUCT_FALLBACK}
+
                         alt={item.name}
                         className="w-full h-full object-cover"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }}

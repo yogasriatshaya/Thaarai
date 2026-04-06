@@ -296,16 +296,15 @@ export default function Categories() {
       {/* NEW GLOBAL SUBCATEGORY LIST */}
       <div id="subcategory-list" className="pt-8 border-t mt-12">
         <div className="flex justify-between items-center mb-6">
-           <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">All Sub-categories Overview</h3>
+           <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">Fabrics &amp; Styles Management</h3>
         </div>
         
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
            <table className="w-full text-left">
               <thead>
                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Sub-category</th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Parent Category</th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Details</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Sub-category &amp; Parent</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Fabrics &amp; Styles</th>
                     <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500 text-right">Actions</th>
                  </tr>
               </thead>
@@ -313,10 +312,10 @@ export default function Categories() {
                  {allSubs.length > 0 ? allSubs.map((sub, idx) => (
                     <tr key={`${sub.parent}-${sub.name}-${idx}`} className="hover:bg-gray-50/50 transition-colors group">
                        <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-charcoal">{sub.name}</span>
-                       </td>
-                       <td className="px-6 py-4">
-                          <span className="px-2 py-0.5 bg-charcoal text-white text-[9px] uppercase tracking-widest rounded-sm">{sub.parent}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-charcoal">{sub.name}</span>
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-400 text-[9px] uppercase tracking-widest rounded-sm border">{sub.parent}</span>
+                          </div>
                        </td>
                        <td className="px-6 py-4">
                           <div className="space-y-1">
@@ -337,7 +336,7 @@ export default function Categories() {
                     </tr>
                  )) : (
                     <tr>
-                       <td colSpan="4" className="px-6 py-12 text-center text-gray-400 italic text-sm">No sub-categories created yet.</td>
+                       <td colSpan="3" className="px-6 py-12 text-center text-gray-400 italic text-sm">No sub-categories created yet.</td>
                     </tr>
                  )}
               </tbody>
@@ -482,4 +481,3 @@ export default function Categories() {
     </Layout>
   );
 }
-
