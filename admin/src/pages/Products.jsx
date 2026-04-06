@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL, getImgUrl } from '../api';
+import API, { BACKEND_URL } from '../api';
 import { toast } from 'react-toastify';
 import { Pencil, Copy, Trash2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
@@ -88,6 +88,7 @@ export default function Products() {
     } catch { toast.error('Failed to delete product'); }
   };
 
+  const getImg = img => img?.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`;
 
   return (
     <Layout title="Products">
@@ -164,7 +165,7 @@ export default function Products() {
                 <tr key={p._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={getImgUrl(p.images?.[0])} alt={p.name}
+                      <img src={p.images?.[0] ? getImg(p.images[0]) : ''} alt={p.name}
                         className="w-10 h-12 object-cover bg-gray-100"
                         onError={e => { e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=40&h=48&fit=crop'; }} />
                       <p className="text-sm font-serif text-charcoal">{p.name}</p>

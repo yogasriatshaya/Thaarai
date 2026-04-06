@@ -7,7 +7,6 @@ import API from '../api';
 import { toast } from 'react-toastify';
 import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
-import { getFullImgUrl as resolveImg } from '../utils/imageUtils';
 
 export default function Checkout() {
   const { cartData, setCartData, token, BACKEND_URL, removeFromCart, settings } = useShop();
@@ -141,7 +140,7 @@ export default function Checkout() {
       const cartVariant = i.variants?.find(v => v.color === i.color);
       const displayImage = cartVariant?.image ? cartVariant.image : i.images?.[0];
       if (displayImage) {
-        imageUrl = resolveImg(displayImage, BACKEND_URL);
+        imageUrl = displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`;
       }
       const itemToSave = {
         name: i.name,
@@ -376,7 +375,7 @@ export default function Checkout() {
                     <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
                       {isItemUnavailable && <div className="absolute inset-0 bg-red-500/10 z-10"></div>}
                       <img
-                        src={resolveImg(displayImage, BACKEND_URL)}
+                        src={displayImage ? (displayImage.startsWith('http') ? displayImage : `${BACKEND_URL}${displayImage}`) : PRODUCT_FALLBACK}
                         alt={item.name}
                         className="w-full h-full object-cover"
                         onError={e => { e.target.src = PRODUCT_FALLBACK; }}

@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
-import { PRODUCT_FALLBACK } from '../assets/images';
-import { getFullImgUrl as resolveImg } from '../utils/imageUtils';
 
 const HeartIcon = ({ filled }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke={filled ? "currentColor" : "currentColor"} strokeWidth={filled ? "0" : "1.5"}>
@@ -17,11 +15,14 @@ export default function ProductCard({ product }) {
   const { BACKEND_URL, wishlist, toggleWishlist } = useShop();
   const { formatPrice, country } = useCurrency();
   const [currentImg, setCurrentImg] = useState(0);
-  const isWishlisted = wishlist.includes(product?._id);
+  const isWishlisted = wishlist.includes(product._id);
 
-  const images = product?.images && product.images.length > 0 ? product.images : [PRODUCT_FALLBACK];
+  const images = product.images && product.images.length > 0 ? product.images : ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'];
   
-  const getFullImgUrl = (path) => resolveImg(path, BACKEND_URL);
+  const getFullImgUrl = (path) => {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${BACKEND_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  };
 
   const nextImg = (e) => {
     e.stopPropagation();
@@ -43,7 +44,7 @@ export default function ProductCard({ product }) {
           src={getFullImgUrl(images[currentImg])}
           alt={product.name}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-          onError={e => { e.target.src = PRODUCT_FALLBACK; }}
+          onError={e => { e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop'; }}
         />
         
         {/* Navigation Arrows for multi-image products */}

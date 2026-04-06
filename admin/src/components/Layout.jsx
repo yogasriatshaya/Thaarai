@@ -2,7 +2,7 @@ import Sidebar from './Sidebar';
 
 export default function Layout({ children, title }) {
   return (
-    <div className="flex min-h-screen" style={{ zoom: '0.9' }}>
+    <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between">
