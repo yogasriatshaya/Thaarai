@@ -51,23 +51,25 @@ export const ShopProvider = ({ children }) => {
   // ROBUST IMAGE URL CONSTRUCTOR
   const getFullImgUrl = (path) => {
     if (!path) return '';
-    if (String(path).startsWith('http') || String(path).startsWith('data:')) return path;
+    const sPath = String(path);
     
-    // Convert to string and normalize slashes
-    let normalizedPath = String(path).replace(/\\/g, '/');
+    // 1. Normalize slashes first
+    let normalized = sPath.replace(/\\/g, '/');
     
-    // If the path contains "uploads/", we want everything from "uploads/" onwards
-    // This handles cases where absolute Windows paths (e.g. C:\users\...) were saved to DB
-    const uploadsIndex = normalizedPath.indexOf('uploads/');
-    if (uploadsIndex !== -1) {
-      normalizedPath = normalizedPath.substring(uploadsIndex);
-    } else {
-      // Just ensure no leading slash for clean concatenation
-      normalizedPath = normalizedPath.replace(/^\//, '');
+    // 2. If it contains "uploads/", extract it to ensure it uses CURRENT BACKEND_URL
+    const uIdx = normalized.indexOf('uploads/');
+    if (uIdx !== -1) {
+      const finalPath = normalized.substring(uIdx);
+      const base = BACKEND_URL.replace(/\/$/, '');
+      return `${base}/${finalPath}`;
     }
-    
-    const cleanBase = BACKEND_URL.replace(/\/$/, '');
-    return `${cleanBase}/${normalizedPath}`;
+
+    // 3. If it starts with http but NO uploads/ (e.g. mock), return as is
+    if (sPath.startsWith('http') || sPath.startsWith('data:')) return sPath;
+
+    // 4. Otherwise, treat as a relative path to BACKEND_URL
+    const base = BACKEND_URL.replace(/\/$/, '');
+    return `${base}/${normalized.replace(/^\//, '')}`;
   };
 
 

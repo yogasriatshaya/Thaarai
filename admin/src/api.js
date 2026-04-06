@@ -25,19 +25,22 @@ export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost
 export const getFullUrl = (path) => {
   if (!path) return '';
   const sPath = String(path);
-  if (sPath.startsWith('http') || sPath.startsWith('data:')) return sPath;
   
-  // Normalize slashes
+  // 1. Normalize slashes first
   let normalized = sPath.replace(/\\/g, '/');
   
-  // Find "uploads/" and take everything from there
-  const uploadsIndex = normalized.indexOf('uploads/');
-  if (uploadsIndex !== -1) {
-    normalized = normalized.substring(uploadsIndex);
-  } else {
-    normalized = normalized.replace(/^\//, '');
+  // 2. If it contains "uploads/", extract it to ensure it uses CURRENT BACKEND_URL
+  const uIdx = normalized.indexOf('uploads/');
+  if (uIdx !== -1) {
+    const finalPath = normalized.substring(uIdx);
+    const base = BACKEND_URL.replace(/\/$/, '');
+    return `${base}/${finalPath}`;
   }
-  
+
+  // 3. If it starts with http but NO uploads/ (e.g. mock), return as is
+  if (sPath.startsWith('http') || sPath.startsWith('data:')) return sPath;
+
+  // 4. Otherwise, treat as a relative path to BACKEND_URL
   const base = BACKEND_URL.replace(/\/$/, '');
-  return `${base}/${normalized}`;
+  return `${base}/${normalized.replace(/^\//, '')}`;
 };
