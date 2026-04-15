@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const subcategorySchema = new mongoose.Schema({
   name: { type: String, required: true },
+  banner: { type: String, default: '' },
   fabrics: [{ type: String }],
   styles: [{ type: String }]
 }, { _id: false });
@@ -9,6 +10,7 @@ const subcategorySchema = new mongoose.Schema({
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   description: { type: String, default: '' },
+  banner: { type: String, default: '' },
   subcategories: [subcategorySchema],
   isActive: { type: Boolean, default: true },
   defaultFabrics: [{ type: String }],

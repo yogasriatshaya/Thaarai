@@ -8,6 +8,8 @@ const stockLogSchema = new mongoose.Schema({
   previousStock: { type: Number },
   currentStock: { type: Number },
   reason: { type: String, default: 'Manual Adjustment' }, // Order placed, Cancelled, Restocked
+  color: { type: String },
+  size: { type: String },
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' }
 }, { timestamps: true });
 

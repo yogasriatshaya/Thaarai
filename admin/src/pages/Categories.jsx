@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import API from '../api';
 import { toast } from 'react-toastify';
-import { Plus, Edit2, Trash2, X, Check, Pencil } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Pencil, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function Categories() {
@@ -31,6 +31,12 @@ export default function Categories() {
   const [sizesText, setSizesText] = useState('');
   const [fabricsText, setFabricsText] = useState('');
   const [stylesText, setStylesText] = useState('');
+
+  // Sub-category table management states
+  const [subSearch, setSubSearch] = useState('');
+  const [subFilter, setSubFilter] = useState('');
+  const [subPage, setSubPage] = useState(1);
+  const [subLimit, setSubLimit] = useState(10);
 
   const fetchCategories = async () => {
     try {
@@ -152,7 +158,11 @@ export default function Categories() {
         });
       }
     });
-    return list.sort((a, b) => a.name.localeCompare(b.name));
+    return list.sort((a, b) => {
+      const parentCompare = a.parent.localeCompare(b.parent);
+      if (parentCompare !== 0) return parentCompare;
+      return a.name.localeCompare(b.name);
+    });
   };
 
   const handleRenameSub = (oldName) => {
@@ -197,6 +207,18 @@ export default function Categories() {
       if (isGlobal) {
         updatedData.defaultFabrics = fArr;
         updatedData.defaultStyles = sArr;
+
+        // ── Propagate to ALL sub-categories (merge, no duplicates) ──────────────
+        updatedData.subcategories = (cat.subcategories || []).map(s => {
+          const subObj = typeof s === 'string'
+            ? { name: s, fabrics: [], styles: [] }
+            : { ...s, fabrics: s.fabrics || [], styles: s.styles || [] };
+          return {
+            ...subObj,
+            fabrics: [...new Set([...fArr, ...subObj.fabrics])],
+            styles:  [...new Set([...sArr,  ...subObj.styles ])]
+          };
+        });
       } else {
         updatedData.subcategories = (cat.subcategories || []).map(s => {
           const sName = typeof s === 'string' ? s : s.name;
@@ -209,7 +231,9 @@ export default function Categories() {
 
       const res = await API.put(`/categories/${cat._id}`, updatedData);
       if (res.data.success) {
-        toast.success('Options updated successfully');
+        toast.success(isGlobal
+          ? `Defaults applied to all sub-categories of "${cat.name}"`
+          : 'Options updated successfully');
         setOptionsModal({ ...optionsModal, open: false });
         fetchCategories();
       }
@@ -286,21 +310,29 @@ export default function Categories() {
     setSizesText(sizes.join(', '));
   };
 
-  const allSubs = getAllSubcategories();
+  const allSubcategories = getAllSubcategories();
+  const filteredSubs = allSubcategories.filter(s => 
+    (s.name.toLowerCase().includes(subSearch.toLowerCase()) || s.parent.toLowerCase().includes(subSearch.toLowerCase())) &&
+    (!subFilter || s.parent === subFilter)
+  );
+
+  const paginatedSubs = filteredSubs.slice((subPage - 1) * subLimit, subPage * subLimit);
+  const totalSubPages = Math.ceil(filteredSubs.length / subLimit);
+  const startIdx = (subPage - 1) * subLimit + 1;
+  const endIdx = Math.min(subPage * subLimit, filteredSubs.length);
 
   return (
     <Layout title="Categories & Subcategories">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h2 className="text-sm text-gray-400 font-sans uppercase tracking-[0.2em]">Store Catalog</h2>
-          <p className="text-xs text-gray-500 mt-1 italic">Note: Changing a category name updates products automatically.</p>
+          <p className="text-xs text-gray-500 mt-1 italic max-w-sm">Note: Changing a category name updates products automatically.</p>
         </div>
-        <div className="flex gap-4">
-           {/* Anchor links to sections */}
-           <a href="#subcategory-list" className="btn-outline flex items-center gap-2 text-[10px]">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+           <a href="#subcategory-list" className="btn-outline flex items-center justify-center gap-2 text-[10px] py-3 md:py-2">
              View Fabrics & Styles
            </a>
-           <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+           <button onClick={() => handleOpenModal()} className="btn-primary flex items-center justify-center gap-2 py-3 md:py-2">
              <Plus size={16} /> Add Category
            </button>
         </div>
@@ -315,7 +347,15 @@ export default function Categories() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {categories.map(cat => (
-              <div key={cat._id} className="card p-5 group flex flex-col justify-between hover:border-gold-500/50 transition-all">
+              <div 
+                key={cat._id} 
+                onClick={() => {
+                  setSubFilter(cat.name);
+                  setSubPage(1);
+                  document.getElementById('subcategory-list')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`card p-5 group flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${subFilter === cat.name ? 'border-gold-500 ring-1 ring-gold-500 bg-gold-50/30' : 'hover:border-gold-500/50'}`}
+              >
                 <div>
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -323,17 +363,18 @@ export default function Categories() {
                       {cat.description && <p className="text-[11px] text-gray-400 line-clamp-1">{cat.description}</p>}
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleOpenModal(cat)} className="p-2 text-gray-400 hover:text-gold-600 rounded-full"><Edit2 size={14}/></button>
-                      <button onClick={() => {
+                      <button onClick={(e) => { e.stopPropagation(); handleOpenModal(cat); }} className="p-2 text-gray-400 hover:text-gold-600 rounded-full transition-colors"><Edit2 size={14}/></button>
+                      <button onClick={(e) => {
+                        e.stopPropagation();
                         if(window.confirm(`Delete ${cat.name}?`)) {
                           API.delete(`/categories/${cat._id}`).then(() => fetchCategories()).catch(e => toast.error(e.response?.data?.message || 'Delete failed'));
                         }
-                      }} className="p-2 text-gray-400 hover:text-red-500 rounded-full"><Trash2 size={14}/></button>
+                      }} className="p-2 text-gray-400 hover:text-red-500 rounded-full transition-colors"><Trash2 size={14}/></button>
                     </div>
                   </div>
                   <div className="space-y-3">
                      <p className="text-[10px] uppercase tracking-widest text-gray-300 font-bold">Sub-categories: {cat.subcategories?.length || 0}</p>
-                     <button onClick={() => handleOpenOptions(cat, true)} className="text-[9px] font-sans text-gold-600 hover:underline uppercase tracking-widest flex items-center gap-1.5">
+                     <button onClick={(e) => { e.stopPropagation(); handleOpenOptions(cat, true); }} className="text-[9px] font-sans text-gold-600 hover:underline uppercase tracking-widest flex items-center gap-1.5 font-bold">
                        <Plus size={10} /> Default Fabrics & Styles
                      </button>
                   </div>
@@ -346,21 +387,42 @@ export default function Categories() {
 
       {/* NEW GLOBAL SUBCATEGORY LIST */}
       <div id="subcategory-list" className="pt-8 border-t mt-12">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
            <h3 className="text-xs font-bold uppercase tracking-widest text-[#000000] border-l-4 border-charcoal pl-4">Fabrics, Styles Management</h3>
+           
+           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
+                <input 
+                  type="text" 
+                  placeholder="Search sub-categories..." 
+                  value={subSearch} 
+                  onChange={e => { setSubSearch(e.target.value); setSubPage(1); }}
+                  className="w-full pl-9 pr-4 py-2 text-[11px] border border-gray-100 rounded-lg focus:outline-none focus:border-gold-500 bg-white uppercase tracking-wider font-bold"
+                />
+              </div>
+              <select 
+                value={subFilter} 
+                onChange={e => { setSubFilter(e.target.value); setSubPage(1); }}
+                className="w-full sm:w-auto text-[11px] border border-gray-100 rounded-lg px-4 py-2 focus:outline-none focus:border-gold-500 bg-white uppercase tracking-wider font-bold text-gray-500"
+              >
+                <option value="">All Categories</option>
+                {categories.map(cat => <option key={cat._id} value={cat.name}>{cat.name}</option>)}
+              </select>
+           </div>
         </div>
         
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-           <table className="w-full text-left">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto w-full">
+           <table className="w-full text-left min-w-[800px]">
               <thead>
                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Sub-category &amp; Parent</th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500">Fabrics &amp; Styles</th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-500 text-right">Actions</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-gray-500">Sub-category &amp; Parent</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-gray-500">Fabrics &amp; Styles</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-gray-500 text-right">Actions</th>
                  </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                 {allSubs.length > 0 ? allSubs.map((sub, idx) => (
+                 {paginatedSubs.length > 0 ? paginatedSubs.map((sub, idx) => (
                     <tr key={`${sub.parent}-${sub.name}-${idx}`} className="hover:bg-gray-50/50 transition-colors group">
                        <td className="px-6 py-4">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -370,13 +432,13 @@ export default function Categories() {
                        </td>
                        <td className="px-6 py-4">
                           <div className="space-y-1">
-                             <p className="text-[9px] text-gray-400">Fabrics: <span className="text-gray-600">{sub.fabrics.length > 0 ? sub.fabrics.join(', ') : 'Category Default'}</span></p>
-                             <p className="text-[9px] text-gray-400">Styles: <span className="text-gray-600">{sub.styles.length > 0 ? sub.styles.join(', ') : 'Category Default'}</span></p>
+                             <p className="text-[11px] text-gray-400">Fabrics: <span className="text-gray-600">{sub.fabrics.length > 0 ? sub.fabrics.join(', ') : 'Category Default'}</span></p>
+                             <p className="text-[11px] text-gray-400">Styles: <span className="text-gray-600">{sub.styles.length > 0 ? sub.styles.join(', ') : 'Category Default'}</span></p>
                           </div>
                        </td>
                        <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-1.5">
-                             <button onClick={() => handleOpenOptions(sub)} className="btn-outline text-[9px] px-2.5 py-1.5 uppercase tracking-widest font-bold flex items-center gap-1.5 mr-2">
+                             <button onClick={() => handleOpenOptions(sub)} className="btn-outline text-[11px] px-2.5 py-1.5 uppercase tracking-widest font-bold flex items-center gap-1.5 mr-2">
                                 Manage Fabrics/Styles
                              </button>
                              <button onClick={() => handleGlobalRenameSub(sub.name, sub.catRef)} className="p-2 text-gray-300 hover:text-gold-600 transition-colors" title="Rename Sub-category">
@@ -395,6 +457,38 @@ export default function Categories() {
                  )}
               </tbody>
            </table>
+        </div>
+        <div className="bg-white border-t border-gray-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+               Showing {filteredSubs.length > 0 ? startIdx : 0} to {endIdx} of {filteredSubs.length} sub-categories
+            </p>
+            <div className="flex items-center gap-2">
+               <button 
+                 onClick={() => setSubPage(p => Math.max(1, p - 1))} 
+                 disabled={subPage === 1}
+                 className="p-1.5 rounded border border-gray-100 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+               >
+                 <ChevronLeft size={16} />
+               </button>
+               <div className="flex items-center gap-1">
+                  {Array.from({ length: totalSubPages }).map((_, i) => (
+                     <button 
+                       key={i} 
+                       onClick={() => setSubPage(i + 1)}
+                       className={`w-7 h-7 flex items-center justify-center rounded text-[10px] font-bold transition-all ${subPage === i + 1 ? 'bg-charcoal text-white' : 'text-gray-400 hover:bg-gray-50'}`}
+                     >
+                       {i + 1}
+                     </button>
+                  ))}
+               </div>
+               <button 
+                 onClick={() => setSubPage(p => Math.min(totalSubPages, p + 1))} 
+                 disabled={subPage === totalSubPages || totalSubPages === 0}
+                 className="p-1.5 rounded border border-gray-100 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+               >
+                 <ChevronRight size={16} />
+               </button>
+            </div>
         </div>
       </div>
 
@@ -481,41 +575,46 @@ export default function Categories() {
       )}
 
       {optionsModal.open && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded p-8 max-w-md w-full shadow-2xl">
-             <div className="flex justify-between items-center mb-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 md:p-8 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh] animate-in fade-in zoom-in duration-200">
+             <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
-                   <h3 className="font-serif text-lg font-bold text-charcoal">{optionsModal.isGlobal ? 'Default Category Options' : 'Sub-category Options'}</h3>
-                   <p className="text-[10px] text-gold-600 font-sans uppercase tracking-widest mt-1">
+                   <h3 className="font-serif text-xl font-bold text-charcoal">{optionsModal.isGlobal ? 'Default Category Options' : 'Sub-category Options'}</h3>
+                   <p className="text-[11px] text-gold-600 font-sans uppercase tracking-widest mt-1 font-bold">
                      {optionsModal.isGlobal ? optionsModal.cat?.name : `${optionsModal.subName} (${optionsModal.cat?.name})`}
                    </p>
                 </div>
-                <button onClick={() => setOptionsModal({ ...optionsModal, open: false })} className="text-gray-300 hover:text-charcoal"><X size={20}/></button>
+                <button onClick={() => setOptionsModal({ ...optionsModal, open: false })} className="text-gray-300 hover:text-charcoal transition-colors"><X size={24}/></button>
              </div>
              
              <div className="space-y-6">
                 <div>
-                  <label className="block text-[9px] tracking-[0.2em] uppercase font-sans text-gray-400 mb-2 font-bold">Fabrics (comma separated)</label>
+                  <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-400 mb-2 font-bold">Fabrics (comma separated)</label>
                   <textarea 
                     value={optionsModal.fabrics} 
                     onChange={e => setOptionsModal({...optionsModal, fabrics: e.target.value})} 
-                    className="w-full text-[11px] border p-3 min-h-[100px] rounded-lg focus:border-gold-500 outline-none transition-colors" 
+                    className="w-full text-xs border p-4 min-h-[120px] rounded-xl focus:border-gold-500 outline-none transition-all bg-gray-50/30 focus:bg-white" 
                     placeholder="Cotton, silk, linen..."
                   />
                 </div>
                 <div>
-                   <label className="block text-[9px] tracking-[0.2em] uppercase font-sans text-gray-400 mb-2 font-bold">Styles (comma separated)</label>
+                   <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-400 mb-2 font-bold">Styles (comma separated)</label>
                    <textarea 
                      value={optionsModal.styles} 
                      onChange={e => setOptionsModal({...optionsModal, styles: e.target.value})} 
-                     className="w-full text-[11px] border p-3 min-h-[100px] rounded-lg focus:border-gold-500 outline-none transition-colors" 
+                     className="w-full text-xs border p-4 min-h-[120px] rounded-xl focus:border-gold-500 outline-none transition-all bg-gray-50/30 focus:bg-white" 
                      placeholder="A-Line, Straight, Anarkali..."
                    />
                 </div>
                 
-                <div className="flex gap-3 pt-4">
-                   <button onClick={saveOptions} className="flex-1 btn-primary py-3 justify-center uppercase tracking-widest text-[10px]">Save Changes</button>
-                   <button onClick={() => setOptionsModal({ ...optionsModal, open: false })} className="flex-1 btn-outline py-3 justify-center uppercase tracking-widest text-[10px]">Cancel</button>
+                {optionsModal.isGlobal && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-3 text-[11px] text-amber-700 font-medium leading-relaxed">
+                    &#9889; These fabrics &amp; styles will be applied globally to ALL sub-categories. Existing options will be merged.
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                   <button onClick={saveOptions} className="btn-primary py-4 px-6 justify-center uppercase tracking-widest text-xs font-bold shadow-lg shadow-gold-600/10">Save Changes</button>
+                   <button onClick={() => setOptionsModal({ ...optionsModal, open: false })} className="btn-outline py-4 px-6 justify-center uppercase tracking-widest text-xs font-bold">Cancel</button>
                 </div>
              </div>
           </div>

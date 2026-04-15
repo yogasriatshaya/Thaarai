@@ -9,39 +9,42 @@ export default function Wishlist() {
   const wishlistedProducts = products.filter(p => wishlist.includes(p._id));
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-        <div>
-          <span className="section-label">Your Gallery</span>
-          <h1 className="section-title mb-0">Wishlist</h1>
+    <div className="bg-white min-h-screen pb-32 text-black font-sans">
+      <div className="max-w-7xl mx-auto px-6 pt-16 lg:pt-24 mb-16">
+        <div className="flex flex-col items-center text-center gap-2">
+            <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-400 mb-1">Saved Items</span>
+            <h1 className="font-serif text-4xl md:text-5xl font-black italic tracking-tight text-black">My Wishlist</h1>
+            <div className="h-px w-20 bg-black my-4 opacity-10" />
+            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
+              {wishlistedProducts.length} {wishlistedProducts.length === 1 ? 'Item' : 'Items'} Saved
+            </p>
         </div>
-        <p className="text-gray-500 text-sm font-medium">
-          {wishlistedProducts.length} {wishlistedProducts.length === 1 ? 'Item' : 'Items'} Saved
-        </p>
       </div>
 
-      {wishlistedProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-          {wishlistedProducts.map(product => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="py-24 text-center space-y-6">
-          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-gray-300">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.89-8.89 1.06-1.06a5.5 5.5 0 000-7.78z" />
-            </svg>
+      <div className="max-w-7xl mx-auto px-6">
+        {wishlistedProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-10 gap-y-16 animate-fade-in">
+            {wishlistedProducts.map(product => (
+              <ProductCard key={product._id} product={product} />
+            ))}
           </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold font-serif text-gray-900">Your wishlist is empty</h2>
-            <p className="text-gray-500 max-w-xs mx-auto">Save items you love to your personal gallery and come back to them anytime.</p>
+        ) : (
+          <div className="py-24 text-center max-w-sm mx-auto space-y-8 animate-fade-in">
+            <div className="w-20 h-20 border border-black flex items-center justify-center mx-auto shadow-lg">
+              <svg width="32" height="32" fill="none" stroke="black" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.89-8.89 1.06-1.06a5.5 5.5 0 000-7.78z" />
+              </svg>
+            </div>
+            <div className="space-y-4">
+              <h2 className="font-serif text-3xl font-black italic text-black tracking-tight">Your wishlist is empty</h2>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed">Save your favorite pieces here to revisit them later.</p>
+            </div>
+            <Link to="/collection" className="inline-block px-12 py-4 bg-black text-white text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-gray-800 transition-all shadow-xl">
+              Explore Collection
+            </Link>
           </div>
-          <Link to="/collection" className="btn-primary inline-flex">
-            Explore Collection
-          </Link>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

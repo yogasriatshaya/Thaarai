@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import API, { BACKEND_URL, getFullUrl } from '../api';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 import { ShoppingBag, TrendingUp, AlertTriangle, Users, IndianRupee, DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -53,32 +54,38 @@ export default function Dashboard() {
   const COLORS = ['#D4AF37', '#22C55E', '#3B82F6', '#EF4444', '#8B5CF6'];
 
   const getSalesValue = () => {
-    if (currency === 'USD') return `$${stats.totalSalesUSD?.toLocaleString() || 0}`;
-    if (currency === 'INR') return `₹${stats.totalSales?.toLocaleString() || 0}`;
-    // Global view - Show both if both exist
-    const strings = [];
-    if (stats.totalSales > 0) strings.push(`₹${stats.totalSales.toLocaleString()}`);
-    if (stats.totalSalesUSD > 0) strings.push(`$${stats.totalSalesUSD.toLocaleString()}`);
+    if (currency === 'USD') return `$${stats.totalSalesUSD?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`;
+    if (currency === 'INR') return `₹${stats.totalSales?.toLocaleString(undefined, { minimumFractionDigits: 0 }) || '0'}`;
     
-    if (strings.length === 0) return '₹0';
-    return strings.join(' + ');
+    // Global view - Show primary (INR) and secondary ($) with better styling
+    return (
+      <div className="flex flex-col">
+        <span className="text-charcoal font-bold">₹{stats.totalSales?.toLocaleString() || 0}</span>
+        {stats.totalSalesUSD > 0 && <span className="text-[10px] text-gray-400">/ ${stats.totalSalesUSD?.toLocaleString()}</span>}
+      </div>
+    );
   };
 
   const getTodaySales = () => {
     if (currency === 'USD') return `$${stats.todaySalesUSD?.toLocaleString() || 0}`;
     if (currency === 'INR') return `₹${stats.todaySales?.toLocaleString() || 0}`;
     
-    // Global view - Show both
     const strings = [];
     if (stats.todaySales > 0) strings.push(`₹${stats.todaySales.toLocaleString()}`);
     if (stats.todaySalesUSD > 0) strings.push(`$${stats.todaySalesUSD.toLocaleString()}`);
     
-    if (strings.length === 0) return '₹0';
-    return strings.join(' + ');
+    return strings.length === 0 ? '₹0' : strings.join(' + ');
   };
 
   const statCards = [
-    { label: currency === 'all' ? 'Total Sales (Global)' : `Sales (${currency})`, value: getSalesValue(), sub: `Today: ${getTodaySales()}`, icon: currency === 'USD' ? DollarSign : IndianRupee, color: 'text-green-600', bg: 'bg-green-50' },
+    { 
+      label: currency === 'all' ? 'Sales Revenue' : `Sales (${currency})`, 
+      value: getSalesValue(), 
+      sub: `Today: ${getTodaySales()}`, 
+      icon: currency === 'USD' ? DollarSign : IndianRupee, 
+      color: 'text-green-600', 
+      bg: 'bg-green-50' 
+    },
     { label: 'Total Orders', value: stats.totalOrders || 0, sub: `Today: ${stats.todayOrders || 0}`, icon: ShoppingBag, color: 'text-gold-600', bg: 'bg-gold-50' },
     { label: 'Pending Orders', value: stats.pendingOrders || 0, sub: `Processing`, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
     { label: 'New Customers', value: stats.newCustomers || 0, sub: `Target interval`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' }
@@ -103,12 +110,33 @@ export default function Dashboard() {
   return (
     <Layout title="Dashboard">
       {/* Date Filter & Quick Actions */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3 bg-white p-2 rounded border border-gray-100 shadow-sm w-full md:w-auto">
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-600 focus:outline-none" />
-          <span className="text-gray-400 text-xs">to</span>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-xs text-gray-600 focus:outline-none" />
-          <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-[10px] text-gray-400 hover:text-charcoal underline">Clear</button>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row border border-gray-200 rounded sm:divide-x divide-y sm:divide-y-0 divide-gray-100 bg-white w-full md:w-auto overflow-hidden shadow-sm">
+            <div className="flex items-center group flex-1">
+                <span className="text-[9px] text-gray-500 font-bold px-3 text-center min-w-[45px]">FROM</span>
+                <input
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="text-[11px] px-2 py-2.5 sm:py-2 focus:outline-none text-gray-600 flex-1 sm:flex-none border-l sm:border-l-0"
+                    title="From Date"
+                />
+            </div>
+            <div className="flex items-center group flex-1">
+                <span className="text-[9px] text-gray-500 font-bold px-3 text-center min-w-[45px]">TO</span>
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="text-[11px] px-2 py-2.5 sm:py-2 focus:outline-none text-gray-600 flex-1 sm:flex-none border-l sm:border-l-0"
+                    title="To Date"
+                />
+            </div>
+            {(startDate || endDate) && (
+                <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-[10px] text-gold-600 hover:bg-gold-50 px-3 py-2 sm:py-0 font-bold uppercase tracking-tighter border-t sm:border-t-0 sm:border-l border-gray-100">
+                    Clear
+                </button>
+            )}
         </div>
         <div className="flex border border-gray-200 rounded divide-x divide-gray-200 bg-white shadow-sm overflow-hidden">
             <button 
@@ -150,9 +178,9 @@ export default function Dashboard() {
                     {isReturn ? <ShoppingBag size={14} /> : isOutStock || isLowStock ? <Package size={14} /> : <Clock size={14} />}
                     <span className="font-medium">{alt.message}</span>
                  </div>
-                 {isReturn && <a href="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Manage Returns →</a>}
-                 {isOrder && <a href="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">View Orders →</a>}
-                 {(isLowStock || isOutStock) && <a href="/inventory" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Restock →</a>}
+                 {isReturn && <Link to="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Manage Returns →</Link>}
+                 {isOrder && <Link to="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">View Orders →</Link>}
+                 {(isLowStock || isOutStock) && <Link to="/inventory?view=low_stock" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Restock →</Link>}
                </div>
              );
            })}
@@ -236,7 +264,14 @@ export default function Dashboard() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                         <XAxis dataKey="_id" tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 10 }} stroke="#9CA3AF" tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '4px', border: '1px solid #F3F4F6' }} />
+                        <Legend 
+                            verticalAlign="top" 
+                            align="right" 
+                            height={36} 
+                            iconType="circle" 
+                            iconSize={8}
+                            formatter={(value) => <span className="text-[10px] tracking-wider uppercase font-bold text-gray-500">{value}</span>}
+                        />
                         {(currency === 'all' || currency === 'INR') && (
                            <Area type="monotone" dataKey="salesINR" name="Sales (₹)" stroke="#D4AF37" strokeWidth={1.5} fillOpacity={1} fill="url(#colorSalesINR)" />
                         )}
@@ -256,7 +291,7 @@ export default function Dashboard() {
               <h3 className="font-serif text-xs text-gray-500 uppercase tracking-wider mb-2">Payment Methods</h3>
               <div className="h-28 flex items-center justify-center">
                  {paymentSummary.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="99%" height={110}>
                       <PieChart>
                           <Pie data={paymentSummary} nameKey="_id" dataKey="count" cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={4} strokeWidth={0}>
                               {paymentSummary.map((entry, index) => (
@@ -303,35 +338,37 @@ export default function Dashboard() {
             ) : recentOrders.length === 0 ? (
             <p className="text-sm text-gray-400 font-sans py-6 text-center">No orders yet</p>
             ) : (
-            <div className="overflow-x-auto">
-                <table className="w-full">
+            <div className="overflow-x-auto w-full no-scrollbar">
+                <table className="w-full min-w-[600px]">
                 <thead>
-                    <tr className="border-b border-gray-100">
+                    <tr className="border-b border-gray-100 text-[#101e42]">
                     {['Order ID', 'Customer', 'Amount', 'Payment', 'Status', 'Return', 'Date'].map(h => (
-                        <th key={h} className="text-left text-[10px] tracking-[0.18em] uppercase text-gray-400 font-sans pb-3 pr-4">{h}</th>
+                        <th key={h} className="text-left text-[9px] tracking-[0.2em] uppercase font-bold text-gray-400 font-sans pb-3 pr-4">{h}</th>
                     ))}
                     </tr>
                 </thead>
                 <tbody>
                     {recentOrders.map(order => (
                     <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 pr-4 text-xs font-sans text-charcoal">#{order._id.slice(-8).toUpperCase()}</td>
-                        <td className="py-3 pr-4 text-xs font-sans text-gray-600 truncate max-w-[100px]">{order.userId?.name || 'Guest'}</td>
-                        <td className="py-3 pr-4 text-xs font-sans font-medium">{order.currency === 'USD' ? '$' : '₹'}{order.totalAmount?.toLocaleString()}</td>
-                        <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
+                        <td className="py-3 pr-4 text-xs font-sans text-charcoal font-medium">#{order._id.slice(-8).toUpperCase()}</td>
+                        <td className="py-3 pr-4 text-xs font-sans text-gray-600 truncate max-w-[100px] font-medium">{order.userId?.name || 'Guest'}</td>
+                        <td className="py-3 pr-4 text-xs font-sans font-bold text-[#101e42]">
+                            {order.currency === 'USD' ? '$' : '₹'}{order.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 pr-4 text-xs font-sans capitalize text-gray-400">{order.paymentMethod}</td>
                         <td className="py-3 pr-4">
-                        <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>
+                        <span className={`text-[9px] tracking-[0.15em] uppercase font-sans font-bold px-2 py-0.5 rounded-full ${statusColors[order.orderStatus] || 'text-gray-600 bg-gray-100'}`}>
                             {order.orderStatus}
                         </span>
                         </td>
                         <td className="py-3 pr-4">
                             {order.returnStatus && order.returnStatus !== 'none' ? (
-                                <span className={`text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 rounded-full ${returnStatusColors[order.returnStatus] || 'text-gray-500 bg-gray-50'}`}>
+                                <span className={`text-[9px] tracking-[0.15em] uppercase font-bold px-2 py-0.5 rounded-full ${returnStatusColors[order.returnStatus] || 'text-gray-500 bg-gray-50'}`}>
                                     {order.returnStatus}
                                 </span>
-                            ) : <span className="text-gray-300">—</span>}
+                            ) : <span className="text-gray-200">None</span>}
                         </td>
-                        <td className="py-3 text-xs font-sans text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-GB')}</td>
+                        <td className="py-3 text-[10px] font-sans text-gray-400 font-medium">{new Date(order.createdAt).toLocaleDateString('en-GB')}</td>
                     </tr>
                     ))}
                 </tbody>
@@ -341,22 +378,70 @@ export default function Dashboard() {
         </div>
 
          {/* Top Selling Products */}
-         <div className="card p-5 shadow-sm">
+         <div className="card p-5 shadow-sm border border-gray-100">
              <h2 className="font-serif text-lg text-charcoal mb-4 flex items-center gap-1"><TrendingUp size={18} className="text-green-500" /> Top Selling</h2>
              {topProducts.length === 0 ? <p className="text-sm text-gray-400 text-center py-6">No products sold yet</p> : (
-                 <div className="space-y-3">
-                     {topProducts.map((prod, index) => (
-                         <div key={prod._id} className="flex items-center gap-3 border-b border-gray-50 last:border-0 pb-3 hover:bg-gray-50 p-1 rounded-sm transition-colors">
-                            <div className="w-9 h-9 bg-gray-50 rounded overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center">
-                                {prod.image ? <img src={getFullUrl(prod.image)} alt={prod.name} className="w-full h-full object-cover" /> : <Package size={14} className="text-gray-400"/>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-charcoal truncate">{prod.name || 'Unnamed'}</p>
-                                <p className="text-[10px] text-gray-400">{prod.totalSales} units sold</p>
-                            </div>
-                            <div className="text-xs font-semibold text-charcoal">₹{prod.revenue?.toLocaleString()}</div>
-                         </div>
-                     ))}
+                 <div className="space-y-4">
+                     {topProducts.map((prod, index) => {
+                         // Robust image parsing
+                         let mainImage = prod.image;
+                         if (Array.isArray(mainImage)) mainImage = mainImage[0];
+                         if (typeof mainImage === 'string' && (mainImage.startsWith('[') || mainImage.startsWith('{'))) {
+                            try { 
+                                const parsed = JSON.parse(mainImage);
+                                mainImage = Array.isArray(parsed) ? parsed[0] : (parsed.image || mainImage);
+                            } catch(e) {}
+                         }
+                         
+                         const symbol = currency === 'USD' ? '$' : '₹';
+                         const maxSold = topProducts[0]?.totalSales || 1;
+                         const widthPer = (prod.totalSales / maxSold) * 100;
+                         
+                         return (
+                             <div key={prod._id || index} className="group relative">
+                                {/* Invisible progress bar as background */}
+                                <div className="absolute inset-y-0 left-0 bg-gray-50/50 rounded-lg -z-0 transition-all duration-700" style={{ width: `${widthPer}%` }} />
+                                
+                                <div className="relative z-10 flex items-center gap-4 p-2 rounded-lg hover:bg-gray-50/80 transition-all duration-300">
+                                   <div className="flex-none font-serif text-[10px] font-bold text-gray-300 w-4">{index + 1}</div>
+                                   
+                                   <div className="relative w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
+                                       {mainImage ? (
+                                           <img 
+                                             src={getFullUrl(mainImage)} 
+                                             alt={prod.name} 
+                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                             onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100/f8f9fa/adb5bd?text=Product'; }}
+                                           />
+                                       ) : (
+                                           <div className="w-full h-full flex items-center justify-center bg-gray-50"><Package size={16} className="text-gray-300"/></div>
+                                       )}
+                                   </div>
+                                   
+                                   <div className="flex-1 min-w-0">
+                                       <p className="text-[11px] font-bold text-charcoal truncate font-sans group-hover:text-gold-600 transition-colors uppercase tracking-tight">{prod.name || 'Unnamed product'}</p>
+                                       <div className="flex items-center gap-2 mt-0.5">
+                                           <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">{prod.totalSales} SOLD</span>
+                                           <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                                           <span className="text-[9px] text-gray-400 font-medium tracking-wider">REVENUE</span>
+                                       </div>
+                                   </div>
+                                   
+                                   <div className="text-right">
+                                       <div className="text-xs font-bold text-[#101e42] font-sans flex flex-col items-end">
+                                           {(currency === 'all' || currency === 'INR') && prod.revenueINR > 0 && (
+                                               <span>₹{prod.revenueINR.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                           )}
+                                           {(currency === 'all' || currency === 'USD') && prod.revenueUSD > 0 && (
+                                               <span className={currency === 'all' ? 'text-[10px] text-gray-400 font-medium' : ''}>${prod.revenueUSD.toLocaleString(undefined, { minimumFractionDigits: currency === 'USD' ? 2 : 0 })}</span>
+                                           )}
+                                           {(!prod.revenueINR && !prod.revenueUSD) && <span>₹0</span>}
+                                       </div>
+                                   </div>
+                                </div>
+                             </div>
+                         );
+                     })}
                  </div>
              )}
          </div>

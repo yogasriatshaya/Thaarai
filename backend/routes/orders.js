@@ -8,7 +8,15 @@ const Coupon = require('../models/Coupon');
 const Settings = require('../models/Settings');
 const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
-const { sendEmail } = require('../utils/email');
+
+const checkMaintenance = async (req, res, next) => {
+  const settings = await Settings.findOne();
+  if (settings && settings.maintenanceMode) {
+    return res.status(403).json({ success: false, message: settings.maintenanceMessage || 'Purchasing is temporarily disabled.' });
+  }
+  next();
+};
+const { sendEmail, sendStockAlertEmail } = require('../utils/email');
 
 // Email dispatch helper for order lifecycle events
 const sendOrderEmailObj = async (order, type, customMessage = '') => {
@@ -67,7 +75,7 @@ const sendOrderEmailObj = async (order, type, customMessage = '') => {
   } catch (err) { console.error('Email dispatch error:', err); }
 };
 
-router.post('/create', optionalAuth, async (req, res) => {
+router.post('/create', optionalAuth, checkMaintenance, async (req, res) => {
   try {
     const { items, address, totalAmount, paymentMethod, couponId, guestEmail, guestPhone,
             currency, orderCountry, subtotal, taxAmount, taxName, taxPercentage, shippingAmount, discountAmount } = req.body;
@@ -77,24 +85,50 @@ router.post('/create', optionalAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Customer information is required for guest checkout' });
     }
 
+    if (paymentMethod === 'cod') {
+      const pIds = items.map(i => i.productId);
+      const nonCodItems = await Product.find({ _id: { $in: pIds }, codAllowed: false });
+      if (nonCodItems.length > 0) {
+        return res.status(400).json({ success: false, message: `Cash on Delivery is not available for some items: ${nonCodItems.map(p => p.name).join(', ')}` });
+      }
+    }
+
     // Deduct Stock at Order Time
     for (const item of items) {
       if (item.productId) {
         let prod = await Product.findById(item.productId);
         if (prod) {
-           let updatedStock = 0; let prevStock = 0; let reasonText = req.user ? 'New Order (COD)' : 'Guest Order (COD)';
-           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+           let updatedStock = 0; let prevStock = 0; let reasonText = req.user ? 'New Order' : 'Guest Order';
            
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
            if (vIndex !== -1) {
-              prevStock = prod.variants[vIndex].stock || 0;
-              prod.variants[vIndex].stock = prevStock - item.quantity;
-              updatedStock = prod.variants[vIndex].stock;
-              reasonText += ` - Variant: ${item.color}`;
+              const variant = prod.variants[vIndex];
+              const sIndex = (item.size && variant.inventory) ? variant.inventory.findIndex(inv => inv.size === item.size) : -1;
+              
+              if (sIndex !== -1) {
+                  prevStock = variant.inventory[sIndex].stock || 0;
+                  variant.inventory[sIndex].stock = Math.max(0, prevStock - item.quantity);
+                  updatedStock = variant.inventory[sIndex].stock;
+                  reasonText += ` (${item.color} - ${item.size})`;
+              } else {
+                  prevStock = variant.stock || 0;
+                  variant.stock = Math.max(0, prevStock - item.quantity);
+                  updatedStock = variant.stock;
+                  reasonText += ` (${item.color})`;
+              }
+
+              if (sIndex !== -1) {
+                  variant.stock = variant.inventory.reduce((sum, inv) => sum + (inv.stock || 0), 0);
+              }
+              prod.stock = prod.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+              
            } else {
               prevStock = prod.stock || 0;
-              prod.stock = prevStock - item.quantity;
+              prod.stock = Math.max(0, prevStock - item.quantity);
               updatedStock = prod.stock;
            }
+
+           prod.markModified('variants');
            await prod.save();
 
            await StockLog.create({
@@ -104,11 +138,17 @@ router.post('/create', optionalAuth, async (req, res) => {
                 quantity: item.quantity,
                 previousStock: prevStock,
                 currentStock: updatedStock,
-                reason: reasonText
+                reason: reasonText, color: item.color || null, size: item.size || null
            });
 
-           if (updatedStock <= 0) {
+           // Stock alert emails
+           const stockSettings = await Settings.findOne();
+           const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
+           if (prod.stock <= 0) {
               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+              sendStockAlertEmail(prod, 'out_of_stock', 0);
+           } else if (prod.stock <= lowStockThreshold) {
+              sendStockAlertEmail(prod, 'low_stock', prod.stock);
            }
         }
       }
@@ -152,7 +192,7 @@ router.post('/create', optionalAuth, async (req, res) => {
 });
 
 // Stripe checkout
-router.post('/stripe', optionalAuth, async (req, res) => {
+router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
   try {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     const { items, address, totalAmount, couponId, currency, orderCountry, guestEmail, guestPhone,
@@ -196,18 +236,36 @@ router.post('/stripe', optionalAuth, async (req, res) => {
         let prod = await Product.findById(item.productId);
         if (prod) {
            let updatedStock = 0; let prevStock = 0; let reasonText = 'New Order (Stripe)';
-           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
            
+           const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
            if (vIndex !== -1) {
-              prevStock = prod.variants[vIndex].stock || 0;
-              prod.variants[vIndex].stock = prevStock - item.quantity;
-              updatedStock = prod.variants[vIndex].stock;
-              reasonText += ` - Variant: ${item.color}`;
+              const variant = prod.variants[vIndex];
+              const sIndex = (item.size && variant.inventory) ? variant.inventory.findIndex(inv => inv.size === item.size) : -1;
+              
+              if (sIndex !== -1) {
+                  prevStock = variant.inventory[sIndex].stock || 0;
+                  variant.inventory[sIndex].stock = Math.max(0, prevStock - item.quantity);
+                  updatedStock = variant.inventory[sIndex].stock;
+                  reasonText += ` (${item.color} - ${item.size})`;
+              } else {
+                  prevStock = variant.stock || 0;
+                  variant.stock = Math.max(0, prevStock - item.quantity);
+                  updatedStock = variant.stock;
+                  reasonText += ` (${item.color})`;
+              }
+              
+              if (sIndex !== -1) {
+                  variant.stock = variant.inventory.reduce((sum, inv) => sum + (inv.stock || 0), 0);
+              }
+              prod.stock = prod.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+              
            } else {
               prevStock = prod.stock || 0;
-              prod.stock = prevStock - item.quantity;
+              prod.stock = Math.max(0, prevStock - item.quantity);
               updatedStock = prod.stock;
            }
+
+           prod.markModified('variants');
            await prod.save();
 
            await StockLog.create({
@@ -217,11 +275,17 @@ router.post('/stripe', optionalAuth, async (req, res) => {
                 quantity: item.quantity,
                 previousStock: prevStock,
                 currentStock: updatedStock,
-                reason: reasonText
+                reason: reasonText, color: item.color || null, size: item.size || null
            });
 
-           if (updatedStock <= 0) {
+           // Stock alert emails
+           const stockSettings = await Settings.findOne();
+           const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
+           if (prod.stock <= 0) {
               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+              sendStockAlertEmail(prod, 'out_of_stock', 0);
+           } else if (prod.stock <= lowStockThreshold) {
+              sendStockAlertEmail(prod, 'low_stock', prod.stock);
            }
         }
       }
@@ -255,7 +319,7 @@ router.post('/stripe', optionalAuth, async (req, res) => {
 });
 
 // Razorpay checkout
-router.post('/razorpay', optionalAuth, async (req, res) => {
+router.post('/razorpay', optionalAuth, checkMaintenance, async (req, res) => {
   try {
     const Razorpay = require('razorpay');
     const razorpay = new Razorpay({
@@ -299,6 +363,8 @@ router.post('/razorpay', optionalAuth, async (req, res) => {
               prod.stock = prevStock - item.quantity;
               updatedStock = prod.stock;
            }
+
+           prod.markModified('variants');
            await prod.save();
 
            await StockLog.create({
@@ -308,11 +374,17 @@ router.post('/razorpay', optionalAuth, async (req, res) => {
                 quantity: item.quantity,
                 previousStock: prevStock,
                 currentStock: updatedStock,
-                reason: reasonText
+                reason: reasonText, color: item.color || null, size: item.size || null
            });
 
-           if (updatedStock <= 0) {
+           // Stock alert emails
+           const stockSettingsRz = await Settings.findOne();
+           const lowStockThresholdRz = stockSettingsRz?.notifications?.lowStockThreshold ?? 5;
+           if (prod.stock <= 0) {
               await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+              sendStockAlertEmail(prod, 'out_of_stock', 0);
+           } else if (prod.stock <= lowStockThresholdRz) {
+              sendStockAlertEmail(prod, 'low_stock', prod.stock);
            }
         }
       }
@@ -444,11 +516,34 @@ router.post('/guest-return', upload.array('images', 5), async (req, res) => {
     }
 
     const settings = await Settings.findOne();
-    const maxDays = settings?.returnWindowDays ?? 7;
-    const diffDays = Math.ceil(Math.abs(new Date() - new Date(order.updatedAt)) / (1000 * 60 * 60 * 24));
+    const globalReturnDays = settings?.returnWindowDays ?? 7;
+
+    const productIds = order.items.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    let minReturnDays = globalReturnDays;
+    let nonReturnableItemNames = [];
+
+    for (const item of order.items) {
+      const prod = products.find(p => p._id.toString() === item.productId.toString());
+      if (prod) {
+         if (prod.returnWindowDays === 0) {
+            nonReturnableItemNames.push(prod.name);
+         } else if (prod.returnWindowDays !== null && prod.returnWindowDays !== undefined) {
+            minReturnDays = Math.min(minReturnDays, prod.returnWindowDays);
+         }
+      }
+    }
+
+    if (nonReturnableItemNames.length > 0) {
+       return res.status(400).json({ success: false, message: `Order contains non-returnable items: ${nonReturnableItemNames.join(', ')}` });
+    }
+
+    const deliveryDate = order.deliveredAt || order.updatedAt;
+    const diffDays = Math.ceil(Math.abs(new Date() - new Date(deliveryDate)) / (1000 * 60 * 60 * 24));
     
-    if (diffDays > maxDays) {
-       return res.status(400).json({ success: false, message: `Return window of ${maxDays} days has expired.` });
+    if (diffDays > minReturnDays) {
+       return res.status(400).json({ success: false, message: `Return window of ${minReturnDays} days has expired.` });
     }
 
     order.returnRequested = true;
@@ -495,18 +590,58 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
       if (item.productId) {
         let prod = await Product.findById(item.productId);
         if (prod) {
+           let prevStock = 0;
+           let updatedStock = 0;
+           let baseReason = `Order Cancelled: #${order._id.toString().slice(-8).toUpperCase()}`;
+
            const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
            if (vIndex !== -1) {
-              prod.variants[vIndex].stock = (prod.variants[vIndex].stock || 0) + item.quantity;
+              const variant = prod.variants[vIndex];
+              const sIndex = (item.size && variant.inventory) ? variant.inventory.findIndex(inv => inv.size === item.size) : -1;
+              
+              if (sIndex !== -1) {
+                 prevStock = variant.inventory[sIndex].stock || 0;
+                 variant.inventory[sIndex].stock = prevStock + item.quantity;
+                 updatedStock = variant.inventory[sIndex].stock;
+                 baseReason += ` (${item.color} - ${item.size})`;
+              } else {
+                 prevStock = variant.stock || 0;
+                 variant.stock = prevStock + item.quantity;
+                 updatedStock = variant.stock;
+                 baseReason += ` (${item.color})`;
+              }
+              
+              if (sIndex !== -1) {
+                 variant.stock = variant.inventory.reduce((sum, inv) => sum + (inv.stock || 0), 0);
+              }
+              prod.stock = prod.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+              
            } else {
-              prod.stock = (prod.stock || 0) + item.quantity;
+              prevStock = prod.stock || 0;
+              prod.stock = prevStock + item.quantity;
+              updatedStock = prod.stock;
            }
+
+
+           prod.markModified('variants');
            await prod.save();
+
+           await StockLog.create({
+              productId: prod._id,
+              userId: req.user.id,
+              action: 'increment',
+              quantity: item.quantity,
+              previousStock: prevStock,
+              currentStock: updatedStock,
+              reason: baseReason, color: item.color || null, size: item.size || null
+           });
         }
       }
     }
 
     order.orderStatus = 'cancelled';
+    order.cancellationReason = req.body.reason || 'Cancelled by user';
+    order.cancelledBy = 'user';
     await order.save();
 
     // Dispatch Cancellation Email
@@ -537,11 +672,34 @@ router.post('/:id/return', authMiddleware, upload.array('images', 5), async (req
     }
 
     const settings = await Settings.findOne();
-    const maxDays = settings?.returnWindowDays ?? 7;
-    const diffDays = Math.ceil(Math.abs(new Date() - new Date(order.updatedAt)) / (1000 * 60 * 60 * 24));
+    const globalReturnDays = settings?.returnWindowDays ?? 7;
+
+    const productIds = order.items.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    let minReturnDays = globalReturnDays;
+    let nonReturnableItemNames = [];
+
+    for (const item of order.items) {
+      const prod = products.find(p => p._id.toString() === item.productId.toString());
+      if (prod) {
+         if (prod.returnWindowDays === 0) {
+            nonReturnableItemNames.push(prod.name);
+         } else if (prod.returnWindowDays !== null && prod.returnWindowDays !== undefined) {
+            minReturnDays = Math.min(minReturnDays, prod.returnWindowDays);
+         }
+      }
+    }
+
+    if (nonReturnableItemNames.length > 0) {
+       return res.status(400).json({ success: false, message: `Order contains non-returnable items: ${nonReturnableItemNames.join(', ')}` });
+    }
+
+    const deliveryDate = order.deliveredAt || order.updatedAt;
+    const diffDays = Math.ceil(Math.abs(new Date() - new Date(deliveryDate)) / (1000 * 60 * 60 * 24));
     
-    if (diffDays > maxDays) {
-       return res.status(400).json({ success: false, message: `Return window of ${maxDays} days has expired.` });
+    if (diffDays > minReturnDays) {
+       return res.status(400).json({ success: false, message: `Return window of ${minReturnDays} days has expired.` });
     }
 
     order.returnRequested = true;
@@ -566,11 +724,29 @@ router.post('/:id/return', authMiddleware, upload.array('images', 5), async (req
 // Get all orders (admin)
 router.get('/all', adminMiddleware, async (req, res) => {
   try {
-    const { status, page = 1, limit = 20, startDate, endDate, returns } = req.query;
+    const { status, page = 1, limit = 20, startDate, endDate, returns, returnStatus } = req.query;
     const query = status && status !== 'returns' ? { orderStatus: status } : {};
     
     if (returns === 'true' || status === 'returns') {
       query.returnRequested = true;
+      
+      // Apply specific return status filter if provided
+      if (returnStatus && returnStatus !== 'all') {
+        if (returnStatus === 'return_request') {
+          query.returnStatus = 'pending';
+        } else if (returnStatus === 'return_approved') {
+          query.returnStatus = 'approved';
+        } else if (returnStatus === 'item_received') {
+          query.returnStatus = 'received';
+        } else if (returnStatus === 'refund_pending') {
+          query.returnStatus = 'received';
+          query.paymentStatus = 'pending';
+        } else if (returnStatus === 'refunded') {
+          query.paymentStatus = 'refunded';
+        } else if (returnStatus === 'return_cancelled') {
+          query.returnStatus = 'rejected';
+        }
+      }
     }
     
     if (startDate && endDate) {
@@ -593,7 +769,71 @@ router.put('/:id/status', adminMiddleware, async (req, res) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
     
     const update = {};
-    if (orderStatus) update.orderStatus = orderStatus;
+    if (orderStatus) {
+      update.orderStatus = orderStatus;
+      if (orderStatus === 'delivered' && order.orderStatus !== 'delivered') {
+        update.deliveredAt = new Date();
+      }
+      if (orderStatus === 'cancelled') {
+        update.cancellationReason = req.body.cancellationReason || 'Cancelled by administrator';
+        update.cancelledBy = 'admin';
+        
+        // Restore stock if admin cancels
+        if (order.orderStatus !== 'cancelled') {
+            for (const item of order.items) {
+                if (item.productId) {
+                    let prod = await Product.findById(item.productId);
+                    if (prod) {
+                        let prevStock = 0;
+                        let updatedStock = 0;
+                        let baseReason = `Order Cancelled (Admin): #${order._id.toString().slice(-8).toUpperCase()}`;
+                        
+                        const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
+                        if (vIndex !== -1) {
+                            const variant = prod.variants[vIndex];
+                            const sIndex = (item.size && variant.inventory) ? variant.inventory.findIndex(inv => inv.size === item.size) : -1;
+                            
+                            if (sIndex !== -1) {
+                                prevStock = variant.inventory[sIndex].stock || 0;
+                                variant.inventory[sIndex].stock = prevStock + item.quantity;
+                                updatedStock = variant.inventory[sIndex].stock;
+                                baseReason += ` (${item.color} - ${item.size})`;
+                            } else {
+                                prevStock = variant.stock || 0;
+                                variant.stock = prevStock + item.quantity;
+                                updatedStock = variant.stock;
+                                baseReason += ` (${item.color})`;
+                            }
+                            
+                            if (sIndex !== -1) {
+                                variant.stock = variant.inventory.reduce((sum, inv) => sum + (inv.stock || 0), 0);
+                            }
+                            prod.stock = prod.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+                            
+                        } else {
+                            prevStock = prod.stock || 0;
+                            prod.stock = prevStock + item.quantity;
+                            updatedStock = prod.stock;
+                        }
+
+           prod.markModified('variants');
+           await prod.save();
+
+                        await StockLog.create({
+                           productId: prod._id,
+                           userId: req.user.id === 'admin' ? null : req.user.id,
+                           action: 'increment',
+                           quantity: item.quantity,
+                           previousStock: prevStock,
+                           currentStock: updatedStock,
+                           reason: baseReason, color: item.color || null, size: item.size || null
+                        });
+                    }
+                }
+            }
+        }
+      }
+    }
     if (paymentStatus) update.paymentStatus = paymentStatus;
     if (carrierName !== undefined) update.carrierName = carrierName;
     if (trackingId !== undefined) update.trackingId = trackingId;
@@ -606,34 +846,52 @@ router.put('/:id/status', adminMiddleware, async (req, res) => {
              let prod = await Product.findById(item.productId);
              if (prod) {
                 let updatedStock = 0; let prevStock = 0; let baseReason = `Return Received: Order #${order._id.toString().slice(-8).toUpperCase()}`;
+                
                 const vIndex = (item.color && prod.variants) ? prod.variants.findIndex(v => v.color === item.color) : -1;
-
                 if (vIndex !== -1) {
-                   prevStock = prod.variants[vIndex].stock || 0;
-                   prod.variants[vIndex].stock = prevStock + item.quantity;
-                   updatedStock = prod.variants[vIndex].stock;
-                   baseReason += ` - Variant: ${item.color}`;
+                    const variant = prod.variants[vIndex];
+                    const sIndex = (item.size && variant.inventory) ? variant.inventory.findIndex(inv => inv.size === item.size) : -1;
+                    
+                    if (sIndex !== -1) {
+                        prevStock = variant.inventory[sIndex].stock || 0;
+                        variant.inventory[sIndex].stock = prevStock + item.quantity;
+                        updatedStock = variant.inventory[sIndex].stock;
+                        baseReason += ` (${item.color} - ${item.size})`;
+                    } else {
+                        prevStock = variant.stock || 0;
+                        variant.stock = prevStock + item.quantity;
+                        updatedStock = variant.stock;
+                        baseReason += ` (${item.color})`;
+                    }
+                    
+                    if (sIndex !== -1) {
+                        variant.stock = variant.inventory.reduce((sum, inv) => sum + (inv.stock || 0), 0);
+                    }
+                    prod.stock = prod.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+                    
                 } else {
                    prevStock = prod.stock || 0;
                    prod.stock = prevStock + item.quantity;
                    updatedStock = prod.stock;
                 }
                 
-                await prod.save();
+
+           prod.markModified('variants');
+           await prod.save();
 
                 // Record the inventory movement
                 await StockLog.create({
                    productId: prod._id,
-                   userId: req.user.id,
+                   userId: req.user.id === 'admin' ? null : req.user.id,
                    action: 'increment',
                    quantity: item.quantity,
                    previousStock: prevStock,
                    currentStock: updatedStock,
-                   reason: baseReason
+                   reason: baseReason, color: item.color || null, size: item.size || null
                 });
                 
                 // If it was sold out, clear the label
-                if (updatedStock > 0 && prod.label === 'Sold Out') {
+                if (prod.stock > 0 && prod.label === 'Sold Out') {
                    await Product.findByIdAndUpdate(item.productId, { label: '' });
                 }
              }

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
-import { PRODUCT_FALLBACK } from '../assets/images';
-
 export default function RecentlyViewed() {
-  const { BACKEND_URL } = useShop();
+  const { getFullImgUrl, settings } = useShop();
+  const recentFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
   const [items, setItems] = useState([]);
   const [visible, setVisible] = useState(true);
 
@@ -23,7 +22,6 @@ export default function RecentlyViewed() {
     }
   }, [items]);
 
-  const getImg = (img) => img?.startsWith('http') ? img : `${BACKEND_URL}${img}`;
 
   if (!visible || items.length === 0) return null;
 
@@ -36,9 +34,13 @@ export default function RecentlyViewed() {
             <Link key={p._id} to={`/product/${p._id}`}
               className="shrink-0 flex items-center gap-3 group hover:bg-gray-50 rounded-xl px-3 py-1.5 transition-all">
               <div className="w-10 h-12 overflow-hidden bg-gray-50 border border-gray-100 rounded-lg shrink-0">
-                <img src={getImg(p.images?.[0])} alt={p.name}
+                <img src={p.images?.[0] ? getFullImgUrl(p.images[0]) : recentFallback} alt={p.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
+                  onError={e => { 
+                    if (recentFallback && e.target.src !== recentFallback) {
+                      e.target.src = recentFallback;
+                    }
+                  }} />
               </div>
               <div className="hidden sm:block">
                 <p className="text-[10px] font-bold text-gray-900 group-hover:text-black transition-colors line-clamp-1 max-w-[100px]">{p.name}</p>

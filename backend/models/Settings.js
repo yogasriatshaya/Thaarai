@@ -68,7 +68,7 @@ const settingsSchema = new mongoose.Schema({
   // Social Links
   socialLinks: {
     instagram: { type: String, default: '' },
-    facebook: { type: String, default: '' },
+    whatsapp: { type: String, default: '' },
     pinterest: { type: String, default: '' }
   },
   
@@ -78,8 +78,13 @@ const settingsSchema = new mongoose.Schema({
     orderConfirmation: { type: Boolean, default: true },
     returnRequest: { type: Boolean, default: true },
     lowStockAlert: { type: Boolean, default: true },
+    lowStockThreshold: { type: Number, default: 5 },
     dailyReport: { type: Boolean, default: false }
-  }
+  },
+
+  // Global Media Fallbacks
+  bannerFallback: { type: String, default: '' },
+  productFallback: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Settings', settingsSchema);

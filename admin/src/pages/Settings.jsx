@@ -28,7 +28,7 @@ export default function Settings() {
     defaultCountry: 'IN',
     returnWindowDays: 7,
     countryConfig: DEFAULT_COUNTRY_CONFIG,
-    socialLinks: { instagram: '', facebook: '', pinterest: '' },
+    socialLinks: { instagram: '', whatsapp: '', pinterest: '' },
     notifications: {
       adminNotificationEmail: '',
       orderConfirmation: true,
@@ -144,7 +144,7 @@ export default function Settings() {
           <h4 className="font-serif text-sm font-bold text-charcoal">{label}</h4>
           <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100">{config.currency || code}</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div>
             <label className="block text-gray-400 mb-1">Tax Name</label>
             <input type="text" value={config.taxName || ''} onChange={e => updateCountryConfig(code, 'taxName', e.target.value)} className="input-field" placeholder="GST / Sales Tax" />
@@ -207,18 +207,7 @@ export default function Settings() {
             {activeTab === 'general' && (
               <div className="space-y-4 animate-fade-in">
                 <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">General Configuration</h3>
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="block text-gray-400 mb-1">Website Title</label>
-                    <input type="text" value={settings.siteName || ''} onChange={e => setSettings({...settings, siteName: e.target.value})} className="input-field" placeholder="Thaarai Designers" />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 mb-1">Default Country</label>
-                    <select value={settings.defaultCountry || 'IN'} onChange={e => setSettings({...settings, defaultCountry: e.target.value})} className="input-field">
-                      <option value="IN">🇮🇳 India</option>
-                      <option value="US">🇺🇸 United States</option>
-                    </select>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <label className="block text-gray-400 mb-1">Support Email</label>
                     <input type="email" value={settings.contactEmail || ''} onChange={e => setSettings({...settings, contactEmail: e.target.value})} className="input-field" placeholder="support@thaarai.test" />
@@ -236,12 +225,12 @@ export default function Settings() {
                 <h4 className="font-serif text-charcoal mt-6 border-b pb-1">Social Links</h4>
                 <div className="grid grid-cols-1 gap-3 text-xs">
                     <div>
-                      <label className="block text-gray-400 mb-1">Instagram Profile URL</label>
-                      <input type="text" value={settings.socialLinks?.instagram || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} className="input-field" placeholder="https://instagram.com/thaarai" />
-                    </div>
-                    <div>
-                      <label className="block text-gray-400 mb-1">Facebook Page URL</label>
-                      <input type="text" value={settings.socialLinks?.facebook || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, facebook: e.target.value}})} className="input-field" placeholder="https://facebook.com/thaarai" />
+                        <label className="block text-gray-400 mb-1">Instagram Profile URL / Handle</label>
+                        <input type="text" value={settings.socialLinks?.instagram || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})} className="input-field" placeholder="https://instagram.com/thaarai" />
+                      </div>
+                      <div>
+                        <label className="block text-gray-400 mb-1">WhatsApp URL (or number)</label>
+                        <input type="text" value={settings.socialLinks?.whatsapp || ''} onChange={e => setSettings({...settings, socialLinks: {...settings.socialLinks, whatsapp: e.target.value}})} className="input-field" placeholder="https://wa.me/919000000000" />
                     </div>
                 </div>
               </div>
@@ -259,7 +248,7 @@ export default function Settings() {
             {activeTab === 'mail' && (
               <div className="space-y-4 animate-fade-in">
                 <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">Email Setup (SMTP)</h3>
-                <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <label className="block text-gray-400 mb-1">SMTP Host</label>
                     <input type="text" value={settings.smtpConfig?.host || ''} onChange={e => setSettings({...settings, smtpConfig: {...settings.smtpConfig, host: e.target.value}})} className="input-field" placeholder="smtp.mailtrap.io" />
@@ -352,10 +341,10 @@ export default function Settings() {
                 {/* Test Email */}
                 <div className="border-t pt-4 mt-8">
                   <h4 className="font-serif text-sm text-charcoal mb-2">Trigger Test Delivery</h4>
-                  <div className="flex gap-2 text-xs">
+                  <div className="flex flex-col sm:flex-row gap-2 text-xs">
                     <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} className="input-field flex-1" placeholder="Enter recipient email to verify connection" />
                     <button type="button" onClick={handleSendTestEmail} disabled={sendingTest}
-                       className="btn-outline flex items-center justify-center min-w-[120px]">
+                       className="btn-outline flex items-center justify-center min-w-[120px] py-3 sm:py-0">
                       {sendingTest ? 'Sending...' : 'Send Test Address'}
                     </button>
                   </div>
@@ -365,21 +354,21 @@ export default function Settings() {
 
             {activeTab === 'maintenance' && (
               <div className="space-y-4 animate-fade-in">
-                <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">Maintenance Mode Diagnostics</h3>
-                <div className="flex items-center gap-3 bg-red-50 p-4 border border-red-100 rounded">
-                  <input type="checkbox" checked={settings.maintenanceMode} onChange={e => setSettings({...settings, maintenanceMode: e.target.checked})} className="scale-125" id="maintenance" />
-                  <div>
-                    <label htmlFor="maintenance" className="text-sm font-bold text-red-800">Enable Maintenance Lockout Mode</label>
-                    <p className="text-xs text-red-600 mt-0.5">Activating this will redirect all customer traffic downwards to maintenance status layouts.</p>
+                  <h3 className="font-serif text-lg text-charcoal border-b pb-2 mb-4">Purchasing Lockout Mode</h3>
+                  <div className="flex items-center gap-3 bg-red-50 p-4 border border-red-100 rounded">
+                    <input type="checkbox" checked={settings.maintenanceMode} onChange={e => setSettings({...settings, maintenanceMode: e.target.checked})} className="scale-125" id="maintenance" />
+                    <div>
+                      <label htmlFor="maintenance" className="text-sm font-bold text-red-800">Disable All Purchases</label>
+                      <p className="text-xs text-red-600 mt-0.5">Activating this will keep your website online but prevent customers from adding items to their cart or proceeding to checkout.</p>
+                    </div>
+                  </div>
+
+                  <div className="text-xs space-y-1">
+                    <label className="block text-gray-400">Checkout Disabled Message</label>
+                    <textarea rows={4} value={settings.maintenanceMessage} onChange={e => setSettings({...settings, maintenanceMessage: e.target.value})} className="input-field" placeholder="Example: We are not accepting orders right now. Please check back tomorrow." />
                   </div>
                 </div>
-
-                <div className="text-xs space-y-1">
-                  <label className="block text-gray-400">Offline Access Blocked Screen Message</label>
-                  <textarea rows={4} value={settings.maintenanceMessage} onChange={e => setSettings({...settings, maintenanceMessage: e.target.value})} className="input-field" placeholder="Maintenance message content" />
-                </div>
-              </div>
-            )}
+              )}
 
             <div className="border-t pt-4 flex justify-end">
                <div className="flex items-center gap-4">

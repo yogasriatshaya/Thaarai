@@ -11,7 +11,13 @@ const reviewSchema = new mongoose.Schema({
 
 const variantSchema = new mongoose.Schema({
   color: { type: String, required: true },
-  image: { type: String }, // specific image for this color
+  images: [{ type: String }], // multiple images for this color
+  // Matrix Inventory: Track stock for each size within this color
+  inventory: [{
+    size: { type: String, required: true },
+    stock: { type: Number, default: 0 }
+  }],
+  // Backward compatibility fallback
   stock: { type: Number, default: 0 }
 });
 
@@ -53,7 +59,10 @@ const productSchema = new mongoose.Schema({
   offerPriceUSDIndia: { type: Number, default: 0 },
   offerEndTimeUSA: { type: Date, default: null },
   offerActiveUSA: { type: Boolean, default: false },
-  offerPriceUSDUSA: { type: Number, default: 0 }
+  offerPriceUSDUSA: { type: Number, default: 0 },
+  // Custom Product Restrictions
+  codAllowed: { type: Boolean, default: true },
+  returnWindowDays: { type: Number, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', productSchema);

@@ -11,6 +11,7 @@ import Inventory from './pages/Inventory';
 import Coupons from './pages/Coupons';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
+import Banners from './pages/Banners';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/inventory" element={<PrivateRoute><Inventory /></PrivateRoute>} />
         <Route path="/coupons" element={<PrivateRoute><Coupons /></PrivateRoute>} />
         <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+        <Route path="/banners" element={<PrivateRoute><Banners /></PrivateRoute>} />
         <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
       </Routes>
       <ToastContainer position="top-right" autoClose={3000}

@@ -24,6 +24,7 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/coupons', require('./routes/coupons'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/banners', require('./routes/banners'));
 
 app.get('/', (req, res) => res.send('Thaarai Designer Studio API Running'));
 

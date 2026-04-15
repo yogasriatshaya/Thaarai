@@ -87,7 +87,7 @@ export default function Coupons() {
           </div>
           <div className="md:col-span-2 card p-5 flex flex-col h-full">
               <h3 className="font-serif text-charcoal mb-4 flex items-center gap-2"><Ticket size={16} className="text-gold-600" /> Active Coupons</h3>
-              <div className="flex-1 overflow-x-auto">
+              <div className="flex-1 overflow-x-auto no-scrollbar">
                 {loading ? <p className="text-xs text-gray-400 p-4">Loading...</p> : coupons.length === 0 ? <p className="text-gray-400 text-xs p-4">No promos created.</p> : (
                     <table className="w-full text-xs font-sans">
                       <thead><tr className="bg-gray-50 border-b"><th className="text-left p-2">Code</th><th className="text-left p-2">Discount</th><th className="text-left p-2">Usage</th><th className="text-left p-2">Expiry</th><th className="text-right p-2"></th></tr></thead>

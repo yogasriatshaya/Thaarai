@@ -5,13 +5,13 @@ import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
 import API from '../api';
 import { toast } from 'react-toastify';
-import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 export default function Checkout() {
   const { cartData, setCartData, token, BACKEND_URL, getFullImgUrl, removeFromCart, settings } = useShop();
   const { formatPrice, country, currency, currencySymbol, countryName } = useCurrency();
   const navigate = useNavigate();
+  const checkoutFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -28,10 +28,71 @@ export default function Checkout() {
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', addressLine: '', city: '', postalCode: '', country: countryName
   });
+
+  useEffect(() => {
+    if (settings?.maintenanceMode) {
+      toast.error(settings.maintenanceMessage || 'Purchasing is currently disabled.');
+      navigate('/cart');
+    }
+  }, [settings?.maintenanceMode, navigate, settings?.maintenanceMessage]);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [couponId, setCouponId] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+
+  const validateField = (name, value) => {
+    let error = '';
+    const val = value.trim();
+    
+    if (!val) {
+      error = `${name.replace(/([A-Z])/g, ' $1')} is required`;
+    } else {
+      if (name === 'fullName' && val.length > 40) error = 'Full name cannot exceed 40 characters';
+      if (name === 'email') {
+        if (!/\S+@\S+\.\S+/.test(val)) error = 'Please enter a valid email address';
+        else if (val.length > 50) error = 'Email is too long (max 50)';
+      }
+      if (name === 'phone') {
+        if (!/^\d+$/.test(val)) error = 'Phone should only contain numbers';
+        else if (val.length < 10) error = 'Minimum 10 digits required';
+        else if (val.length > 12) error = 'Phone cannot exceed 12 digits';
+      }
+      if (name === 'addressLine' && val.length > 100) error = 'Address is too long (max 100)';
+      if (name === 'city' && val.length > 30) error = 'City name is too long (max 30)';
+      if (name === 'postalCode') {
+        if (!/^\d+$/.test(val)) error = 'Postal code should be numeric';
+        else if (country === 'IN' && val.length !== 6) error = 'Pincode must be 6 digits';
+      }
+    }
+    return error;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    const error = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    let finalValue = value;
+    
+    // Numeric formatting for specific fields
+    if (name === 'phone' || name === 'postalCode') {
+      finalValue = value.replace(/\D/g, '');
+    }
+
+    setForm({ ...form, [name]: finalValue });
+    
+    // Clear error while typing if it becomes valid
+    if (touched[name]) {
+      const error = validateField(name, finalValue);
+      setErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
 
   // Update form country when country switcher changes
   useEffect(() => {
@@ -117,8 +178,6 @@ export default function Checkout() {
     } finally { setCouponLoading(false); }
   };
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-
   const hasUnavailableItems = cartItems.some(item => 
     (country === 'IN' && item.availableInIndia === false) ||
     (country === 'US' && item.availableInUS === false)
@@ -126,12 +185,23 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (hasUnavailableItems) {
-      toast.error('Please remove items from your cart that are not available in your region.');
+    
+    // Final check for all fields
+    const newErrors = {};
+    Object.keys(form).forEach(key => {
+      const error = validateField(key, form[key]);
+      if (error) newErrors[key] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setTouched(Object.keys(form).reduce((acc, k) => ({...acc, [k]: true}), {}));
+      toast.error('Please correct the errors in the form');
       return;
     }
-    if (!form.fullName || !form.phone || !form.addressLine || !form.city || !form.postalCode) {
-      toast.error('Please fill all delivery fields');
+
+    if (hasUnavailableItems) {
+      toast.error('Please remove items from your cart that are not available in your region.');
       return;
     }
 
@@ -264,27 +334,33 @@ export default function Checkout() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Full Name</label>
-                  <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Sarah Jenkins" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="fullName" value={form.fullName} onChange={handleChange} onBlur={handleBlur} maxLength={40} placeholder="Sarah Jenkins" className={`w-full p-3 bg-gray-50/80 border ${errors.fullName && touched.fullName ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.fullName && touched.fullName && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.fullName}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
-                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="sarah@example.com" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="email" type="email" value={form.email} onChange={handleChange} onBlur={handleBlur} maxLength={40} placeholder="sarah@example.com" className={`w-full p-3 bg-gray-50/80 border ${errors.email && touched.email ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.email && touched.email && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.email}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Phone</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="Mobile Number" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={handleBlur} maxLength={12} placeholder="Mobile Number" className={`w-full p-3 bg-gray-50/80 border ${errors.phone && touched.phone ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.phone && touched.phone && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phone}</p>}
                 </div>
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line</label>
-                  <input name="addressLine" value={form.addressLine} onChange={handleChange} placeholder={country === 'US' ? 'Street Address, Apt/Suite' : 'Flat/House No, Street, Landmark'} className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="addressLine" value={form.addressLine} onChange={handleChange} onBlur={handleBlur} maxLength={100} placeholder={country === 'US' ? 'Street Address, Apt/Suite' : 'Flat/House No, Street, Landmark'} className={`w-full p-3 bg-gray-50/80 border ${errors.addressLine && touched.addressLine ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.addressLine && touched.addressLine && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.addressLine}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">City</label>
-                  <input name="city" value={form.city} onChange={handleChange} placeholder="City Name" className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="city" value={form.city} onChange={handleChange} onBlur={handleBlur} maxLength={30} placeholder="City Name" className={`w-full p-3 bg-gray-50/80 border ${errors.city && touched.city ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.city && touched.city && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.city}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{country === 'US' ? 'ZIP Code' : 'Pincode'}</label>
-                  <input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder={country === 'US' ? '10001' : '600001'} className="w-full p-3 bg-gray-50/80 border border-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm" required />
+                  <input name="postalCode" value={form.postalCode} onChange={handleChange} onBlur={handleBlur} maxLength={country === 'IN' ? 6 : 10} placeholder={country === 'US' ? '10001' : '600001'} className={`w-full p-3 bg-gray-50/80 border ${errors.postalCode && touched.postalCode ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.postalCode && touched.postalCode && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.postalCode}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Country</label>
@@ -375,11 +451,15 @@ export default function Checkout() {
                     <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
                       {isItemUnavailable && <div className="absolute inset-0 bg-red-500/10 z-10"></div>}
                       <img
-                        src={displayImage ? getFullImgUrl(displayImage) : PRODUCT_FALLBACK}
+                        src={displayImage ? getFullImgUrl(displayImage) : checkoutFallback}
 
                         alt={item.name}
                         className="w-full h-full object-cover"
-                        onError={e => { e.target.src = PRODUCT_FALLBACK; }}
+                        onError={e => { 
+                           if (checkoutFallback && e.target.src !== checkoutFallback) {
+                              e.target.src = checkoutFallback;
+                           }
+                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -417,7 +497,7 @@ export default function Checkout() {
               {/* Promo Code Input */}
               <div className="border-t border-gray-100 pt-4">
                 <div className="flex gap-2">
-                  <input type="text" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} placeholder="PROMO CODE" className="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-sans font-bold uppercase tracking-wider focus:outline-none focus:border-purple-400 focus:bg-white" />
+                  <input type="text" maxLength={15} value={couponCode} onChange={e => setCouponCode(e.target.value.substring(0, 15).toUpperCase())} placeholder="PROMO CODE" className="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-sans font-bold uppercase tracking-wider focus:outline-none focus:border-purple-400 focus:bg-white" />
                   <button type="button" disabled={couponLoading || discount > 0} onClick={handleApplyCoupon} className="bg-purple-100 text-purple-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50">
                     {discount > 0 ? 'Applied' : 'Apply'}
                   </button>

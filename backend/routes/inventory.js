@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const StockLog = require('../models/StockLog');
+const Settings = require('../models/Settings');
 const { adminMiddleware, authMiddleware } = require('../middleware/auth');
+const { sendStockAlertEmail } = require('../utils/email');
 
 // @route   GET /api/inventory/logs
 // @desc    Get Stock movement logs
@@ -76,15 +78,42 @@ router.get('/sold-stats', authMiddleware, adminMiddleware, async (req, res) => {
 // @desc    Adjust product stock manually
 router.put('/adjust/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { quantity, reason } = req.body;
+        const { quantity, reason, variantId, size } = req.body;
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
         const previousStock = product.stock || 0;
-        product.stock = (product.stock || 0) + Number(quantity);
-        if (product.stock < 0) product.stock = 0; // Guard.
+        
+        let adjusted = false;
+        let pColor = '';
+
+        if (variantId && size) {
+            const variant = product.variants.id(variantId);
+            if (variant) {
+                pColor = variant.color;
+                const invItem = variant.inventory.find(i => i.size === size);
+                if (invItem) {
+                    invItem.stock = Math.max(0, (invItem.stock || 0) + Number(quantity));
+                    adjusted = true;
+                }
+            }
+        }
+        
+        if (!adjusted) {
+             // Fallback if no variant/size specified or found
+             product.stock = Math.max(0, (product.stock || 0) + Number(quantity));
+        } else {
+             // Recalculate variant stock and total product stock
+             product.variants.forEach(v => {
+                 v.stock = v.inventory.reduce((sum, item) => sum + (item.stock || 0), 0);
+             });
+             product.stock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+        }
+
         if (product.stock <= 0) product.label = 'Sold Out'; // Auto markdown logic.
 
+
+        product.markModified('variants');
         await product.save();
 
         const logData = {
@@ -93,13 +122,26 @@ router.put('/adjust/:id', authMiddleware, adminMiddleware, async (req, res) => {
             quantity: Math.abs(Number(quantity)),
             previousStock,
             currentStock: product.stock,
-            reason: reason || 'Manual Adjustment'
+            reason: reason || (variantId && size ? `Manual Adjustment (${size})` : 'Manual Adjustment'),
+            color: pColor || null,
+            size: size || null
         };
         if (req.user.id !== 'admin') {
              logData.userId = req.user.id;
         }
 
         const log = await StockLog.create(logData);
+
+        // Send stock alert email if stock dropped to or below threshold
+        if (Number(quantity) < 0) {
+            const stockSettings = await Settings.findOne();
+            const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
+            if (product.stock <= 0) {
+                sendStockAlertEmail(product, 'out_of_stock', 0, reason);
+            } else if (product.stock <= lowStockThreshold) {
+                sendStockAlertEmail(product, 'low_stock', product.stock, reason);
+            }
+        }
 
         res.json({ success: true, message: 'Stock adjusted successfully', product, log });
     } catch (err) {

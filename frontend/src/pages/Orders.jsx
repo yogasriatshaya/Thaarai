@@ -5,33 +5,38 @@ import { toast } from 'react-toastify';
 import { formatPrice } from '../utils/priceUtils';
 import ConfirmModal from '../components/ConfirmModal';
 import { useShop } from '../context/ShopContext';
-import { PRODUCT_FALLBACK } from '../assets/images';
-
 export function Orders() {
-  const { getFullImgUrl } = useShop();
+  const { getFullImgUrl, settings } = useShop();
+  const orderFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [expandedOrders, setExpandedOrders] = useState({});
   const [returnDays, setReturnDays] = useState(7);
-  const [confirmModal, setConfirmModal] = useState({ open: false, orderId: null });
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedCancelOrder, setSelectedCancelOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   const toggleExpand = (id) => {
     setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleCancelOrder = (orderId) => {
-    setConfirmModal({ open: true, orderId });
+    setSelectedCancelOrder(orderId);
+    setCancelModalOpen(true);
   };
 
   const executeCancel = async () => {
-    const { orderId } = confirmModal;
-    setConfirmModal({ ...confirmModal, open: false });
+    if (!cancelReason.trim()) return toast.error("Please provide a reason for cancellation");
     try {
-      const res = await API.put(`/orders/${orderId}/cancel`);
+      const res = await API.put(`/orders/${selectedCancelOrder}/cancel`, { reason: cancelReason });
       if (res.data.success) {
         toast.success("Order cancelled successfully");
-        setOrders(orders.map(o => o._id === orderId ? { ...o, orderStatus: 'cancelled' } : o));
+        setOrders(orders.map(o => o._id === selectedCancelOrder ? { ...o, orderStatus: 'cancelled', cancellationReason: cancelReason } : o));
+        setCancelModalOpen(false);
+        setSelectedCancelOrder(null);
+        setCancelReason('');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel order");
@@ -53,7 +58,20 @@ export function Orders() {
   const isReturnExpired = (order) => {
     if (order.orderStatus !== 'delivered') return false;
     const diffDays = Math.ceil(Math.abs(new Date() - new Date(order.updatedAt)) / (1000 * 60 * 60 * 24));
-    return diffDays > returnDays;
+    
+    // Minimum/safest return window from all items in order
+    // If any item has a custom window, use the max custom window amongst items, or fallback to global
+    let applicableWindow = returnDays;
+    if (order.items && order.items.length > 0) {
+      const customWindows = order.items
+        .map(i => i.product?.returnWindowDays)
+        .filter(w => w !== null && w !== undefined);
+      if (customWindows.length > 0) {
+         applicableWindow = Math.min(...customWindows); // Using minimum to be safe, or could use Math.max
+      }
+    }
+    
+    return diffDays > applicableWindow;
   };
 
   const [returnModalOpen, setReturnModalOpen] = useState(false);
@@ -119,7 +137,32 @@ export function Orders() {
     }
   };
 
-  const filteredOrders = activeFilter === 'all' ? orders : orders.filter(o => o.orderStatus === activeFilter);
+  const filteredOrders = orders.filter(o => {
+    if (activeFilter !== 'all' && o.orderStatus !== activeFilter) return false;
+    
+    if (timeFilter !== 'all') {
+      const orderDate = new Date(o.createdAt || o.updatedAt);
+      const now = new Date();
+      if (timeFilter === '30days') {
+        const diffDays = Math.ceil(Math.abs(now - orderDate) / (1000 * 60 * 60 * 24));
+        if (diffDays > 30) return false;
+      } else if (timeFilter === '6months') {
+        const diffMonths = (now.getFullYear() - orderDate.getFullYear()) * 12 + now.getMonth() - orderDate.getMonth();
+        if (diffMonths > 6) return false;
+      } else if (!isNaN(timeFilter)) {
+        if (orderDate.getFullYear().toString() !== timeFilter) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const availableYears = [...new Set(orders.map(o => new Date(o.createdAt || o.updatedAt).getFullYear()))].sort((a, b) => b - a);
+  const timeFilterOptions = [
+    { label: 'Last 30 days', value: '30days' },
+    { label: 'Last 6 months', value: '6months' },
+    ...availableYears.map(y => ({ label: y.toString(), value: y.toString() }))
+  ];
 
   return (
     <div className="bg-[#f1f3f6] min-h-screen pt-4 pb-12 font-sans text-[#212121] relative">
@@ -146,9 +189,12 @@ export function Orders() {
           <div className="p-4 border-t border-gray-200">
             <h3 className="text-sm font-medium text-black mb-3 uppercase tracking-wide">Order Time</h3>
             <div className="space-y-4">
-              <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" className="w-[15px] h-[15px] accent-[#2874f0] rounded-[2px]" /><span className="text-sm text-[#212121]">Last 30 days</span></label>
-              <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" className="w-[15px] h-[15px] accent-[#2874f0] rounded-[2px]" defaultChecked /><span className="text-sm text-[#212121]">2026</span></label>
-              <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" className="w-[15px] h-[15px] accent-[#2874f0] rounded-[2px]" /><span className="text-sm text-[#212121]">2025</span></label>
+              {timeFilterOptions.map(tf => (
+                <label key={tf.value} className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={timeFilter === tf.value} onChange={() => setTimeFilter(timeFilter === tf.value ? 'all' : tf.value)} className="w-[15px] h-[15px] accent-[#2874f0] text-white border-gray-300 rounded-[2px] cursor-pointer" />
+                  <span className={`text-sm tracking-wide ${timeFilter === tf.value ? 'text-black' : 'text-[#212121] group-hover:text-black'}`}>{tf.label}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
@@ -178,7 +224,7 @@ export function Orders() {
                               src={getFullImgUrl(item.image)} 
                               alt={item.name} 
                               className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300"
-                              onError={e => { e.target.src = PRODUCT_FALLBACK; }}
+                              onError={e => { if (orderFallback && e.target.src !== orderFallback) e.target.src = orderFallback; else e.target.style.display = 'none'; }}
                             />
                           </div>
                           
@@ -358,13 +404,63 @@ export function Orders() {
          </div>
       )}
        
-       <ConfirmModal 
-         isOpen={confirmModal.open}
-         title="Cancel Order"
-         message="Are you sure you want to cancel this order? This action cannot be reversed."
-         onConfirm={executeCancel}
-         onCancel={() => setConfirmModal({ ...confirmModal, open: false })}
-       />
+      {/* Cancellation Reason Modal */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white max-w-lg w-full rounded-md shadow-2xl p-6 relative">
+            <button onClick={() => { setCancelModalOpen(false); setSelectedCancelOrder(null); setCancelReason(''); }} className="absolute text-xl right-4 top-4 text-gray-400 hover:text-black hover:scale-110 transition-transform">×</button>
+            <h2 className="text-xl font-bold text-[#212121] mb-2 uppercase tracking-wide">Cancel Order</h2>
+            
+            <div className="bg-red-50 border border-red-100 p-3 rounded-sm mb-5 mt-2">
+              <p className="text-[11px] text-red-700 leading-relaxed font-medium">
+                Cancellation is only possible for orders in 'Processing' status. Once cancelled, this action cannot be undone.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Reason for Cancellation *</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    "Expected delivery time is too long", 
+                    "Found a better price elsewhere", 
+                    "Ordered by mistake", 
+                    "Need to modify order details", 
+                    "Changed my mind",
+                  ].map(reason => (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => setCancelReason(reason)}
+                      className={`px-3 py-1.5 text-xs rounded-[2px] border transition-colors border-gray-300 ${
+                        cancelReason === reason 
+                          ? "bg-red-50 border-red-500 text-red-700 font-bold ring-1 ring-red-500" 
+                          : "bg-white text-gray-600 hover:border-red-400 hover:text-red-500"
+                      }`}
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+                <label className="block text-[10px] font-bold text-gray-400 mb-1.5 uppercase tracking-wider">Any other reason</label>
+                <textarea 
+                  className="w-full border border-gray-300 rounded-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none p-3 text-sm resize-none h-20 text-[#212121] placeholder:text-gray-400 transition-all font-sans"
+                  placeholder="Please specify if it's for another reason..."
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                />
+              </div>
+
+              <button 
+                onClick={executeCancel}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-sm py-3.5 mt-2 rounded-[2px] shadow-sm transition-colors uppercase tracking-widest mt-6"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

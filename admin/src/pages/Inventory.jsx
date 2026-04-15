@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import API from '../api';
 import { toast } from 'react-toastify';
@@ -23,6 +24,16 @@ export default function Inventory() {
   const [productPage, setProductPage] = useState(1);
   const [productLimit, setProductLimit] = useState(10);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [showLowStock, setShowLowStock] = useState(false);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('view') === 'low_stock') {
+      setShowLowStock(true);
+    }
+  }, [location]);
 
   const [logPage, setLogPage] = useState(1);
   const [logLimit, setLogLimit] = useState(10);
@@ -33,12 +44,13 @@ export default function Inventory() {
   useEffect(() => {
     loadInventory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, productPage, productLimit, logPage, logLimit]);
+  }, [search, productPage, productLimit, logPage, logLimit, showLowStock]);
 
   const loadInventory = async () => {
     setLoading(true);
     try {
-      const prodRes = await API.get(`/products?limit=${productLimit}&page=${productPage}${search ? `&search=${search}` : ''}`);
+      const stockFilter = showLowStock ? '&stock_lte=10' : '';
+      const prodRes = await API.get(`/products?limit=${productLimit}&page=${productPage}${search ? `&search=${search}` : ''}${stockFilter}`);
       
       let logQuery = `limit=${logLimit}&page=${logPage}`;
       if (startDate && endDate) {
@@ -109,6 +121,8 @@ export default function Inventory() {
     const logData = reportLogs.map(l => ({
       Date: new Date(l.createdAt).toLocaleString(),
       Product: l.productId?.name || 'Unknown',
+      Color: l.color || '',
+      Size: l.size || '',
       Action: l.action === 'increment' ? 'Added' : 'Removed',
       Quantity: l.quantity,
       'Previous Stock': l.previousStock,
@@ -155,10 +169,11 @@ export default function Inventory() {
     doc.text(`Stock Movement Logs ${reportTitle}`, 14, 15);
     autoTable(doc, {
       startY: 20,
-      head: [['Date', 'Product', 'Action', 'Qty', 'Reason']],
+      head: [['Date', 'Product', 'Variant', 'Action', 'Qty', 'Reason']],
       body: reportLogs.map(l => [
         new Date(l.createdAt).toLocaleDateString(),
         l.productId?.name || 'Unknown',
+        `${l.color || ''} ${l.size || ''}`.trim(),
         l.action === 'increment' ? 'Added' : 'Removed',
         l.quantity,
         l.reason
@@ -173,9 +188,16 @@ export default function Inventory() {
     setDownloading(false);
   };
 
-  const handleAdjust = async (id) => {
-    const qty = adjustQty[id];
-    const reason = adjustReason[id] || 'Manual Adjustment';
+  const [expandedRows, setExpandedRows] = useState({});
+
+  const toggleRow = (id) => {
+     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleAdjust = async (id, variantId = null, size = null) => {
+    const key = variantId ? `${id}-${variantId}-${size}` : id;
+    const qty = adjustQty[key];
+    const reason = adjustReason[key] || 'Manual Adjustment';
     
     if (!qty || isNaN(qty)) {
       toast.warning('Please enter a valid quantity');
@@ -183,11 +205,11 @@ export default function Inventory() {
     }
 
     try {
-      const res = await API.put(`/inventory/adjust/${id}`, { quantity: Number(qty), reason });
+      const res = await API.put(`/inventory/adjust/${id}`, { quantity: Number(qty), reason, variantId, size });
       if (res.data.success) {
          toast.success('Stock adjusted successfully');
-         setAdjustQty({ ...adjustQty, [id]: '' });
-         setAdjustReason({ ...adjustReason, [id]: '' });
+         setAdjustQty({ ...adjustQty, [key]: '' });
+         setAdjustReason({ ...adjustReason, [key]: '' });
          loadInventory();
       }
     } catch (err) {
@@ -200,31 +222,39 @@ export default function Inventory() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
          <div className="lg:col-span-2 space-y-6">
-            <div className="card p-5 shadow-sm">
+            <div className="card px-2 md:px-5 py-5 shadow-sm">
                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 gap-3">
-                  <h3 className="font-serif text-lg text-charcoal flex items-center gap-2"><Package size={18} className="text-gold-600"/> Stock Metrics</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <h3 className="font-serif text-lg text-charcoal flex items-center gap-2 px-1"><Package size={18} className="text-gold-600"/> Stock Metrics</h3>
+                    <button 
+                      onClick={() => { setShowLowStock(!showLowStock); setProductPage(1); }}
+                      className={`whitespace-nowrap flex items-center justify-center text-[9px] uppercase font-bold tracking-[0.1em] px-4 py-2 rounded-full border transition-all h-fit self-center ${showLowStock ? 'bg-red-50 text-red-600 border-red-100 shadow-sm' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200'}`}
+                    >
+                      {showLowStock ? '• Showing Low Stock' : 'Filter Low Stock'}
+                    </button>
+                  </div>
                   
-                  <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto px-1">
                     <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded border border-gray-100 w-full sm:w-auto">
                        <Search size={14} className="text-gray-400" />
                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="bg-transparent border-none text-xs focus:outline-none flex-1 sm:w-32 font-sans" />
                     </div>
                     
                     <div className="flex border border-gray-200 rounded divide-x divide-gray-200 bg-white items-center flex-1 sm:flex-none">
-                        <span className="text-[10px] text-gray-400 font-bold px-2 hidden sm:block">FROM</span>
+                        <span className="text-[10px] text-gray-400 font-bold px-1 hidden sm:block">FROM</span>
                         <input
                            type="date"
                            value={startDate}
                            onChange={e => setStartDate(e.target.value)}
-                           className="text-[10px] px-2 py-1.5 focus:outline-none text-gray-600 w-full sm:w-auto"
+                           className="text-[10px] px-1 py-1.5 focus:outline-none text-gray-600 w-full sm:w-auto"
                            title="From Date"
                         />
-                        <span className="text-[10px] text-gray-400 font-bold px-2 hidden sm:block">TO</span>
+                        <span className="text-[10px] text-gray-400 font-bold px-1 hidden sm:block">TO</span>
                         <input
                            type="date"
                            value={endDate}
                            onChange={e => setEndDate(e.target.value)}
-                           className="text-[10px] px-2 py-1.5 focus:outline-none text-gray-600 w-full sm:w-auto"
+                           className="text-[10px] px-1 py-1.5 focus:outline-none text-gray-600 w-full sm:w-auto"
                            title="To Date"
                         />
                     </div>
@@ -243,34 +273,88 @@ export default function Inventory() {
                {loading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-14 bg-gray-50 rounded animate-pulse" />)}</div>
                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full min-w-[750px] table-fixed">
                        <thead className="bg-gray-50 border-b border-gray-100">
                           <tr>
-                             {['Product', 'Sub-Category', 'Stock', 'Selled stack', 'Quick Adjust', 'Action'].map(h => (
-                                <th key={h} className={`text-left text-[10px] tracking-wider uppercase font-sans text-gray-400 px-4 py-2.5 ${h === 'Stock' ? 'w-16' : ''}`}>{h}</th>
-                             ))}
+                             <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-1/3">Product</th>
+                             <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-24">Category</th>
+                             <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-16">Stock</th>
+                             <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-16">Sold</th>
+                             <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-44">Quick Adjust</th>
+                             <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-20">Action</th>
                           </tr>
                        </thead>
                        <tbody>
                           {products.map(p => (
-                             <tr key={p._id} className="border-b border-gray-50 text-xs hover:bg-gray-50 transition-colors font-sans">
-                                <td className="px-4 py-3">
-                                   <p className="font-bold text-charcoal truncate max-w-[150px]" title={p.name}>{p.name}</p>
-                                </td>
-                                <td className="px-4 py-3 text-gray-500">{p.subcategory || '—'}</td>
-                                <td className="px-4 py-3"><span className={`${(p.stock || 0) <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{p.stock || 0}</span></td>
-                                <td className="px-4 py-3 text-gold-600 font-bold">{soldStats[p._id] || 0}</td>
-                                <td className="px-4 py-3">
-                                   <div className="flex items-center gap-1.5">
-                                      <input type="number" placeholder="Qty" value={adjustQty[p._id] || ''} onChange={e => setAdjustQty({ ...adjustQty, [p._id]: e.target.value })} className="border border-gray-200 rounded px-2 py-1 w-14 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
-                                      <input type="text" placeholder="Reason" value={adjustReason[p._id] || ''} onChange={e => setAdjustReason({ ...adjustReason, [p._id]: e.target.value })} className="border border-gray-200 rounded px-2 py-1 text-[10px] w-20 focus:border-gold-500 focus:outline-none font-sans" />
-                                   </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                   <button onClick={() => handleAdjust(p._id)} className="bg-charcoal text-white px-3 py-1 text-[10px] tracking-widest uppercase hover:bg-gold-600 transition-colors font-sans">Apply</button>
-                                </td>
-                             </tr>
+                             <React.Fragment key={p._id}>
+                               <tr className="border-b border-gray-50 text-[11px] hover:bg-gray-50 transition-colors font-sans">
+                                  <td className="px-2 py-3 overflow-hidden cursor-pointer" onClick={() => toggleRow(p._id)}>
+                                     <div className="flex items-center gap-2">
+                                        <span className="text-gray-400">{expandedRows[p._id] ? '▼' : '▶'}</span>
+                                        <p className="font-bold text-charcoal truncate" title={p.name}>{p.name}</p>
+                                     </div>
+                                  </td>
+                                  <td className="px-2 py-3 text-gray-500 truncate" title={p.subcategory || '—'}>{p.subcategory || '—'}</td>
+                                  <td className="px-2 py-3 text-center"><span className={`${(p.stock || 0) <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{p.stock || 0}</span></td>
+                                  <td className="px-2 py-3 text-center text-gold-600 font-bold">{soldStats[p._id] || 0}</td>
+                                  <td className="px-2 py-3">
+                                     <div className="flex items-center gap-1">
+                                        <input type="number" placeholder="Qty" value={adjustQty[p._id] || ''} onChange={e => setAdjustQty({ ...adjustQty, [p._id]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
+                                        <input type="text" placeholder="Reason" value={adjustReason[p._id] || ''} onChange={e => setAdjustReason({ ...adjustReason, [p._id]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 text-[10px] w-24 focus:border-gold-500 focus:outline-none font-sans" />
+                                     </div>
+                                  </td>
+                                  <td className="px-2 py-3 text-center">
+                                     <button onClick={() => handleAdjust(p._id)} className="bg-charcoal text-white px-2.5 py-1.5 text-[9px] tracking-widest uppercase hover:bg-gold-600 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Apply</button>
+                                  </td>
+                               </tr>
+                               {expandedRows[p._id] && p.variants && p.variants.map((v, i) => (
+                                 (v.inventory && v.inventory.length > 0) ? (
+                                   v.inventory.map(inv => {
+                                      const vKey = `${p._id}-${v._id || i}-${inv.size}`;
+                                      return (
+                                        <tr key={vKey} className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-sans">
+                                           <td className="px-2 py-2 pl-8 text-gray-600 flex items-center gap-2">
+                                              <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                                              <span className="font-bold">{v.color}</span> - Size: <span className="font-bold">{inv.size}</span>
+                                           </td>
+                                           <td className="px-2 py-2 text-gray-500">—</td>
+                                           <td className="px-2 py-2 text-center"><span className={`${inv.stock <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{inv.stock}</span></td>
+                                           <td className="px-2 py-2 text-center text-gold-600 font-bold">—</td>
+                                           <td className="px-2 py-2">
+                                              <div className="flex items-center gap-1">
+                                                 <input type="number" placeholder="Qty" value={adjustQty[vKey] || ''} onChange={e => setAdjustQty({ ...adjustQty, [vKey]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
+                                                 <input type="text" placeholder="Reason" value={adjustReason[vKey] || ''} onChange={e => setAdjustReason({ ...adjustReason, [vKey]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 text-[10px] w-24 focus:border-gold-500 focus:outline-none font-sans" />
+                                              </div>
+                                           </td>
+                                           <td className="px-2 py-2 text-center">
+                                              <button onClick={() => handleAdjust(p._id, v._id || i, inv.size)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
+                                           </td>
+                                        </tr>
+                                      );
+                                   })
+                                 ) : (
+                                   <tr key={`${p._id}-${v._id || i}`} className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-sans">
+                                      <td className="px-2 py-2 pl-8 text-gray-600 flex items-center gap-2">
+                                         <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                                         <span className="font-bold">{v.color}</span> (No sizes)
+                                      </td>
+                                      <td className="px-2 py-2 text-gray-500">—</td>
+                                      <td className="px-2 py-2 text-center"><span className={`${(v.stock||0) <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{v.stock || 0}</span></td>
+                                      <td className="px-2 py-2 text-center text-gold-600 font-bold">—</td>
+                                      <td className="px-2 py-2">
+                                         <div className="flex items-center gap-1">
+                                            <input type="number" placeholder="Qty" value={adjustQty[`${p._id}-${v._id || i}-nosize`] || ''} onChange={e => setAdjustQty({ ...adjustQty, [`${p._id}-${v._id || i}-nosize`]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
+                                            <input type="text" placeholder="Reason" value={adjustReason[`${p._id}-${v._id || i}-nosize`] || ''} onChange={e => setAdjustReason({ ...adjustReason, [`${p._id}-${v._id || i}-nosize`]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 text-[10px] w-24 focus:border-gold-500 focus:outline-none font-sans" />
+                                         </div>
+                                      </td>
+                                      <td className="px-2 py-2 text-center">
+                                         <button onClick={() => handleAdjust(p._id, v._id || i, null)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
+                                      </td>
+                                   </tr>
+                                 )
+                               ))}
+                             </React.Fragment>
                           ))}
                        </tbody>
                     </table>
@@ -311,18 +395,29 @@ export default function Inventory() {
                                {isIncrease ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start">
-                                   <p className="font-medium text-charcoal truncate pr-2">{l.productId?.name || 'Unknown Item'}</p>
-                                   <span className="text-[9px] text-gray-400 font-bold tracking-wide mt-0.5 whitespace-nowrap bg-gray-50 px-1.5 py-0.5 rounded">{dateFormatted}</span>
+                                <div className="flex justify-between items-start gap-2">
+                                   <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-charcoal truncate">
+                                        {l.productId?.name || 'Unknown Item'}
+                                      </p>
+                                      {(l.color || l.size) && (
+                                        <p className="text-[10px] text-gray-600 font-medium tracking-wide mt-0.5 bg-gray-100/70 w-fit px-1.5 py-0.5 rounded">
+                                          {l.color}{l.color && l.size ? ' • ' : ''}{l.size}
+                                        </p>
+                                      )}
+                                   </div>
+                                   <span className="text-[9px] text-gray-400 font-bold tracking-wide mt-0.5 whitespace-nowrap bg-gray-50 px-1.5 py-0.5 rounded shrink-0">{dateFormatted}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-500 font-sans mt-0.5">{l.reason}</p>
-                                <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-1">
-                                    <span>Prev: {l.previousStock || 0}</span>
-                                    <span>|</span>
-                                    <span className="font-bold text-charcoal">Delta: {isIncrease ? '+' : '-'}{l.quantity}</span>
-                                    <span>|</span>
-                                    <span>Curr: {l.currentStock}</span>
-                                </div>
+                                 <div className="flex items-center gap-2 text-[10px] mt-2 bg-gray-50 px-2 py-1 rounded w-fit border border-gray-100">
+                                     <span className="text-gray-400 font-medium">Prev: {l.previousStock || 0}</span>
+                                     <span className="text-gray-200 text-xs">|</span>
+                                     <span className={`font-bold uppercase tracking-tighter ${isIncrease ? 'text-green-600' : 'text-red-600'}`}>
+                                        {isIncrease ? '+' : '-'}{l.quantity}
+                                     </span>
+                                     <span className="text-gray-200 text-xs">|</span>
+                                     <span className="text-charcoal font-bold">Curr: {l.currentStock}</span>
+                                 </div>
                             </div>
                          </div>
                      );

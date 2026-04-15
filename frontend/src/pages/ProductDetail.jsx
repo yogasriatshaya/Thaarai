@@ -6,7 +6,6 @@ import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice, getProductOriginalPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 import { toast } from 'react-toastify';
-import { PRODUCT_FALLBACK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { createPortal } from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal';
@@ -17,9 +16,9 @@ const StarIcon = ({ filled }) => (
   </svg>
 );
 
-const HeartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+const HeartIcon = ({ filled }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.89-8.89 1.06-1.06a5.5 5.5 0 000-7.78z" />
   </svg>
 );
 
@@ -38,7 +37,7 @@ const CartIcon = () => (
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, getFullImgUrl, isWishlisted, toggleWishlist, user, token } = useShop();
+  const { addToCart, getFullImgUrl, isWishlisted, toggleWishlist, user, token, settings } = useShop();
   const { formatPrice, country, currencySymbol } = useCurrency();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -61,8 +60,18 @@ export default function ProductDetail() {
   const [confirmModal, setConfirmModal] = useState({ open: false, reviewId: null });
 
   const currentVariant = product?.variants?.find(v => v.color === selectedColor);
-  const displayStock = currentVariant && typeof currentVariant.stock === 'number' ? currentVariant.stock : product?.stock;
   
+  let displayStock = product?.stock;
+  if (currentVariant) {
+    if (selectedSize && currentVariant.inventory?.length > 0) {
+        const inv = currentVariant.inventory.find(i => i.size === selectedSize);
+        if (inv) displayStock = inv.stock;
+        else displayStock = currentVariant.stock;
+    } else {
+        displayStock = currentVariant.stock;
+    }
+  }
+
   const isSoldOut = product ? (displayStock <= 0 || product.label === 'Sold Out') : false;
   const stockLow = product ? displayStock <= 10 && displayStock > 0 : false;
 
@@ -210,6 +219,19 @@ export default function ProductDetail() {
     localStorage.setItem('thaarai_recently_viewed', JSON.stringify(filtered.slice(0, 10)));
   }, [product]);
 
+  // Auto-select first in-stock size when color changes or on load
+  useEffect(() => {
+    if (!product || !selectedColor || !product.sizes || product.sizes.length === 0) return;
+    const variant = product.variants?.find(v => v.color === selectedColor);
+    if (!variant || !variant.inventory) return;
+
+    const isCurrentSizeOut = (variant.inventory.find(i => i.size === selectedSize)?.stock || 0) <= 0;
+    if (isCurrentSizeOut) {
+      const availableSize = product.sizes.find(s => (variant.inventory.find(i => i.size === s)?.stock || 0) > 0);
+      if (availableSize) setSelectedSize(availableSize);
+    }
+  }, [product, selectedColor, selectedSize]);
+
   useEffect(() => {
     setShareUrl(window.location.href);
     
@@ -279,7 +301,8 @@ export default function ProductDetail() {
     </div>
   );
 
-  const images = product.images?.length > 0 ? product.images : [PRODUCT_FALLBACK];
+  const detailFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
+  const images = product.images?.length > 0 ? product.images : [detailFallback];
 
   const ratingBars = [5, 4, 3, 2, 1].map(n => {
     const count = product.reviews?.filter(r => r.rating === n).length || 0;
@@ -295,6 +318,13 @@ export default function ProductDetail() {
     if (country === 'IN' && product.availableInIndia === false) { toast.error('This product is not available in India'); return; }
     if (country === 'US' && product.availableInUS === false) { toast.error('This product is not available in USA'); return; }
     if (product.sizes?.length > 0 && !selectedSize) { toast.error('Please select a size'); return; }
+
+    const isSizeOut = currentVariant?.inventory ? (currentVariant.inventory.find(i => i.size === selectedSize)?.stock || 0) <= 0 : false;
+    if (product.sizes?.length > 0 && isSizeOut) { toast.error(`Size ${selectedSize} is out of stock in this color`); return; }
+
+    const isColorOut = product.variants?.length > 0 && currentVariant?.inventory ? currentVariant.inventory.reduce((sum, item) => sum + (Number(item.stock) || 0), 0) <= 0 : false;
+    if (isColorOut) { toast.error(`Color ${selectedColor} is currently out of stock`); return; }
+
     addToCart(product._id, selectedSize, selectedColor);
   };
 
@@ -302,6 +332,13 @@ export default function ProductDetail() {
     if (country === 'IN' && product.availableInIndia === false) { toast.error('This product is not available in India'); return; }
     if (country === 'US' && product.availableInUS === false) { toast.error('This product is not available in USA'); return; }
     if (product.sizes?.length > 0 && !selectedSize) { toast.error('Please select a size'); return; }
+
+    const isSizeOut = currentVariant?.inventory ? (currentVariant.inventory.find(i => i.size === selectedSize)?.stock || 0) <= 0 : false;
+    if (product.sizes?.length > 0 && isSizeOut) { toast.error(`Size ${selectedSize} is out of stock in this color`); return; }
+
+    const isColorOut = product.variants?.length > 0 && currentVariant?.inventory ? currentVariant.inventory.reduce((sum, item) => sum + (Number(item.stock) || 0), 0) <= 0 : false;
+    if (isColorOut) { toast.error(`Color ${selectedColor} is currently out of stock`); return; }
+
     await addToCart(product._id, selectedSize, selectedColor);
     navigate('/checkout');
   };
@@ -323,41 +360,98 @@ export default function ProductDetail() {
           <div className="lg:col-span-6">
             <div className="lg:sticky lg:top-24">
               <div className="flex flex-col-reverse md:flex-row gap-4">
-                <div className="flex md:flex-col gap-3 overflow-auto no-scrollbar md:w-20 shrink-0">
-                  {images.map((img, i) => (
-                    <button key={i} onClick={() => setSelectedImage(i)}
-                      className={`shrink-0 w-16 md:w-full aspect-[3/4] overflow-hidden border transition-all duration-500 rounded-lg ${selectedImage === i ? 'border-black shadow-xl scale-105' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200'}`}>
-                      <img src={getFullImgUrl(img)} alt="" className="w-full h-full object-cover"
-                        loading="lazy" decoding="async"
-                        onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
-                    </button>
-                  ))}
+                <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto no-scrollbar md:w-20 shrink-0">
+                  {/* Aggregate images: product images + selected variant images */}
+                  {(() => {
+                    const variantImgs = [];
+                    if (currentVariant) {
+                       if (currentVariant.images && currentVariant.images.length > 0) {
+                          currentVariant.images.forEach(img => variantImgs.push(img));
+                       } else if (currentVariant.image) {
+                          variantImgs.push(currentVariant.image);
+                       }
+                    }
+                    
+                    // User requested: Not to show product.images in detail page. 
+                    // Show variant images if available, otherwise just use them as the source.
+                    const displayImages = variantImgs.length > 0 ? variantImgs : (product.images || []);
+                    
+                    return displayImages.map((img, i) => (
+                      <button key={i} onClick={() => setSelectedImage(i)}
+                        className={`shrink-0 w-16 md:w-full aspect-[3/4] overflow-hidden border transition-all duration-500 rounded-lg ${selectedImage === i ? 'border-black shadow-xl scale-105' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200'}`}>
+                        <img src={getFullImgUrl(img)} alt="" className="w-full h-full object-cover"
+                          loading="lazy" decoding="async"
+                          onError={e => { 
+                             if (detailFallback && e.target.src !== detailFallback) {
+                                e.target.src = detailFallback;
+                             }
+                          }} />
+                      </button>
+                    ));
+                  })()}
                 </div>
                 <div className="flex-1 relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
-                  <img src={currentVariant?.image ? getFullImgUrl(currentVariant.image) : getFullImgUrl(images[selectedImage])} alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    fetchpriority="high" decoding="async"
-                    onError={e => { e.target.src = PRODUCT_FALLBACK; }} />
+                  {(() => {
+                    const variantImgs = [];
+                    if (currentVariant) {
+                       if (currentVariant.images && currentVariant.images.length > 0) {
+                          currentVariant.images.forEach(img => variantImgs.push(img));
+                       } else if (currentVariant.image) {
+                          variantImgs.push(currentVariant.image);
+                       }
+                    }
+                    const displayImages = variantImgs.length > 0 ? variantImgs : (product.images || []);
+                    const mainImg = displayImages[selectedImage] || displayImages[0];
+
+                    return (
+                      <img src={getFullImgUrl(mainImg)} alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                        fetchpriority="high" decoding="async"
+                        onError={e => { 
+                           if (detailFallback && e.target.src !== detailFallback) {
+                              e.target.src = detailFallback;
+                           }
+                        }} />
+                    );
+                  })()}
                   <button
                     onClick={() => toggleWishlist(product._id)}
-                    className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-black border-black text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-black'
+                    className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-red-500 border-red-500 text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-black'
                       }`}
                   >
-                    <svg width="18" height="18" fill={isWishlisted(product._id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.89-8.89 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
+                    <HeartIcon filled={isWishlisted(product._id)} />
                   </button>
-                  {(product.label || isSoldOut) && (
-                    <span className={`absolute top-6 left-6 text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full ${isSoldOut ? 'bg-gray-800' : product.label === 'Hot' ? 'bg-red-500' : 'bg-emerald-500'
-                      }`}>
-                      {isSoldOut ? 'Sold Out' : product.label}
-                    </span>
-                  )}
-                  {product.originalPrice && product.originalPrice > product.price && (
-                    <span className="absolute top-6 left-6 mt-10 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full">
-                      -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                    </span>
-                  )}
+                  <div className="absolute top-6 left-6 flex flex-col gap-3">
+                    {(product.label || isSoldOut) && (() => {
+                      const lowerLabel = (product.label || '').toLowerCase().trim();
+                      if (lowerLabel.includes('-') && lowerLabel.includes('%')) return null;
+
+                      return (
+                        <span className={`text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full ${isSoldOut ? 'bg-gray-800' : product.label === 'Hot' ? 'bg-red-500' : 'bg-emerald-500'
+                          }`}>
+                          {isSoldOut ? 'Sold Out' : product.label}
+                        </span>
+                      );
+                    })()}
+
+                    {(() => {
+                      const base = getProductPrice(product, country);
+                      const current = (getOfferActive(product, country) && !offerExpired && getOfferPrice(product, country) > 0)
+                        ? getOfferPrice(product, country)
+                        : base;
+                      const original = getProductOriginalPrice(product, country) || base;
+
+                      if (original > current && current > 0) {
+                        const disc = Math.round(((original - current) / original) * 100);
+                        return (
+                          <span className="bg-teal-500 text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full self-start">
+                            -{disc}%
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -453,12 +547,22 @@ export default function ProductDetail() {
                     <button onClick={() => setShowSizeGuide(true)} className="text-[10px] font-medium text-purple-500 hover:text-purple-600">Size Guide</button>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {product.sizes.map(size => (
-                      <button key={size} onClick={() => setSelectedSize(size)}
-                        className={`min-w-[48px] h-11 px-3 text-[11px] font-bold tracking-wide border transition-all duration-300 rounded-lg ${selectedSize === size ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'}`}>
-                        {size}
+                    {product.sizes.map(size => {
+                      const isSizeOut = currentVariant?.inventory ? (currentVariant.inventory.find(i => i.size === size)?.stock || 0) <= 0 : false;
+                      return (
+                      <button key={size} 
+                        disabled={isSizeOut}
+                        onClick={() => setSelectedSize(size)}
+                        className={`w-12 h-12 relative flex items-center justify-center text-[11px] font-bold tracking-wide border transition-all duration-300 rounded-lg ${isSizeOut ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400' : selectedSize === size ? 'border-gray-900 bg-gray-900 text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'}`}>
+                        <span className={isSizeOut ? 'line-through' : ''}>{size}</span>
+                        {isSizeOut && (
+                          <svg className="absolute w-full h-full text-red-500/30" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <line x1="0" y1="100" x2="100" y2="0" stroke="currentColor" strokeWidth="4" />
+                          </svg>
+                        )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -470,17 +574,33 @@ export default function ProductDetail() {
                     Color: <span className="text-gray-900 normal-case ml-1">{selectedColor}</span>
                   </p>
                   <div className="flex gap-3">
-                    {(product.variants?.length > 0 ? product.variants : product.colors.map(c => ({ color: c }))).map(v => (
-                      <button key={v.color} onClick={() => setSelectedColor(v.color)}
-                        className={`relative w-10 h-10 rounded-full transition-all duration-300 flex items-center justify-center overflow-hidden ${selectedColor === v.color ? 'ring-2 ring-gray-900 ring-offset-2 scale-110 shadow-lg' : 'ring-1 ring-gray-200 hover:scale-105'}`}
-                        style={{ backgroundColor: v.color.toLowerCase() === 'imperial gold' ? '#d4a017' : v.color.toLowerCase() === 'midnight' ? '#1a1a2e' : v.color?.toLowerCase() === 'ivory' ? '#faf8f3' : v.color }}
-                        title={v.color}
-                      >
-                         {v.image && (
-                           <img src={getFullImgUrl(v.image)} alt={v.color} className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
-                         )}
-                      </button>
-                    ))}
+                     {(product.variants?.length > 0 ? product.variants : (product.colors || []).map(c => ({ color: c }))).map(v => {
+                       const getColorValue = (colorName) => {
+                         const colors = {
+                           'imperial gold': '#d4a017', 'midnight': '#1a1a2e', 'ivory': '#faf8f3', 'pink': '#FFC0CB',
+                           'burgundy': '#800020', 'teal': '#008080', 'charcoal': '#1C1C1C', 'wine': '#722F37'
+                         };
+                         return colors[colorName?.toLowerCase()] || colorName;
+                       };
+                       
+                       const isColorOut = product.variants?.length > 0 && v.inventory ? v.inventory.reduce((sum, item) => sum + (Number(item.stock) || 0), 0) <= 0 : false;
+
+                       return (
+                         <button key={v.color} 
+                           disabled={isColorOut}
+                           onClick={() => { setSelectedColor(v.color); setSelectedImage(0); }}
+                           className={`relative w-10 h-10 rounded-full transition-all duration-300 flex items-center justify-center overflow-hidden ${isColorOut ? 'opacity-40 cursor-not-allowed ring-1 ring-gray-200' : selectedColor === v.color ? 'ring-2 ring-gray-900 ring-offset-2 scale-110 shadow-lg' : 'ring-1 ring-gray-200 hover:scale-105'}`}
+                           style={{ backgroundColor: getColorValue(v.color) }}
+                           title={v.color}
+                         >
+                           {isColorOut && (
+                             <svg className="absolute w-full h-full text-red-600" viewBox="0 0 100 100" preserveAspectRatio="none">
+                               <line x1="0" y1="100" x2="100" y2="0" stroke="currentColor" strokeWidth="8" />
+                             </svg>
+                           )}
+                         </button>
+                       );
+                     })}
                   </div>
                 </div>
               )}
@@ -491,7 +611,7 @@ export default function ProductDetail() {
                   <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                     <span className="text-red-700 text-xs font-semibold">
-                      Only {product.stock} left in stock — order soon!
+                      Only {displayStock} left in stock — order soon!
                     </span>
                   </div>
                 )}
@@ -515,6 +635,10 @@ export default function ProductDetail() {
                   <button disabled className="w-full py-4 bg-gray-200 text-gray-400 font-bold text-sm uppercase tracking-wider rounded-xl cursor-not-allowed text-center">
                     NOT AVAILABLE IN THIS REGION
                   </button>
+                ) : settings?.maintenanceMode ? (
+                  <button disabled className="w-full py-4 bg-red-50 text-red-500 font-bold text-sm uppercase tracking-wider rounded-xl cursor-not-allowed text-center border border-red-100">
+                    PURCHASING DISABLED
+                  </button>
                 ) : (
                   <>
                     <button
@@ -537,22 +661,18 @@ export default function ProductDetail() {
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Share Product</span>
                 <div className="flex gap-1.5">
-                  {/* WhatsApp */}
                   <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.name}: ${shareUrl}`)}`} target="_blank" rel="noopener noreferrer"
                     className="p-2 text-green-500 bg-green-50 border border-green-100 rounded-full hover:bg-green-100 hover:scale-105 transition-all" title="WhatsApp">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3 18.7-68.1-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.4-8.6-44.5-27.4-16.4-14.6-27.5-32.8-30.7-38.3-3.2-5.6-.3-8.6 2.5-11.4 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.2 3.7-5.6 5.6-9.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.2 5.7 23.6 9.1 31.6 11.7 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" /></svg>
                   </a>
-                  {/* Facebook */}
                   <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
                     className="p-2 text-black bg-blue-50 border border-blue-100 rounded-full hover:bg-blue-100 hover:scale-105 transition-all" title="Facebook">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 320 512"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" /></svg>
                   </a>
-                  {/* Twitter / X */}
                   <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this product: ${product.name}`)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
                     className="p-2 text-sky-500 bg-sky-50 border border-sky-100 rounded-full hover:bg-sky-100 hover:scale-105 transition-all" title="Twitter / X">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 512 512"><path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z" /></svg>
                   </a>
-                  {/* Copy Link */}
                   <button onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success('Link copied to clipboard!'); }}
                     className="p-2 text-gray-600 bg-gray-50 border border-gray-100 rounded-full hover:bg-gray-100 hover:scale-105 transition-all" title="Copy Link">
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>

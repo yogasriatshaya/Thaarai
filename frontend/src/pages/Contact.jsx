@@ -1,8 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Newsletter from '../components/Newsletter';
+import { useShop } from '../context/ShopContext';
 
 export default function Contact() {
+  const { settings } = useShop();
+  const contactEmail = settings?.contactEmail || 'support@thaarai.test';
+  const contactPhone = settings?.contactPhone || '+91 90000 00000';
+  const siteName = settings?.siteName || 'Thaarai Designers';
+
+  const socialWhatsApp = settings?.socialLinks?.whatsapp || `https://wa.me/${contactPhone.replace(/\D/g, '')}`;
+  const whatsappUrl = socialWhatsApp.startsWith('http') ? socialWhatsApp : `https://wa.me/${socialWhatsApp.replace(/\D/g, '')}`;
+
+  const rawInstagram = settings?.socialLinks?.instagram || 'https://instagram.com/thaarai';
+  const instagramName = rawInstagram.includes('instagram.com/') 
+    ? `@${rawInstagram.split('instagram.com/').pop().replace(/\//g, '')}` 
+    : (rawInstagram.startsWith('@') ? rawInstagram : `@${rawInstagram}`);
+
+  const instagramUrl = (rawInstagram.startsWith('http') || rawInstagram.includes('instagram.com')) 
+    ? (rawInstagram.startsWith('http') ? rawInstagram : `https://${rawInstagram}`) 
+    : `https://instagram.com/${rawInstagram.replace('@', '')}`;
+
+  useEffect(() => {
+     document.title = `Contact Us - ${siteName}`;
+  }, [siteName]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -67,8 +89,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
-                    <a href="mailto:support@thaarai.test" className="text-gray-600 hover:text-[#000000] transition-colors">
-                      support@thaarai.test
+                    <a href={`mailto:${contactEmail}`} className="text-gray-600 hover:text-[#000000] transition-colors">
+                      {contactEmail}
                     </a>
                   </div>
                 </div>
@@ -82,8 +104,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Call Us</h3>
-                    <a href="tel:+919000000000" className="text-gray-600 hover:text-[#000000] transition-colors">
-                      +91 90000 00000
+                    <a href={`tel:${contactPhone.replace(/\s+/g, '')}`} className="text-gray-600 hover:text-[#000000] transition-colors">
+                      {contactPhone}
                     </a>
                   </div>
                 </div>
@@ -97,7 +119,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">WhatsApp</h3>
-                    <a href="https://wa.me/919000000001" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#000000] transition-colors">
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#000000] transition-colors">
                       Chat with us on WhatsApp
                     </a>
                   </div>
@@ -112,8 +134,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 mb-1">Follow Us</h3>
-                    <a href="https://instagram.com/thaarai_thedesignerstudio" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#000000] transition-colors">
-                      @thaarai_thedesignerstudio
+                      <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#000000] transition-colors">
+                        {instagramName || '@thaarai_thedesignerstudio'}
                     </a>
                   </div>
                 </div>

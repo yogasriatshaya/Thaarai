@@ -3,6 +3,19 @@ const router = express.Router();
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+// Helper to safely parse array-like inputs from FormData
+const parseArray = (input) => {
+  if (!input) return [];
+  if (Array.isArray(input)) return input;
+  try {
+    const parsed = JSON.parse(input);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (e) {
+    return typeof input === 'string' ? input.split(',').map(s => s.trim()).filter(Boolean) : [];
+  }
+};
 
 // Get all categories
 router.get('/', async (req, res) => {
@@ -14,12 +27,39 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Admin CRUD
 // 1. Create category
-router.post('/', adminMiddleware, async (req, res) => {
-  const { name, subcategories, description, defaultFabrics, defaultStyles, availableSizes } = req.body;
+router.post('/', adminMiddleware, upload.any(), async (req, res) => {
   try {
-    const newCat = await Category.create({ name, subcategories, description, defaultFabrics, defaultStyles, availableSizes });
+    const { name, subcategories, description, defaultFabrics, defaultStyles, availableSizes } = req.body;
+    
+    // Handle Category Banner
+    let banner = '';
+    const bannerFile = (req.files || []).find(f => f.fieldname === 'banner');
+    if (bannerFile) {
+      banner = bannerFile.path.replace(/\\/g, '/');
+    }
+
+    // Handle Subcategory Banners
+    const parsedSubcategories = parseArray(subcategories).map((sub, i) => {
+      if (typeof sub === 'string') {
+        sub = { name: sub };
+      }
+      const subFile = (req.files || []).find(f => f.fieldname === `subcategoryBanner_${i}`);
+      if (subFile) {
+        sub.banner = subFile.path.replace(/\\/g, '/');
+      }
+      return sub;
+    });
+
+    const newCat = await Category.create({ 
+      name, 
+      banner,
+      subcategories: parsedSubcategories, 
+      description, 
+      defaultFabrics: parseArray(defaultFabrics), 
+      defaultStyles: parseArray(defaultStyles), 
+      availableSizes: parseArray(availableSizes) 
+    });
     res.json({ success: true, category: newCat });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -27,31 +67,53 @@ router.post('/', adminMiddleware, async (req, res) => {
 });
 
 // 2. Update category (and update products if name changed)
-router.put('/:id', adminMiddleware, async (req, res) => {
-  const { name, subcategories, description, isActive, defaultFabrics, defaultStyles, availableSizes } = req.body;
+router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
   try {
+    const { name, subcategories, description, isActive, defaultFabrics, defaultStyles, availableSizes, existingBanner } = req.body;
     const oldCat = await Category.findById(req.params.id);
     if (!oldCat) return res.status(404).json({ success: false, message: 'Category not found' });
 
     const oldName = oldCat.name;
+    
+    // Handle Category Banner
+    let banner = existingBanner || '';
+    const bannerFile = (req.files || []).find(f => f.fieldname === 'banner');
+    if (bannerFile) {
+      banner = bannerFile.path.replace(/\\/g, '/');
+    }
+
+    // Handle Subcategory Banners
+    const parsedSubcategories = parseArray(subcategories).map((sub, i) => {
+      if (typeof sub === 'string') {
+        sub = { name: sub };
+      }
+      const subFile = (req.files || []).find(f => f.fieldname === `subcategoryBanner_${i}`);
+      if (subFile) {
+        sub.banner = subFile.path.replace(/\\/g, '/');
+      }
+      return sub;
+    });
+
     const update = { 
       name, 
-      subcategories: subcategories || [], 
+      banner,
+      subcategories: parsedSubcategories, 
       description, 
-      isActive: isActive !== undefined ? isActive : true, 
-      defaultFabrics, 
-      defaultStyles, 
-      availableSizes 
+      defaultFabrics: parseArray(defaultFabrics), 
+      defaultStyles: parseArray(defaultStyles), 
+      availableSizes: parseArray(availableSizes) 
     };
+
+    if (req.body.isActive !== undefined) {
+      update.isActive = isActive === 'true' || isActive === true;
+    }
     
-    // Explicitly update all fields and run validators
     const updatedCat = await Category.findByIdAndUpdate(
       req.params.id, 
       { $set: update }, 
       { new: true, runValidators: true }
     );
 
-    // If name changed, update all products with this category
     if (name && name !== oldName) {
       await Product.updateMany({ category: oldName }, { $set: { category: name } });
     }

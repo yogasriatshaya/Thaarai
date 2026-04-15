@@ -49,7 +49,9 @@ const AppContent = () => {
   
   const isCollectionPage = location.pathname.startsWith('/collection');
   const isProductPage = location.pathname.startsWith('/product/');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const hideFooterOnMobile = (isCollectionPage || isProductPage);
+  const hideFooterEntirely = isAuthPage || ['/track-order', '/cart', '/wishlist'].includes(location.pathname);
 
   // Stealth Link Logic: Hide URL in status bar
   useEffect(() => {
@@ -98,13 +100,15 @@ const AppContent = () => {
     };
   }, [navigate]);
 
-  if (settings?.maintenanceMode && !isAdminPath) {
-    return <MaintenancePage settings={settings} />;
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
+      {settings?.maintenanceMode && !isAdminPath && (
+        <div className="bg-red-600 text-white text-center text-xs py-2.5 px-4 shadow-sm w-full z-50">
+          <span className="font-bold tracking-widest uppercase mr-2">Purchases Disabled:</span> 
+          <span>{settings.maintenanceMessage || "We are currently making updates. Purchasing is temporarily unavailable."}</span>
+        </div>
+      )}
       <Navbar />
       <main className="flex-1 transition-colors duration-500">
         <Routes>
@@ -129,10 +133,12 @@ const AppContent = () => {
           } />
         </Routes>
       </main>
-      {/* Conditionally hide footer on mobile for Collection and Product Detail pages */}
-      <div className={hideFooterOnMobile ? 'hidden lg:block' : 'block'}>
-        <Footer />
-      </div>
+      {/* Conditionally hide footer on mobile for Collection and Product Detail pages, or entirely for auth */}
+      {!hideFooterEntirely && (
+        <div className={hideFooterOnMobile ? 'hidden lg:block' : 'block'}>
+          <Footer />
+        </div>
+      )}
       <RecentlyViewed />
       <ExitIntentPopup />
     </div>

@@ -3,7 +3,6 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import API from '../api';
 import ProductCard from '../components/ProductCard';
 import { useCurrency } from '../context/CurrencyContext';
-import { PRODUCT_FALLBACK, HERO_BG, CAT_COUTURE, CAT_HANDBAGS, CAT_HERITAGE, BANNER_SILK } from '../assets/images';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { ProductSkeleton } from '../components/Skeleton';
 import { useShop } from '../context/ShopContext';
@@ -11,7 +10,7 @@ import MenBanner from '../assets/Men-Banner.png';
 import WomenBanner from '../assets/Women-Banner.png';
 import KidsBanner from '../assets/Kids-Banner.png';
 
-const CATEGORY_ORDER = ['Kurti', 'Maxi', 'Co-ords', 'Anarkali'];
+const CATEGORY_ORDER = ['Women', 'Men', 'Kids', 'Shoes'];
 
 const normalizeCategory = (value = '') => {
   const v = value.trim().toLowerCase();
@@ -26,13 +25,13 @@ export default function Collection() {
 
   const urlCategory = searchParams.get('category') || '';
   const urlSubcategory = searchParams.get('subcategory') || '';
+  const urlLabel = searchParams.get('label') || '';
   const urlSearch = searchParams.get('search') || '';
   const urlPage = parseInt(searchParams.get('page')) || 1;
 
-  // New state for manual expand/collapse without affecting filters
   const [expandedCats, setExpandedCats] = useState([]);
-
   const lastUrlCat = useRef(null);
+
   useEffect(() => {
     if (urlCategory && urlCategory !== lastUrlCat.current) {
       const name = urlCategory.toLowerCase();
@@ -43,7 +42,7 @@ export default function Collection() {
     }
   }, [urlCategory, expandedCats]);
 
-  const { categories } = useShop();
+  const { categories, getFullImgUrl, settings } = useShop();
   const { currencySymbol, country } = useCurrency();
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -70,21 +69,22 @@ export default function Collection() {
     material: true,
     style: true,
     rating: true,
-    stock: true
+    stock: true,
+    label: true
   });
+
+
   const priceMax = country === 'US' ? 200 : 10000;
   const priceStep = country === 'US' ? 5 : 100;
   const priceMin = country === 'US' ? 5 : 100;
 
-  // ── Fetch products whenever any filter changes ───────────────────────────
   const fetchProducts = useCallback(() => {
     const params = new URLSearchParams();
-
     if (urlCategory) params.set('category', urlCategory);
     if (urlSubcategory) params.set('subcategory', urlSubcategory);
+    if (urlLabel) params.set('label', urlLabel);
     if (urlSearch) params.set('search', urlSearch);
     if (maxPrice) params.set('maxPrice', maxPrice);
-
     params.set('sort', sort);
     params.set('page', urlPage);
     params.set('limit', 100);
@@ -93,15 +93,12 @@ export default function Collection() {
     API.get(`/products?${params.toString()}`)
       .then(r => {
         let realProducts = r.data.products || [];
-
-        // Combine Real + Local (Prioritize Real)
         let combined = [...realProducts];
 
-        // ── Mock Injection Logic (Only if empty) ──────────────────────────
         if (combined.length === 0) {
           const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-            const matchesCat = !urlCategory || mp.category === urlCategory;
-            const matchesSub = !urlSubcategory || mp.subcategory === urlSubcategory;
+            const matchesCat = !urlCategory || mp.category.toLowerCase() === urlCategory.toLowerCase();
+            const matchesSub = !urlSubcategory || (mp.subcategory || '').toLowerCase() === urlSubcategory.toLowerCase();
             const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
             const matchesPrice = !maxPrice || mp.price <= parseFloat(maxPrice);
             const matchesColor = selectedColors.length === 0 || (mp.colors && mp.colors.some(c => selectedColors.includes(c)));
@@ -115,12 +112,10 @@ export default function Collection() {
           combined = [...combined, ...filteredMocks.slice(0, 12)];
         }
 
-        // ── Extract available filters from results ──────────────────────────
         const allColors = new Set();
         const allSizes = new Set();
         const allMaterials = new Set();
         const allStyles = new Set();
-        
         combined.forEach(p => {
           if (p.colors) p.colors.forEach(c => allColors.add(c));
           if (p.sizes) p.sizes.forEach(s => allSizes.add(s));
@@ -134,71 +129,61 @@ export default function Collection() {
         setAvailableMaterials(Array.from(allMaterials).sort());
         setAvailableStyles(Array.from(allStyles).sort());
 
-        // ── Local Sort Enforcement (API + Mocks) ──────────────────────────
-        if (sort === 'price_asc') {
-          combined.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (sort === 'price_desc') {
-          combined.sort((a, b) => (b.price || 0) - (a.price || 0));
-        } else if (sort === 'rating') {
-          combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
-        } else if (sort === 'name_asc') {
-          combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        } else if (sort === 'name_desc') {
-          combined.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-        }
+        if (sort === 'price_asc') combined.sort((a,b) => (a.price||0)-(b.price||0));
+        else if (sort === 'price_desc') combined.sort((a,b) => (b.price||0)-(a.price||0));
+        else if (sort === 'rating') combined.sort((a,b) => (b.rating||Math.random()*5)-(a.rating||Math.random()*5));
+        else if (sort === 'name_asc') combined.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        else if (sort === 'name_desc') combined.sort((a,b) => (b.name||'').localeCompare(a.name||''));
 
         setProducts(combined);
         setTotal(r.data.total || combined.length);
         setPages(r.data.pages || Math.ceil(combined.length / 100));
       })
       .catch(() => {
-        // Fallback to Local + Mock if API fails
         const localData = localStorage.getItem('thaarai_local_products');
         const localProducts = localData ? JSON.parse(localData) : [];
         const activeCategory = normalizeCategory(urlCategory);
+        const activeSub = (urlSubcategory || '').toLowerCase();
 
         const filteredLocals = localProducts.filter(lp => {
-          const matchesCat = !activeCategory || normalizeCategory(lp.category) === activeCategory;
+          const matchesCat = !activeCategory || normalizeCategory(lp.category).toLowerCase() === activeCategory.toLowerCase();
+          const matchesSub = !activeSub || (lp.subcategory || '').toLowerCase() === activeSub;
           const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
-          return matchesCat && matchesSearch;
+          return matchesCat && matchesSub && matchesSearch;
         });
-
         const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-          const matchesCat = !activeCategory || normalizeCategory(mp.category) === activeCategory;
+          const matchesCat = !activeCategory || normalizeCategory(mp.category).toLowerCase() === activeCategory.toLowerCase();
+          const matchesSub = !activeSub || (mp.subcategory || '').toLowerCase() === activeSub;
           const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
-          return matchesCat && matchesSearch;
+          return matchesCat && matchesSub && matchesSearch;
         });
-
         const combined = [...filteredLocals, ...filteredMocks];
 
-        // ── Local Sort Enforcement (Mocks) ──────────────────────────
-        if (sort === 'price_asc') {
-          combined.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (sort === 'price_desc') {
-          combined.sort((a, b) => (b.price || 0) - (a.price || 0));
-        } else if (sort === 'rating') {
-          combined.sort((a, b) => (b.rating || Math.random() * 5) - (a.rating || Math.random() * 5));
-        } else if (sort === 'name_asc') {
-          combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        } else if (sort === 'name_desc') {
-          combined.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-        }
+        if (sort === 'price_asc') combined.sort((a,b) => (a.price||0)-(b.price||0));
+        else if (sort === 'price_desc') combined.sort((a,b) => (b.price||0)-(a.price||0));
+        else if (sort === 'rating') combined.sort((a,b) => (b.rating||Math.random()*5)-(a.rating||Math.random()*5));
+        else if (sort === 'name_asc') combined.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        else if (sort === 'name_desc') combined.sort((a,b) => (b.name||'').localeCompare(a.name||''));
 
         setProducts(combined);
-        setTotal(r.data.total || combined.length);
-        setPages(r.data.pages || Math.ceil(combined.length / 100));
+        setTotal(combined.length);
+        setPages(Math.ceil(combined.length / 100));
       })
       .finally(() => setLoading(false));
-  }, [urlCategory, urlSubcategory, urlSearch, urlPage, maxPrice, sort, selectedColors, selectedSizes, selectedMaterials, selectedStyles, minRating, inStockOnly]);
+  }, [urlCategory, urlSubcategory, urlLabel, urlSearch, urlPage, maxPrice, sort, selectedColors, selectedSizes, selectedMaterials, selectedStyles, minRating, inStockOnly, country, normalizeCategory]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (showMobileFilters) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [showMobileFilters]);
+
   const handleCategoryClick = (catName) => {
     const params = new URLSearchParams(searchParams);
     if (!catName) params.delete('category');
     else params.set('category', catName);
-
     params.delete('subcategory');
     params.set('page', '1');
     navigate(`/collection?${params.toString()}`);
@@ -211,15 +196,18 @@ export default function Collection() {
     );
   };
 
-
   const handleSubcategoryClick = (subName) => {
     const params = new URLSearchParams(searchParams);
-    // Toggling: If clicking the same subcategory, deselect it
-    if (!subName || urlSubcategory.toLowerCase() === subName.toLowerCase()) {
-      params.delete('subcategory');
-    } else {
-      params.set('subcategory', subName);
-    }
+    if (!subName || urlSubcategory.toLowerCase() === subName.toLowerCase()) params.delete('subcategory');
+    else params.set('subcategory', subName);
+    params.set('page', '1');
+    navigate(`/collection?${params.toString()}`);
+  };
+
+  const handleLabelClick = (labelName) => {
+    const params = new URLSearchParams(searchParams);
+    if (!labelName || urlLabel === labelName) params.delete('label');
+    else params.set('label', labelName);
     params.set('page', '1');
     navigate(`/collection?${params.toString()}`);
   };
@@ -232,10 +220,7 @@ export default function Collection() {
   };
 
   const toggleFilterSection = (filterName) => {
-    setExpandedFilters(prev => ({
-      ...prev,
-      [filterName]: !prev[filterName]
-    }));
+    setExpandedFilters(prev => ({ ...prev, [filterName]: !prev[filterName] }));
   };
 
   const clearFilters = () => {
@@ -251,99 +236,65 @@ export default function Collection() {
 
   const pageTitle = urlSearch ? `Search: "${urlSearch}"` : urlCategory || 'All Collections';
 
-  const bannerImgs = {
-    'Kurti': CAT_COUTURE,
-    'Kurtis': CAT_COUTURE,
-    'Maxi': CAT_HANDBAGS,
-    'Co-ords': CAT_HERITAGE,
-    'Anarkali': BANNER_SILK,
-    'Women': HERO_BG
-  };
-  const bannerImg = bannerImgs[urlCategory] || HERO_BG;
-
-  // Category to banner mapping
-  const categoryBannerMap = {
-    'Men': MenBanner,
-    'Mens': MenBanner,
-    'Women': WomenBanner,
-    'Womens': WomenBanner,
-    'Kids': KidsBanner,
-    'Childrens': KidsBanner,
-    'Kurti': WomenBanner,
-    'Kurtis': WomenBanner,
-    'Maxi': WomenBanner,
-    'Co-ords': WomenBanner,
-    'Anarkali': WomenBanner
-  };
-
-  // Get banner for current category
   const getCategoryBanner = () => {
-    if (urlCategory) {
-      return categoryBannerMap[urlCategory] || WomenBanner;
+    // 1. Try to find the specific sub-category banner
+    if (urlCategory && urlSubcategory) {
+      const cat = categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase());
+      if (cat && cat.subcategories) {
+        const sub = cat.subcategories.find(s => {
+          const sName = typeof s === 'string' ? s : s.name;
+          return sName.toLowerCase() === urlSubcategory.toLowerCase();
+        });
+        if (sub && typeof sub !== 'string' && sub.banner) {
+          return `${API.defaults.baseURL.replace('/api', '')}/${sub.banner.replace(/^\//, '')}`;
+        }
+      }
     }
-    return WomenBanner; // Default to Women banner for "All Pieces"
+
+    // 2. Try the parent category banner
+    if (urlCategory) {
+      const cat = categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase());
+      if (cat && cat.banner) {
+        return `${API.defaults.baseURL.replace('/api', '')}/${cat.banner.replace(/^\//, '')}`;
+      }
+    }
+
+    // 3. Global Banner Fallback from settings
+    if (settings?.bannerFallback) {
+      return `${API.defaults.baseURL.replace('/api', '')}/${settings.bannerFallback.replace(/^\//, '')}`;
+    }
+
+    // 4. Hardcoded Fallbacks
+    if (urlCategory === 'Men') return MenBanner;
+    if (urlCategory === 'Kids') return KidsBanner;
+    
+    return WomenBanner;
   };
 
   return (
     <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
       {/* Category Banner */}
-      <div className="relative h-[300px] md:h-[450px] overflow-hidden bg-gray-100 -mt-[20px]">
+      <div className="relative w-full bg-[#fbfbfb] pt-8 sm:pt-0">
         <img 
           src={getCategoryBanner()} 
           alt={urlCategory || 'All Pieces'}
-          className="w-full h-full object-cover"
+          className="w-full aspect-[21/9] object-cover block transition-all duration-700"
         />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-4 pb-12">
-        {/* Sub-category Visual Navigator */}
-        {urlCategory && categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase())?.subcategories?.length > 0 && (
-          <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-px flex-1 bg-gray-100" />
-              <h3 className="text-[10px] uppercase font-bold tracking-[0.3em] text-gray-400">Explore {urlCategory}</h3>
-              <div className="h-px flex-1 bg-gray-100" />
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2">
-              <button 
-                onClick={() => handleSubcategoryClick('')}
-                className={`shrink-0 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all border
-                  ${!urlSubcategory ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'}`}
-              >
-                All {urlCategory}
-              </button>
-              {categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase()).subcategories.map(sub => {
-                const subName = typeof sub === 'string' ? sub : sub.name;
-                const isActive = urlSubcategory.toLowerCase() === subName.toLowerCase();
-                return (
-                  <button 
-                    key={subName}
-                    onClick={() => handleSubcategoryClick(subName)}
-                    className={`shrink-0 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all border
-                      ${isActive ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-300'}`}
-                  >
-                    {subName}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-10 bg-gray-50 p-3 px-5 rounded-md border border-gray-200 w-fit">
-          <Link to="/" className="hover:text-gray-900 transition-colors">Home</Link>
-          {(urlCategory) && !urlSearch ? (
+        {/* Breadcrumb - Minimalist Style */}
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-6">
+          <Link to="/" className="hover:text-black transition-colors">Home</Link>
+          <span className="text-gray-200">/</span>
+          {urlCategory && !urlSearch ? (
             <>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-500">Collection</span>
-              <span className="text-gray-400">/</span>
-              <span className="text-black font-semibold">{pageTitle}</span>
+              <span className="hover:text-black cursor-default">Collection</span>
+              <span className="text-gray-200">/</span>
+              <span className="text-black">{pageTitle}</span>
             </>
           ) : (
-            <>
-              <span className="text-gray-400">/</span>
-              <span className="text-black font-semibold">{pageTitle}</span>
-            </>
+            <span className="text-black">{pageTitle}</span>
           )}
         </div>
 
@@ -360,27 +311,32 @@ export default function Collection() {
           {/* Sidebar - Desktop Sticky / Mobile Drawer */}
           <aside className={`
             lg:w-64 shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar
-            fixed inset-y-0 left-0 w-4/5 max-w-[300px] z-[100] bg-white transition-transform duration-500 lg:static lg:bg-transparent lg:z-0 lg:block lg:translate-x-0 h-full
-            ${showMobileFilters ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
-            overflow-y-auto
+            fixed top-0 bottom-0 left-0 w-[85%] max-w-[340px] z-[100] bg-white transition-transform duration-500 
+            lg:static lg:bg-transparent lg:z-0 lg:translate-x-0 flex flex-col h-[100dvh]
+            ${showMobileFilters ? 'translate-x-0 shadow-[20px_0_100px_rgba(0,0,0,0.2)]' : '-translate-x-full'}
           `}>
-             {/* Mobile Close Header */}
-             <div className="lg:hidden flex items-center justify-between p-6 border-b border-gray-100 bg-white sticky top-0 z-20">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-[#000000]">Filters</h3>
-                <button onClick={() => setShowMobileFilters(false)} className="text-gray-400 hover:text-black transition-colors p-2">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+             {/* Mobile Drawer Header */}
+             <div className="lg:hidden flex items-center justify-between px-8 py-7 border-b border-gray-100 bg-white sticky top-0 z-20">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-[13px] font-bold uppercase tracking-[0.2em] text-black">Filters</h3>
+                  <button onClick={clearFilters} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors w-fit">
+                    Clear All
+                  </button>
+                </div>
+                <button onClick={() => setShowMobileFilters(false)} className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-black hover:bg-gray-100 transition-all">
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
              </div>
 
-             <div className="lg:p-0 p-6 space-y-6">
+             <div className="lg:p-0 p-8 space-y-10 flex-1 overflow-y-auto custom-scrollbar bg-white">
                 {/* Category filter */}
-                <div className="lg:bg-gray-50 p-6 pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
+                <div className="lg:bg-gray-50 lg:p-6 lg:pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
-                      <h3 className="text-[12px] font-bold uppercase tracking-[0.2em] text-black flex-shrink-0">Refine by</h3>
+                    <div className="hidden lg:flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-black flex-shrink-0">Refine by</h3>
                       {urlCategory || maxPrice || selectedColors.length > 0 || selectedSizes.length > 0 ? (
                           <button onClick={clearFilters}
-                            className="text-[10px] font-bold uppercase tracking-widest text-black hover:text-gray-400 transition-colors flex-shrink-0">
+                            className="text-[9px] font-bold uppercase tracking-widest text-black hover:text-gray-400 transition-colors flex-shrink-0">
                             Reset
                           </button>
                       ) : null}
@@ -436,17 +392,34 @@ export default function Collection() {
                             {/* Subcategories (show based on manual expanded state) */}
                             {expandedCats.includes(catName.toLowerCase()) && cat.subcategories && cat.subcategories.length > 0 && (
                               <div className="pl-4 py-2 space-y-1 mt-1 border-l-2 border-gray-100 ml-4 animate-slide-down">
+                                {/* ── ALL (top) ── */}
+                                <button
+                                  onClick={() => handleSubcategoryClick('')}
+                                  className={`relative flex items-center gap-2 w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
+                                    ${!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase()
+                                      ? 'text-black font-black'
+                                      : 'text-gray-500 hover:text-black'}`}
+                                >
+                                  {!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase() && (
+                                    <span className="w-1 h-1 rounded-full bg-black shadow-sm" />
+                                  )}
+                                  All {catName}
+                                </button>
+                                {/* ── individual subs ── */}
                                 {cat.subcategories.map(sub => {
                                   const subName = typeof sub === 'string' ? sub : (sub?.name || '');
                                   return (
                                     <button
                                       key={subName}
                                       onClick={() => handleSubcategoryClick(subName)}
-                                    className={`block w-full text-left py-1 px-3 text-[9px] uppercase tracking-[0.2em] font-medium transition-all
-                                        ${urlSubcategory.toLowerCase() === subName.toLowerCase() ? 'text-black font-bold' : 'text-black hover:text-gray-400'}`}
-                                    >
-                                      {subName}
-                                    </button>
+                                      className={`relative block w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
+                                          ${urlSubcategory.toLowerCase() === subName.toLowerCase() ? 'text-black font-black' : 'text-gray-500 hover:text-black'}`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {urlSubcategory.toLowerCase() === subName.toLowerCase() && <span className="w-1 h-1 rounded-full bg-black shadow-sm" />}
+                                          {subName}
+                                        </div>
+                                      </button>
                                   );
                                 })}
                               </div>
@@ -699,6 +672,42 @@ export default function Collection() {
                     )}
                   </div>
 
+                  {/* LABEL FILTER */}
+                  <div>
+                    <button 
+                      onClick={() => toggleFilterSection('label')}
+                      className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Status & Labels</p>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.label ? 'rotate-180' : ''}`}>
+                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {expandedFilters.label && (
+                    <div className="space-y-2 animate-in fade-in duration-200">
+                      {[
+                        { id: 'Hot', label: '🔥 Hot Items' },
+                        { id: 'New Arrival', label: '✨ New Arrivals' },
+                        { id: 'Trending', label: '⚡ Trending Now' },
+                        { id: 'Sold Out', label: '✕ Sold Out' }
+                      ].map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => handleLabelClick(item.id)}
+                          className={`flex items-center gap-3 w-full group py-0.5`}
+                        >
+                          <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-all ${urlLabel === item.id ? 'bg-black border-black' : 'border-gray-300 group-hover:border-black'}`}>
+                            {urlLabel === item.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                          </div>
+                          <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${urlLabel === item.id ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    )}
+                  </div>
+
                   <div>
                     <button 
                       onClick={() => toggleFilterSection('sort')}
@@ -735,21 +744,27 @@ export default function Collection() {
           {/* ── Product Grid ─────────────────────────────────────────────── */}
           <div className="flex-1 w-full">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-gray-50/50 p-4 sm:p-6 border border-gray-100 rounded-xl">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                {loading ? 'Sourcing catalog...' : (
-                  <>Displaying <span className="text-gray-900">{total}</span> masterworks</>
-                )}
-              </p>
+            <div className="sticky top-[65px] sm:static z-30 mb-6 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300">
+              <div className="flex lg:hidden">
+                <button 
+                  onClick={() => setShowMobileFilters(true)}
+                  className="flex-1 py-4 flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-black active:bg-gray-50 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                  Filter
+                </button>
+              </div>
               
-              {/* Mobile Filter Toggle */}
-              <button 
-                onClick={() => setShowMobileFilters(true)}
-                className="lg:hidden w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 hover:border-black transition-all shadow-sm"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                Filter & Sort
-              </button>
+              <div className="hidden lg:flex items-center justify-between p-6">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">
+                  {loading ? 'Sourcing catalog...' : (
+                    <>Displaying <span className="text-gray-900">{total}</span> masterworks</>
+                  )}
+                </p>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 italic">
+                  Curated Collection
+                </div>
+              </div>
             </div>
 
             {/* Grid */}

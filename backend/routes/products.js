@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const StockLog = require('../models/StockLog');
 const seedProducts = require('../config/seedProducts');
 const { adminMiddleware, authMiddleware } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -28,8 +29,19 @@ router.get('/', async (req, res) => {
     }
     */
 
-    const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12, country } = req.query;
+    const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12, country, stock_lte, status } = req.query;
     const query = {};
+    
+    // Default to 'Publish' if no status is provided, but allow override
+    if (status && status !== 'All') {
+      query.status = status;
+    } else if (!status) {
+      query.status = 'Publish';
+    }
+
+    if (stock_lte !== undefined) {
+      query.stock = { $lte: Number(stock_lte) };
+    }
 
     if (country === 'US') query.availableInUS = true;
     else if (country === 'IN') query.availableInIndia = true;
@@ -59,6 +71,9 @@ router.get('/', async (req, res) => {
     }
     if (material) query.material = { $regex: material, $options: 'i' };
     if (fabric) query.fabric = { $regex: fabric, $options: 'i' };
+    if (req.query.label && req.query.label !== 'All') {
+      query.label = req.query.label;
+    }
     if (bestseller === 'true') query.bestseller = true;
 
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -132,8 +147,12 @@ router.post('/', adminMiddleware, upload.any(), async (req, res) => {
     const imagePaths = (req.files || []).filter(f => f.fieldname === 'images').map(f => f.path.replace(/\\/g, '/'));
     
     const parsedVariants = parseArray(variants).map((v, i) => {
-      const vFile = (req.files || []).find(f => f.fieldname === `variantImage_${i}`);
-      if (vFile) v.image = vFile.path.replace(/\\/g, '/');
+      const vFiles = (req.files || []).filter(f => f.fieldname.startsWith(`variantImage_${i}_`));
+      v.images = v.images || [];
+      if (vFiles.length > 0) {
+         const newVImages = vFiles.map(f => f.path.replace(/\\/g, '/'));
+         v.images = [...v.images, ...newVImages];
+      }
       return v;
     });
 
@@ -163,8 +182,24 @@ router.post('/', adminMiddleware, upload.any(), async (req, res) => {
       offerPriceUSDIndia: Number(offerPriceUSDIndia) || 0,
       offerEndTimeUSA: offerEndTimeUSA ? new Date(offerEndTimeUSA) : null,
       offerActiveUSA: offerActiveUSA === 'true' || offerActiveUSA === true,
-      offerPriceUSDUSA: Number(offerPriceUSDUSA) || 0
+      offerPriceUSDUSA: Number(offerPriceUSDUSA) || 0,
+      codAllowed: req.body.codAllowed !== 'false' && req.body.codAllowed !== false,
+      returnWindowDays: req.body.returnWindowDays ? Number(req.body.returnWindowDays) : null
     });
+
+    // ── Log initial stock in inventory ───────────────────────────────
+    const initialStock = Number(stock) || 0;
+    if (initialStock > 0) {
+      await StockLog.create({
+        productId: product._id,
+        action: 'set',
+        quantity: initialStock,
+        previousStock: 0,
+        currentStock: initialStock,
+        reason: 'Product created'
+      });
+    }
+
     res.status(201).json({ success: true, product });
   } catch (err) {
     console.error('ADD PRODUCT ERROR:', err);
@@ -184,16 +219,12 @@ router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
     const keptImages = parseArray(existingImages);
 
     // Variants handling
-    // existingVariants would hold any images already present before update
     const parsedVariants = parseArray(variants).map((v, i) => {
-      const vFile = (req.files || []).find(f => f.fieldname === `variantImage_${i}`);
-      if (vFile) {
-         v.image = vFile.path.replace(/\\/g, '/');
-      } else {
-         // Keep existing if no new file is uploaded
-         // In frontend, we send variants back with the `.image` string if it exists
-         // The parsed v already has v.image if we sent it as JSON, or we can check
-         // But FormData JSON.stringify preserves v.image
+      const vFiles = (req.files || []).filter(f => f.fieldname.startsWith(`variantImage_${i}_`));
+      v.images = v.images || [];
+      if (vFiles.length > 0) {
+         const newVImages = vFiles.map(f => f.path.replace(/\\/g, '/'));
+         v.images = [...v.images, ...newVImages];
       }
       return v;
     });
@@ -231,9 +262,29 @@ router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
     if (offerEndTimeUSA) updateData.offerEndTimeUSA = new Date(offerEndTimeUSA);
     else if (offerEndTimeUSA === '') updateData.offerEndTimeUSA = null;
     updateData.offerActiveUSA = offerActiveUSA === 'true' || offerActiveUSA === true;
-    updateData.offerPriceUSDUSA = Number(offerPriceUSDUSA) || 0;
+    updateData.offerPriceUSDUSA = Number(offerPriceUSDUSA) || 0;    
+    // Custom restrictions
+    updateData.codAllowed = req.body.codAllowed !== 'false' && req.body.codAllowed !== false;
+    updateData.returnWindowDays = req.body.returnWindowDays ? Number(req.body.returnWindowDays) : null;
+    const existingProduct = await Product.findById(req.params.id);
+    const oldStock = existingProduct ? Number(existingProduct.stock) : 0;
+    const newStock = Number(stock) || 0;
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+    // ── Log stock change in inventory ────────────────────────────────
+    if (product && newStock !== oldStock) {
+      const diff = newStock - oldStock;
+      await StockLog.create({
+        productId: product._id,
+        action: diff > 0 ? 'increment' : 'decrement',
+        quantity: Math.abs(diff),
+        previousStock: oldStock,
+        currentStock: newStock,
+        reason: 'Product updated'
+      });
+    }
+
     res.json({ success: true, product });
   } catch (err) {
     console.error('UPDATE PRODUCT ERROR:', err);

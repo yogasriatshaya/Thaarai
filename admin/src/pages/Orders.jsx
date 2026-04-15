@@ -5,9 +5,19 @@ import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ORDER_STATUSES = ['processing', 'shipped', 'delivered', 'cancelled'];
 const FILTER_TABS = ['', 'processing', 'shipped', 'delivered', 'cancelled', 'returns'];
+const RETURN_STATUS_FILTERS = [
+  { label: 'All Returns', value: 'all' },
+  { label: 'Return Request', value: 'return_request' },
+  { label: 'Return Approved', value: 'return_approved' },
+  { label: 'Item Received', value: 'item_received' },
+  { label: 'Refund Pending', value: 'refund_pending' },
+  { label: 'Refunded', value: 'refunded' },
+  { label: 'Return Cancelled', value: 'return_cancelled' }
+];
 const statusColors = {
   processing: 'bg-yellow-100 text-yellow-800',
   shipped: 'bg-blue-100 text-blue-800',
@@ -20,6 +30,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [returnStatusFilter, setReturnStatusFilter] = useState('all');
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -32,11 +43,20 @@ export default function Orders() {
   // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  
+  // Pending update for confirmation
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [pendingBulkUpdate, setPendingBulkUpdate] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const statusParam = filter ? `&status=${filter}` : '';
+      let statusParam = '';
+      if (filter === 'returns' && returnStatusFilter !== 'all') {
+        statusParam = `&returnStatus=${returnStatusFilter}`;
+      } else if (filter) {
+        statusParam = `&status=${filter}`;
+      }
       const res = await API.get(`/orders/all?page=${page}&limit=${limit}${statusParam}`);
       setOrders(res.data.orders || []);
       setTotal(res.data.total || 0);
@@ -44,14 +64,35 @@ export default function Orders() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [filter, page, limit]);
+  useEffect(() => { load(); }, [filter, returnStatusFilter, page, limit]);
 
-  const updateStatus = async (id, field, value) => {
+  const updateStatus = (id, field, value) => {
+    // Just open modal, don't update yet
+    setPendingUpdate({ id, field, value });
+  };
+
+  const [adminCancelReason, setAdminCancelReason] = useState('');
+
+  const handleConfirmUpdate = async () => {
+    if (!pendingUpdate) return;
+    const { id, field, value } = pendingUpdate;
+    if (value === 'cancelled' && !adminCancelReason.trim()) {
+        toast.error("Please provide a reason for cancellation");
+        return;
+    }
     try {
-      await API.put(`/orders/${id}/status`, { [field]: value });
-      setOrders(prev => prev.map(o => o._id === id ? { ...o, [field]: value } : o));
-      toast.success('Order updated');
-    } catch { toast.error('Failed to update order'); }
+      const payload = { [field]: value };
+      if (value === 'cancelled') payload.cancellationReason = adminCancelReason;
+      
+      await API.put(`/orders/${id}/status`, payload);
+      setOrders(prev => prev.map(o => o._id === id ? { ...o, [field]: value, cancellationReason: value === 'cancelled' ? adminCancelReason : o.cancellationReason, cancelledBy: value === 'cancelled' ? 'admin' : o.cancelledBy } : o));
+      toast.success('Order status updated successfully');
+    } catch { 
+      toast.error('Failed to update order'); 
+    } finally {
+      setPendingUpdate(null);
+      setAdminCancelReason('');
+    }
   };
 
   const handleUpdateLogistics = async (id) => {
@@ -66,14 +107,25 @@ export default function Orders() {
     } catch { toast.error('Failed to update logistics'); }
   };
 
-  const handleBulkAction = async (field, value) => {
+  const handleBulkAction = (field, value) => {
+    if (!value || selectedOrders.length === 0) return;
+    setPendingBulkUpdate({ field, value });
+  };
+
+  const confirmBulkAction = async () => {
+    const { field, value } = pendingBulkUpdate;
     try {
       setLoading(true);
       await Promise.all(selectedOrders.map(id => API.put(`/orders/${id}/status`, { [field]: value })));
       toast.success(`${selectedOrders.length} orders updated`);
       setSelectedOrders([]);
       load();
-    } catch { toast.error('Bulk update failed'); setLoading(false); }
+    } catch { 
+      toast.error('Bulk update failed'); 
+    } finally {
+      setLoading(false);
+      setPendingBulkUpdate(null);
+    }
   };
 
   const fetchReportData = async () => {
@@ -151,46 +203,71 @@ export default function Orders() {
 
   return (
     <Layout title="Orders">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 bg-white p-3 rounded shadow-sm border border-gray-100 flex-wrap">
-        <div className="flex flex-wrap items-center gap-2">
-          {FILTER_TABS.map(s => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`text-[10px] tracking-widest uppercase font-sans px-3 py-1.5 border transition-all rounded-sm ${filter === s ? 'bg-charcoal text-white border-charcoal' : 'border-gray-100 text-gray-400 hover:border-charcoal'}`}>
-              {s || 'All'}
-            </button>
-          ))}
-          <p className="text-xs text-gray-400 font-sans ml-2 mt-1">{total} total</p>
+      <div className="flex flex-col gap-4 mb-6 bg-white p-3 rounded shadow-sm border border-gray-100">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+           {/* Tabs and Total Count on Line 1 */}
+           <div className="flex flex-wrap items-center gap-1.5 bg-gray-50/50 p-1 rounded-xl border border-gray-100">
+             {FILTER_TABS.map(s => (
+               <button key={s} onClick={() => { setFilter(s); setPage(1); }}
+                 className={`text-[10px] tracking-widest uppercase font-sans px-4 py-2 transition-all rounded-lg font-bold ${filter === s ? 'bg-white text-charcoal shadow-md border border-gray-100 scale-105' : 'text-gray-400 hover:text-charcoal hover:bg-gray-100/50'}`}>
+                 {s || 'All'}
+               </button>
+             ))}
+           </div>
+           
+           <div className="flex items-center gap-2 px-3 py-2 bg-charcoal/5 rounded-lg border border-charcoal/5 ml-auto md:ml-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+              <p className="text-[10px] text-charcoal/60 font-sans font-bold uppercase tracking-widest">{total} total orders</p>
+           </div>
         </div>
 
-        <div className="flex items-center gap-4 ml-auto flex-wrap justify-end">
-            {selectedOrders.length > 0 && (
-               <div className="flex items-center gap-2 bg-gold-50/50 px-3 py-1.5 rounded border border-gold-100 animate-fadeIn">
-                  <span className="text-[10px] font-sans text-gold-700 font-bold">{selectedOrders.length} selected</span>
-                  <select onChange={e => handleBulkAction('orderStatus', e.target.value)} className="text-[10px] border border-gold-200 px-1.5 py-1 focus:outline-none focus:border-gold-500 rounded-sm bg-white cursor-pointer">
-                      <option value="">— Bulk Status —</option>
-                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button onClick={() => setSelectedOrders([])} className="text-xs text-gray-400 hover:text-red-500">×</button>
-               </div>
-            )}
-            
-            <div className="flex border border-gray-200 rounded divide-x divide-gray-200 bg-white items-center">
-                <span className="text-[10px] text-gray-400 font-bold px-2 hidden sm:block">FROM</span>
-                <input
-                   type="date"
-                   value={startDate}
-                   onChange={e => setStartDate(e.target.value)}
-                   className="text-[10px] px-2 py-1.5 focus:outline-none text-gray-600"
-                   title="From Date"
-                />
-                <span className="text-[10px] text-gray-400 font-bold px-2 hidden sm:block">TO</span>
-                <input
-                   type="date"
-                   value={endDate}
-                   onChange={e => setEndDate(e.target.value)}
-                   className="text-[10px] px-2 py-1.5 focus:outline-none text-gray-600"
-                   title="To Date"
-                />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-3 border-t border-gray-50">
+           {/* Return Status Filter or Bulk Actions on Line 2 */}
+           <div className="flex-1">
+              {filter === 'returns' ? (
+                 <div className="flex items-center gap-2">
+                    <select value={returnStatusFilter} onChange={e => { setReturnStatusFilter(e.target.value); setPage(1); }} className="text-[10px] border border-gray-200 px-3 py-2 focus:outline-none focus:border-gold-500 rounded-lg bg-white cursor-pointer uppercase tracking-wider font-bold">
+                        {RETURN_STATUS_FILTERS.map(rs => <option key={rs.value} value={rs.value}>{rs.label}</option>)}
+                    </select>
+                 </div>
+              ) : selectedOrders.length > 0 && (
+                 <div className="flex items-center gap-2 bg-gold-50/50 px-3 py-2 rounded border border-gold-100 animate-fadeIn">
+                    <span className="text-[10px] font-sans text-gold-700 font-bold">{selectedOrders.length} selected</span>
+                    <select onChange={e => handleBulkAction('orderStatus', e.target.value)} className="text-[10px] border border-gold-200 px-2 py-1.5 focus:outline-none focus:border-gold-500 rounded-sm bg-white cursor-pointer uppercase tracking-wider font-bold">
+                        <option value="">— Bulk Status —</option>
+                        {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <button onClick={() => setSelectedOrders([])} className="ml-1 text-xs text-gray-400 hover:text-red-500 transition-colors">×</button>
+                 </div>
+              )}
+           </div>
+
+           <div className="flex flex-wrap items-center gap-3 justify-end">
+                <div className="flex items-center group flex-1">
+                    <span className="text-[9px] text-gray-500 font-bold px-2 sm:px-3 text-center min-w-[45px]">FROM</span>
+                    <input
+                       type="date"
+                       value={startDate}
+                       onChange={e => setStartDate(e.target.value)}
+                       className="text-[11px] px-2 py-2.5 sm:py-1.5 focus:outline-none text-gray-600 flex-1 sm:flex-none border-l sm:border-l-0"
+                       title="From Date"
+                    />
+                </div>
+                <div className="flex items-center group flex-1">
+                    <span className="text-[9px] text-gray-500 font-bold px-2 sm:px-3 text-center min-w-[45px]">TO</span>
+                    <input
+                       type="date"
+                       value={endDate}
+                       onChange={e => setEndDate(e.target.value)}
+                       className="text-[11px] px-2 py-2.5 sm:py-1.5 focus:outline-none text-gray-600 flex-1 sm:flex-none border-l sm:border-l-0"
+                       title="To Date"
+                    />
+                </div>
+                {(startDate || endDate) && (
+                    <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-[10px] text-gold-600 hover:bg-gold-50 px-3 py-2 sm:py-0 font-bold uppercase tracking-tighter border-t sm:border-t-0 sm:border-l border-gray-100">
+                        Clear
+                    </button>
+                )}
             </div>
 
             <div className="flex border border-gray-200 rounded divide-x divide-gray-200 bg-white">
@@ -204,20 +281,21 @@ export default function Orders() {
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card">
         {loading ? (
           <div className="p-8 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : orders.length === 0 ? (
           <p className="text-center py-16 text-gray-400 font-serif text-xl">No orders found</p>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[1000px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="px-5 py-3 w-10">
                    <input type="checkbox" checked={selectedOrders.length === orders.length && orders.length > 0} onChange={() => setSelectedOrders(selectedOrders.length === orders.length ? [] : orders.map(o => o._id))} className="accent-gold-600 rounded-sm" />
                 </th>
                 {['Order', 'Customer', 'Items', 'Amount', 'Payment', 'Order Status', 'Payment Status'].map(h => (
-                  <th key={h} className="text-left text-[10px] tracking-[0.15em] uppercase text-gray-400 font-sans px-3 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs tracking-[0.15em] uppercase text-gray-400 font-sans px-3 py-3 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -231,7 +309,7 @@ export default function Orders() {
                       <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
                          <input type="checkbox" checked={selectedOrders.includes(order._id)} onChange={() => setSelectedOrders(prev => prev.includes(order._id) ? prev.filter(id => id !== order._id) : [...prev, order._id])} className="accent-gold-600 rounded-sm" />
                       </td>
-                      <td className="px-3 py-4">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
                           <div>
@@ -243,7 +321,7 @@ export default function Orders() {
                           </div>
                         </div>
                       </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-sans font-medium text-charcoal">{order.address?.fullName || order.userId?.name || 'Guest User'}</p>
@@ -254,10 +332,10 @@ export default function Orders() {
                         <p className="text-[10px] font-sans text-gray-400">{order.address?.email || order.userId?.email || order.guestEmail || ''}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-xs font-sans text-gray-500">{order.items?.length || 0} items</td>
-                    <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">{order.currency === 'USD' ? '$' : '₹'}{order.totalAmount?.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-xs font-sans capitalize text-gray-500">{order.paymentMethod}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 text-xs font-sans text-gray-500 whitespace-nowrap">{order.items?.length || 0} items</td>
+                    <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal whitespace-nowrap">{order.currency === 'USD' ? '$' : '₹'}{order.totalAmount?.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-xs font-sans capitalize text-gray-500 whitespace-nowrap">{order.paymentMethod}</td>
+                    <td className="px-5 py-4 whitespace-nowrap">
                       <select value={order.orderStatus} 
                         onClick={e => e.stopPropagation()}
                         onChange={e => updateStatus(order._id, 'orderStatus', e.target.value)}
@@ -265,7 +343,7 @@ export default function Orders() {
                         {ORDER_STATUSES.map(s => <option key={s} value={s} className="normal-case bg-white text-charcoal">{s}</option>)}
                       </select>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 whitespace-nowrap">
                       <select value={order.paymentStatus} 
                         onClick={e => e.stopPropagation()}
                         onChange={e => updateStatus(order._id, 'paymentStatus', e.target.value)}
@@ -400,6 +478,20 @@ export default function Orders() {
                                   )}
                                </div>
                             )}
+
+                            {/* Cancellation Details */}
+                            {order.orderStatus === 'cancelled' && (
+                               <div className="mt-4 border-t border-red-100 pt-3 space-y-2 bg-red-50/20 p-3 rounded-lg border">
+                                   <div className="flex items-center justify-between">
+                                       <h4 className="text-[10px] font-sans font-bold uppercase tracking-widest text-red-600 flex items-center gap-1">🚫 Order Cancelled</h4>
+                                       <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded tracking-widest bg-red-100 text-red-700">By {order.cancelledBy || 'User'}</span>
+                                   </div>
+                                   <div className="bg-white p-3 border border-red-50 rounded text-xs text-gray-700 font-sans shadow-sm">
+                                       <span className="font-bold block mb-1">Reason for Cancellation:</span>
+                                       <p className="italic">{order.cancellationReason || 'No reason provided'}</p>
+                                   </div>
+                               </div>
+                            )}
                            </div>
                           </div>
                       </td>
@@ -409,6 +501,7 @@ export default function Orders() {
               })}
             </tbody>
           </table>
+          </div>
         )}
         
         {/* Pagination Footer */}
@@ -584,6 +677,27 @@ export default function Orders() {
             `}</style>
          </div>
       )}
+      {/* Confirmation Modal for Status Change */}
+      <ConfirmModal
+        isOpen={!!pendingUpdate}
+        title="Confirm Status Change"
+        message={`Are you sure you want to change the ${pendingUpdate?.field === 'orderStatus' ? 'Order' : 'Payment'} status to ${pendingUpdate?.value?.toUpperCase()}?`}
+        onConfirm={handleConfirmUpdate}
+        onCancel={() => { setPendingUpdate(null); setAdminCancelReason(''); }}
+        type="warning"
+        showInput={pendingUpdate?.value === 'cancelled'}
+        inputPlaceholder="Reason for cancellation..."
+        inputValue={adminCancelReason}
+        onInputChange={setAdminCancelReason}
+      />
+      <ConfirmModal
+        isOpen={!!pendingBulkUpdate}
+        title="Confirm Bulk Update"
+        message={`Are you sure you want to update ${selectedOrders.length} orders to ${pendingBulkUpdate?.value?.toUpperCase()}?`}
+        onConfirm={confirmBulkAction}
+        onCancel={() => setPendingBulkUpdate(null)}
+        type="warning"
+      />
     </Layout>
   );
 }

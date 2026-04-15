@@ -13,8 +13,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_k1',
     name: 'Chanderi Dress Suits Readymades',
     price: 1699,
-    category: 'Kurti',
-    subcategory: 'Chanderi',
+    category: 'Women',
+    subcategory: 'Kurti',
+    fabric: 'Chanderi',
     images: [
       `${THAARAI_BASE}/2026/02/exported_9F3B6D10-489F-45EF-B080-B039A4A30F67-300x450.jpeg`,
       `${THAARAI_BASE}/2026/02/exported_9F3B6D10-489F-45EF-B080-B039A4A30F67-300x450.jpeg`
@@ -29,8 +30,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_k2',
     name: 'Peacock Green Raw Silk 3 Piece Set',
     price: 1899,
-    category: 'Kurti',
-    subcategory: 'Raw Silk',
+    category: 'Women',
+    subcategory: 'Kurti',
+    fabric: 'Raw Silk',
     images: [
       `${THAARAI_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`,
       `${THAARAI_BASE}/2026/02/exported_40865ED8-89E4-45A8-B54D-59B407302619-300x450.jpeg`
@@ -45,8 +47,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_k3',
     name: 'Mangalagiri Cotton 3 Piece Set',
     price: 1699,
-    category: 'Kurti',
-    subcategory: 'Cotton',
+    category: 'Women',
+    subcategory: 'Kurti',
+    fabric: 'Cotton',
     images: [
       `${THAARAI_BASE}/2026/01/IMG_9685-300x450.jpeg`,
       `${THAARAI_BASE}/2026/01/IMG_9685-300x450.jpeg`
@@ -61,8 +64,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_k4',
     name: 'Chennuri Silk Nijam Border 2 Piece',
     price: 2299,
-    category: 'Kurti',
-    subcategory: 'Silk',
+    category: 'Women',
+    subcategory: 'Kurti',
+    style: 'Silk',
     images: [
       `${THAARAI_BASE}/2026/02/exported_7555D2B7-195D-4DC8-9E27-204E29218C1E-300x450.jpeg`,
       `${THAARAI_BASE}/2026/02/exported_7555D2B7-195D-4DC8-9E27-204E29218C1E-300x450.jpeg`
@@ -207,8 +211,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_m1',
     name: 'Golden Maxi Dress',
     price: 1899,
-    category: 'Maxi',
-    subcategory: 'Party Wear',
+    category: 'Women',
+    subcategory: 'Maxi',
+    style: 'Party Wear',
     images: [
       `${THAARAI_BASE}/2025/08/IMG_0173-300x450.jpg`,
       `${THAARAI_BASE}/2025/08/IMG_0173-300x450.jpg`
@@ -223,8 +228,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_m2',
     name: 'A Line Maxi with Dupatta',
     price: 1499,
-    category: 'Maxi',
-    subcategory: 'Casual',
+    category: 'Women',
+    subcategory: 'Maxi',
+    style: 'Casual',
     images: [
       `${THAARAI_BASE}/2025/11/IMG_5375-300x450.jpeg`,
       `${THAARAI_BASE}/2025/11/IMG_5375-300x450.jpeg`
@@ -307,8 +313,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_c1',
     name: 'CO-ORD SET (HA)',
     price: 1299,
-    category: 'Co-ords',
-    subcategory: 'Cotton',
+    category: 'Women',
+    subcategory: 'Co-ords',
+    fabric: 'Cotton',
     images: [
       `${THAARAI_BASE}/2024/06/thaarai-designer-studio-product-img6-300x450.webp`,
       `${THAARAI_BASE}/2024/06/thaarai-designer-studio-product-img6-300x450.webp`
@@ -422,8 +429,9 @@ export const MOCK_PRODUCTS = [
     _id: 'mock_a1',
     name: 'PONGAL 2K25 Narayanpet Anarkali',
     price: 2199,
-    category: 'Anarkali',
-    subcategory: 'Festive',
+    category: 'Women',
+    subcategory: 'Anarkali',
+    style: 'Festive',
     images: [
       `${THAARAI_BASE}/2026/01/IMG_0761-300x450.jpeg`,
       `${THAARAI_BASE}/2026/01/IMG_0761-300x450.jpeg`

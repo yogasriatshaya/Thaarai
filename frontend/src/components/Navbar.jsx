@@ -4,7 +4,7 @@ import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
 import CountrySwitcher from './CountrySwitcher';
-
+import AuthDrawer from './AuthDrawer';
 
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -33,7 +33,7 @@ export default function Navbar() {
   const { formatPrice, country, currency, currencySymbol } = useCurrency();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userDropdown, setUserDropdown] = useState(false);
+  const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -42,7 +42,6 @@ export default function Navbar() {
   const [expandedCategories, setExpandedCategories] = useState({});
   const scrollPosRef = useRef(window.scrollY);
   const searchRef = useRef(null);
-  const userRef = useRef(null);
   const navigate = useNavigate();
   
   // Extract Categories and Subcategories for the sidebar (Now using the master Category list from DB)
@@ -55,9 +54,6 @@ export default function Navbar() {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setSearchOpen(false);
-      }
-      if (userRef.current && !userRef.current.contains(event.target)) {
-        setUserDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -165,7 +161,7 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Search Overlay */}
-              <div className={`lg:hidden fixed inset-x-0 bg-white border-b border-gray-100 px-4 py-3 z-[60] transition-all duration-300 transform ${searchOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`} style={{ top: scrolled ? '88px' : '104px' }}>
+              <div className={`lg:hidden fixed inset-x-0 bg-white border-b border-gray-100 px-4 py-3 z-[60] transition-all duration-300 transform ${searchOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`} style={{ top: scrolled ? '65px' : '90px' }}>
                 <form onSubmit={handleSearch} className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100 shadow-sm">
                    <div className="text-gray-400 scale-75"><SearchIcon /></div>
                    <input
@@ -293,49 +289,14 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* User */}
-            <div ref={userRef} className="relative hidden sm:block">
+            {/* User Icon -> Auth Drawer */}
+            <div className="relative hidden sm:block">
               <button
-                onClick={() => setUserDropdown(!userDropdown)}
+                onClick={() => setAuthDrawerOpen(true)}
                 className="p-2.5 text-gray-900 hover:opacity-60 transition-all"
               >
                 <UserIcon />
               </button>
-              {userDropdown && (
-                <div className="absolute right-0 top-12 w-56 bg-white border border-gray-100 shadow-2xl py-2 z-50 animate-fade-in">
-                  {user ? (
-                    <>
-                      <div className="px-5 py-3 border-b border-gray-50">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Signed in as</p>
-                        <p className="text-sm font-bold text-gray-900 truncate">{user.name}</p>
-                      </div>
-                      <Link to="/orders" onClick={() => setUserDropdown(false)}
-                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                        My Orders
-                      </Link>
-                      <button onClick={() => { logout(); setUserDropdown(false); }}
-                        className="block w-full text-left px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors hover:bg-gray-50">
-                        Sign Out
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link to="/login" onClick={() => setUserDropdown(false)}
-                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                        Sign In
-                      </Link>
-                      <Link to="/track-order" onClick={() => setUserDropdown(false)}
-                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors border-t border-gray-50">
-                        Track Order
-                      </Link>
-                      <Link to="/register" onClick={() => setUserDropdown(false)}
-                        className="block px-5 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors hover:bg-gray-50">
-                        Create Account
-                      </Link>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Country Switcher */}
@@ -422,13 +383,25 @@ export default function Navbar() {
                     return (
                     <div key={cat.name} className="group/cat">
                       <div className="flex items-center justify-between">
-                        <Link
-                          to={`/collection?category=${cat.name}`}
-                          onClick={() => setMobileOpen(false)}
-                          className="text-sm font-bold tracking-widest text-black flex-1 group-hover/cat:pl-1 transition-all"
-                        >
-                          {cat.name.toUpperCase()}
-                        </Link>
+                        {cat.subs.length > 0 ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Link
+                              to={`/collection?category=${cat.name}`}
+                              onClick={() => setMobileOpen(false)}
+                              className="text-sm font-bold tracking-widest text-black group-hover/cat:pl-1 transition-all flex-1"
+                            >
+                              {cat.name.toUpperCase()}
+                            </Link>
+                          </div>
+                        ) : (
+                          <Link
+                            to={`/collection?category=${cat.name}`}
+                            onClick={() => setMobileOpen(false)}
+                            className="text-sm font-bold tracking-widest text-black flex-1 group-hover/cat:pl-1 transition-all"
+                          >
+                            {cat.name.toUpperCase()}
+                          </Link>
+                        )}
                         {cat.subs.length > 0 && (
                           <button
                             onClick={toggleExpand}
@@ -451,6 +424,17 @@ export default function Navbar() {
                       </div>
                       {cat.subs.length > 0 && isExpanded && (
                         <div className="mt-4 flex flex-col gap-3 pl-1 border-l border-gray-100 ml-1">
+                          {/* ── ALL subcategory link ── */}
+                          <Link
+                            to={`/collection?category=${cat.name}`}
+                            onClick={() => setMobileOpen(false)}
+                            className="text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5"
+                            style={{ color: '#1a1a1a' }}
+                          >
+                            <span style={{ fontSize: '7px', letterSpacing: '0.15em', background: '#1a1a1a', color: '#fff', padding: '1px 5px', borderRadius: '2px' }}>ALL</span>
+                            {cat.name}
+                          </Link>
+                          {/* ── individual sub-categories ── */}
                           {cat.subs.map(sub => {
                             const subName = typeof sub === 'string' ? sub : (sub?.name || '');
                             if (!subName) return null;
@@ -473,9 +457,14 @@ export default function Navbar() {
                     <>
                       <Link to="/collection" onClick={() => setMobileOpen(false)} className="text-sm font-bold tracking-widest text-black uppercase hover-underline">All Collections</Link>
                       <ul className="mt-4 flex flex-col gap-3 pl-1 border-l border-gray-100 ml-1">
-                        <Link to="/collection?category=Kurti" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Kurtis</Link>
-                        <Link to="/collection?category=Maxi" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Maxi Dresses</Link>
-                        <Link to="/collection?category=Handbags" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Handbags</Link>
+                        <Link to="/collection?category=Women&subcategory=Kurti" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Kurtis</Link>
+                        <Link to="/collection?category=Women&subcategory=Maxi" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Maxi Dresses</Link>
+                        <Link to="/collection?category=Women&subcategory=Handbags" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Handbags</Link>
+                        <Link to="/collection?category=Kids" onClick={() => setMobileOpen(false)} className="text-[10px] font-medium tracking-widest text-gray-500 hover:text-black hover:translate-x-1 transition-all uppercase">Kids Wear</Link>
+                        <div className="pl-2 flex flex-col gap-2">
+                           <Link to="/collection?category=Kids&subcategory=Boys" onClick={() => setMobileOpen(false)} className="text-[9px] font-light tracking-widest text-gray-400 hover:text-black transition-all uppercase">- Boys</Link>
+                           <Link to="/collection?category=Kids&subcategory=Girls" onClick={() => setMobileOpen(false)} className="text-[9px] font-light tracking-widest text-gray-400 hover:text-black transition-all uppercase">- Girls</Link>
+                        </div>
                       </ul>
                     </>
                   )}
@@ -486,13 +475,9 @@ export default function Navbar() {
               <div className="space-y-6">
                 <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400">Featured</p>
                 <div className="space-y-4">
-                  <Link to="/collection" onClick={() => setMobileOpen(false)} className="block group">
+                  <Link to="/collection?label=New Arrival" onClick={() => setMobileOpen(false)} className="block group">
                     <p className="text-sm font-bold tracking-widest text-black uppercase group-hover:pl-1 transition-all">New Arrivals</p>
                     <p className="text-[9px] text-gray-400 tracking-widest uppercase mt-1">Explore our latest additions</p>
-                  </Link>
-                  <Link to="/collection" onClick={() => setMobileOpen(false)} className="block group">
-                    <p className="text-sm font-bold tracking-widest text-black uppercase group-hover:pl-1 transition-all">Best Sellers</p>
-                    <p className="text-[9px] text-gray-400 tracking-widest uppercase mt-1">Top picks of the season</p>
                   </Link>
                 </div>
               </div>
@@ -505,9 +490,9 @@ export default function Navbar() {
                     {user ? (
                       <button onClick={() => { logout(); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign Out</button>
                     ) : (
-                      <Link to="/login" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign In</Link>
+                      <button onClick={() => { setAuthDrawerOpen(true); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign In</button>
                     )}
-                    <Link to="/orders" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block text-left">Track Order</Link>
+                    <button onClick={() => { setAuthDrawerOpen(true); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block text-left">Track Order</button>
                   </div>
                 </div>
                 <div>
@@ -537,7 +522,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className={`${scrolled ? 'h-[90px]' : 'h-[120px]'} transition-all duration-300`} />
+      <AuthDrawer isOpen={authDrawerOpen} onClose={() => setAuthDrawerOpen(false)} />
+      <div className={`${scrolled ? 'h-[65px]' : 'h-[90px]'} transition-all duration-300`} />
     </>
   );
 }

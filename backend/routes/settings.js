@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Settings = require('../models/Settings');
 const { adminMiddleware } = require('../middleware/auth');
-const nodemailer = require('nodemailer');
+const upload = require('../middleware/upload');
+const { getTransporter } = require('../utils/email');
 
 // Get settings
 router.get('/', async (req, res) => {
@@ -33,16 +34,37 @@ router.get('/', async (req, res) => {
 });
 
 // Update settings (Admin)
-router.put('/', adminMiddleware, async (req, res) => {
+router.put('/', adminMiddleware, upload.any(), async (req, res) => {
   try {
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create(req.body);
     } else {
-      // Loop over keys to ensure Mongoose detects nested object changes
-      for (const key in req.body) {
-        settings[key] = req.body[key];
+      const updateData = { ...req.body };
+
+      // Handle file uploads for fallbacks
+      if (req.files && req.files.length > 0) {
+        const bannerFile = req.files.find(f => f.fieldname === 'bannerFallback');
+        const productFile = req.files.find(f => f.fieldname === 'productFallback');
+        
+        if (bannerFile) updateData.bannerFallback = bannerFile.path.replace(/\\/g, '/');
+        if (productFile) updateData.productFallback = productFile.path.replace(/\\/g, '/');
       }
+
+      // Loop over keys to ensure Mongoose detects nested object changes
+      for (const key in updateData) {
+        // Handle nested JSON strings if they come from FormData
+        try {
+          if (typeof updateData[key] === 'string' && (updateData[key].startsWith('{') || updateData[key].startsWith('['))) {
+            settings[key] = JSON.parse(updateData[key]);
+          } else {
+            settings[key] = updateData[key];
+          }
+        } catch (e) {
+          settings[key] = updateData[key];
+        }
+      }
+      
       settings.markModified('smtpConfig');
       settings.markModified('countryConfig');
       settings.markModified('notifications');
@@ -52,6 +74,7 @@ router.put('/', adminMiddleware, async (req, res) => {
     }
     res.json({ success: true, settings, message: 'Settings updated successfully' });
   } catch (err) {
+    console.error('SETTINGS UPDATE ERROR:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -65,27 +88,25 @@ router.post('/test-email', adminMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'SMTP is not configured' });
     }
 
-    const { host, port, secure, user, pass, from } = settings.smtpConfig;
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: Number(port) === 465, // Force secure if port is 465
-      auth: { user, pass }
-    });
+    const transporter = await getTransporter();
+    if (!transporter) {
+       return res.status(500).json({ success: false, message: 'Failed to create mail transporter' });
+    }
 
     const info = await transporter.sendMail({
-      from: from || user,
-      to,
-      subject: 'Test Email from Thaarai Designers',
-      text: 'This is a test email from your Admin Configuration page.',
-      html: '<b>This is a test email from your Admin Configuration page.</b>'
-    });
+        from: settings.smtpConfig.from || settings.smtpConfig.user,
 
-    res.json({ success: true, message: 'Test email sent successfully', messageId: info.messageId });
-  } catch (err) {
-    res.status(500).json({ success: false, message: `Email failed: ${err.message}` });
-  }
+        to,
+        subject: 'Test Email from Thaarai Designers',
+        text: 'This is a test email from your Admin Configuration page.',
+        html: '<b>This is a test email from your Admin Configuration page.</b>'
+      });
+
+      res.json({ success: true, message: 'Test email sent successfully', messageId: info.messageId });
+    } catch (err) {
+      res.status(500).json({ success: false, message: `Email failed: ${err.message}` });
+    }
 });
 
 module.exports = router;
+

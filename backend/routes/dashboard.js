@@ -101,7 +101,7 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
-    // 7. Top Selling Products
+    // 7. Top Selling Products (Currency Aware)
     const topProductsAgg = await Order.aggregate([
       { $match: dateFilter },
       { $unwind: '$items' },
@@ -110,7 +110,8 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
           name: { $first: '$items.name' }, 
           image: { $first: '$items.image' }, 
           totalSales: { $sum: '$items.quantity' }, 
-          revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } } 
+          revenueINR: { $sum: { $cond: [{ $eq: [{ $toUpper: '$currency' }, 'INR'] }, { $multiply: ['$items.price', '$items.quantity'] }, 0] } },
+          revenueUSD: { $sum: { $cond: [{ $eq: [{ $toUpper: '$currency' }, 'USD'] }, { $multiply: ['$items.price', '$items.quantity'] }, 0] } }
       } },
       { $sort: { totalSales: -1 } },
       { $limit: 5 }
@@ -148,11 +149,11 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
     if (pendingOrders > 0) alerts.push({ type: 'info', message: `${pendingOrders} orders are pending processing.` });
     
     // Return Alerts
-    const pendingReturnsCount = await Order.countDocuments({ ...dateFilter, returnStatus: 'pending' });
+    const pendingReturnsCount = await Order.countDocuments({ ...dateFilter, returnRequested: true, returnStatus: 'pending' });
     if (pendingReturnsCount > 0) {
       alerts.push({ type: 'warning', message: `${pendingReturnsCount} return request(s) are pending approval.` });
     }
-    const receivedReturnsCount = await Order.countDocuments({ ...dateFilter, returnStatus: 'received' });
+    const receivedReturnsCount = await Order.countDocuments({ ...dateFilter, returnRequested: true, returnStatus: 'received' });
     if (receivedReturnsCount > 0) {
       alerts.push({ type: 'warning', message: `${receivedReturnsCount} return(s) received. Pending refund.` });
     }
@@ -176,10 +177,10 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
         lowStockCount,
         outOfStockCount,
         newCustomers,
-        pendingReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'pending' }),
-        approvedReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'approved' }),
-        receivedReturns: await Order.countDocuments({ ...dateFilter, returnStatus: 'received' }),
-        totalReturns: await Order.countDocuments({ ...dateFilter, returnStatus: { $ne: 'none' } })
+        pendingReturns: await Order.countDocuments({ ...dateFilter, returnRequested: true, returnStatus: 'pending' }),
+        approvedReturns: await Order.countDocuments({ ...dateFilter, returnRequested: true, returnStatus: 'approved' }),
+        receivedReturns: await Order.countDocuments({ ...dateFilter, returnRequested: true, returnStatus: 'received' }),
+        totalReturns: await Order.countDocuments({ ...dateFilter, returnRequested: true })
       },
       paymentSummary,
       shippingSummary,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import API, { BACKEND_URL } from '../api';
+import API, { BACKEND_URL, getFullUrl } from '../api';
 import { toast } from 'react-toastify';
 import { Pencil, Copy, Trash2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
@@ -15,9 +15,9 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [subcategory, setSubcategory] = useState('All');
+  const [labelFilter, setLabelFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [sort, setSort] = useState('newest');
-  const [isBulkDiscount, setIsBulkDiscount] = useState(false);
-  const [discountForm, setDiscountForm] = useState({ category: 'All', discountType: 'percentage', discountValue: '' });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
@@ -31,6 +31,8 @@ export default function Products() {
       if (search) params.set('search', search);
       if (category !== 'All') params.set('category', category);
       if (subcategory !== 'All') params.set('subcategory', subcategory);
+      if (labelFilter !== 'All') params.set('label', labelFilter);
+      if (statusFilter !== 'All') params.set('status', statusFilter);
       if (sort) params.set('sort', sort);
       const res = await API.get(`/products?${params}`);
       setProducts(res.data.products || []);
@@ -42,7 +44,7 @@ export default function Products() {
     setLoading(false);
   };
 
-  useEffect(() => { loadProducts(); }, [page, limit, search, sort, category, subcategory]);
+  useEffect(() => { loadProducts(); }, [page, limit, search, sort, category, subcategory, statusFilter, labelFilter]);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
@@ -88,19 +90,36 @@ export default function Products() {
     } catch { toast.error('Failed to delete product'); }
   };
 
-  const getImg = img => img?.startsWith('http') ? img : `${BACKEND_URL.replace(/\/$/, '')}/${img.replace(/^\//, '')}`;
 
   return (
     <Layout title="Products">
       {/* Header with Search and Count */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
-        <input
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search products..."
-          className="input-field flex-1 md:flex-none md:w-80"
-        />
-        <p className="text-xs text-gray-400 font-sans">{total} total</p>
+      <div className="flex flex-col md:flex-row items-center gap-6 mb-8 flex-wrap justify-between">
+        <div className="flex flex-col md:flex-row items-center gap-6 flex-1 w-full md:w-auto">
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search products..."
+            className="input-field w-full md:w-80"
+          />
+          
+          <div className="flex bg-gray-100/50 p-1 rounded-xl border border-gray-100 flex-shrink-0 shadow-inner">
+             {[
+               { id: 'All', label: 'All Products' },
+               { id: 'Publish', label: 'Published' },
+               { id: 'Draft', label: 'Drafts' }
+             ].map(tab => (
+               <button
+                 key={tab.id}
+                 onClick={() => { setStatusFilter(tab.id); setPage(1); }}
+                 className={`px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 ${statusFilter === tab.id ? 'bg-white text-charcoal shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+               >
+                 {tab.label}
+               </button>
+             ))}
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 font-sans font-medium">{total} total products</p>
       </div>
 
       {/* Filters and Actions */}
@@ -125,6 +144,13 @@ export default function Products() {
             <option value="All">All Subcategories</option>
             {subcategoryOptions.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          <select value={labelFilter} onChange={e => { setLabelFilter(e.target.value); setPage(1); }} className="input-field w-full sm:w-36 text-xs">
+            <option value="All">All Labels</option>
+            <option value="Hot">Hot</option>
+            <option value="New Arrival">New Arrival</option>
+            <option value="Trending">Trending</option>
+            <option value="Sold Out">Sold Out</option>
+          </select>
           <select value={sort} onChange={e => setSort(e.target.value)} className="input-field w-full sm:w-44 text-xs">
             <option value="newest">Newest first</option>
             <option value="price_asc">Price: Low to High</option>
@@ -135,15 +161,12 @@ export default function Products() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button onClick={() => setIsBulkDiscount(true)} className="btn-outline flex-1 md:flex-none flex items-center justify-center gap-1 text-[11px] font-sans border border-gray-200 text-gray-500 hover:border-charcoal">
-            <span>% Bulk Rules</span>
-          </button>
-          <Link to="/products/add" className="btn-primary flex-1 md:flex-none flex items-center justify-center gap-1">+ Add Product</Link>
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <Link to="/products/add" className="btn-primary w-full md:w-auto flex items-center justify-center gap-1 py-3 md:py-2">+ Add Product</Link>
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card">
         {loading ? (
           <div className="p-8 space-y-3">{[1,2,3].map(i => <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : products.length === 0 ? (
@@ -152,42 +175,79 @@ export default function Products() {
             <Link to="/products/add" className="btn-primary">Add First Product</Link>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[800px] table-fixed">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {['Product', 'Category', 'Price', 'Stock', 'Label', 'Actions'].map(h => (
-                  <th key={h} className="text-left text-[10px] tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-3">{h}</th>
-                ))}
+                <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-1/3">Product</th>
+                <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-28">Category</th>
+                 <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-48">Price / Offer</th>
+                <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-20">Stock</th>
+                <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-32">Label</th>
+                <th className="text-left text-xs tracking-[0.2em] uppercase text-gray-400 font-sans px-5 py-4 whitespace-nowrap w-32">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map(p => (
+              {products.map(p => {
+                 const toBool = v => v === true || v === 'true';
+                 const indiaOfferActive = toBool(p.offerActiveIndia) && Number(p.offerPriceIndia) > 0 && p.offerEndTimeIndia && new Date(p.offerEndTimeIndia).getTime() > Date.now();
+                 const usaOfferActive   = toBool(p.offerActiveUSA)   && Number(p.offerPriceUSDUSA) > 0 && p.offerEndTimeUSA   && new Date(p.offerEndTimeUSA).getTime()   > Date.now();
+                 return (
                 <tr key={p._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4 min-w-0">
                     <div className="flex items-center gap-3">
-                      <img src={p.images?.[0] ? getImg(p.images[0]) : ''} alt={p.name}
-                        className="w-10 h-12 object-cover bg-gray-100"
+                      <img src={p.images?.[0] ? getFullUrl(p.images[0]) : ''} alt={p.name}
+                        className="w-10 h-10 object-cover bg-gray-100 rounded shadow-sm border border-gray-100 flex-shrink-0"
                         onError={e => { e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=40&h=48&fit=crop'; }} />
-                      <p className="text-sm font-serif text-charcoal">{p.name}</p>
+                      <p className="text-sm font-serif text-charcoal truncate" title={p.name}>{p.name}</p>
+                      {p.status === 'Draft' && (
+                        <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">Draft</span>
+                      )}
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-xs font-sans text-gray-500">
+                  <td className="px-5 py-4 text-xs font-sans text-gray-500 whitespace-nowrap">
                     <span className="font-bold">{p.category}</span>
                     {p.subcategory && <span className="block text-[10px] text-gray-400">{p.subcategory}</span>}
                   </td>
-                  <td className="px-5 py-4 text-sm font-sans font-medium text-charcoal">
-                    <span>₹{p.price?.toLocaleString()}</span>
-                    {p.priceUSD > 0 && <span className="text-xs text-gray-400 ml-1">/ ${p.priceUSD}</span>}
-                  </td>
-                  <td className="px-5 py-4 text-xs font-sans">
+                  <td className="px-5 py-4 whitespace-nowrap">
+                     {/* India price row */}
+                     <div className="flex items-center gap-1.5 mb-0.5">
+                       <span className="text-[9px] font-bold text-gray-300 w-4">IN</span>
+                       {indiaOfferActive ? (
+                         <>
+                           <span className="text-sm font-bold text-amber-600">₹{Number(p.offerPriceIndia).toLocaleString()}</span>
+                           <span className="text-[11px] text-gray-400 line-through">₹{p.price?.toLocaleString()}</span>
+                           <span className="text-[8px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-bold">SALE</span>
+                         </>
+                       ) : (
+                         <span className="text-sm font-medium text-charcoal">₹{p.price?.toLocaleString()}</span>
+                       )}
+                     </div>
+                     {/* US price row */}
+                     {p.priceUSD > 0 && (
+                       <div className="flex items-center gap-1.5">
+                         <span className="text-[9px] font-bold text-gray-300 w-4">US</span>
+                         {usaOfferActive ? (
+                           <>
+                             <span className="text-xs font-bold text-blue-600">${Number(p.offerPriceUSDUSA)}</span>
+                             <span className="text-[11px] text-gray-400 line-through">${p.priceUSD}</span>
+                             <span className="text-[8px] bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-bold">SALE</span>
+                           </>
+                         ) : (
+                           <span className="text-xs text-gray-400">${p.priceUSD}</span>
+                         )}
+                       </div>
+                     )}
+                   </td>
+                  <td className="px-5 py-4 text-xs font-sans whitespace-nowrap">
                     <span className={`${p.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>{p.stock}</span>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4 whitespace-nowrap">
                     {p.label && (
                       <span className="text-[9px] tracking-wider uppercase font-sans font-medium px-2 py-0.5 bg-gold-100 text-gold-700 rounded-full">{p.label}</span>
                     )}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                        <Link to={`/products/edit/${p._id}`} title="Edit" className="text-gray-400 hover:text-gold-600 transition-colors">
                           <Pencil size={15} />
@@ -201,9 +261,11 @@ export default function Products() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                 );
+               })}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination Footer */}
@@ -247,44 +309,6 @@ export default function Products() {
         )}
       </div>
 
-      {/* Bulk Discount Modal */}
-      {isBulkDiscount && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded p-6 max-w-sm w-full relative">
-                 <button onClick={() => setIsBulkDiscount(false)} className="absolute top-4 right-4 text-xl text-gray-400 hover:text-charcoal">×</button>
-                 <h3 className="font-serif text-charcoal text-lg mb-4">Bulk Category Discount</h3>
-                 <form onSubmit={async (e) => {
-                     e.preventDefault();
-                     try {
-                         await API.put('/products/bulk/discount', discountForm);
-                         toast.success('Prices updated successfully');
-                         setIsBulkDiscount(false);
-                         loadProducts();
-                     } catch { toast.error('Failed to apply discount'); }
-                 }} className="space-y-3 font-sans text-xs">
-                     <div>
-                         <label className="block text-gray-400 mb-1">Category</label>
-                          <select value={discountForm.category} onChange={e => setDiscountForm({...discountForm, category: e.target.value})} className="input-field">
-                             <option value="All">All Categories</option>
-                           {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                     </div>
-                     <div>
-                         <label className="block text-gray-400 mb-1">Discount Type</label>
-                         <select value={discountForm.discountType} onChange={e => setDiscountForm({...discountForm, discountType: e.target.value})} className="input-field">
-                             <option value="percentage">Percentage (%)</option>
-                             <option value="fixed">Fixed Amount (₹)</option>
-                         </select>
-                     </div>
-                     <div>
-                         <label className="block text-gray-400 mb-1">Value</label>
-                         <input required type="number" value={discountForm.discountValue} onChange={e => setDiscountForm({...discountForm, discountValue: e.target.value})} className="input-field" placeholder="10" />
-                     </div>
-                     <button type="submit" className="btn-primary w-full justify-center">Apply Rule</button>
-                  </form>
-             </div>
-         </div>
-      )}
       {/* Custom Confirm Modal */}
       <ConfirmModal 
         isOpen={confirmModal.open}

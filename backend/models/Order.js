@@ -36,8 +36,7 @@ const orderSchema = new mongoose.Schema({
   // Payment & status
   paymentMethod: { type: String, enum: ['stripe', 'razorpay', 'cod'], required: true },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
-  orderStatus: { type: String, enum: ['processing', 'shipped', 'delivered', 'cancelled'], default: 'processing' },
-  trackingId: { type: String, default: '' },
+  orderStatus: { type: String, enum: ['processing', 'shipped', 'delivered', 'cancelled'], default: 'processing' },    deliveredAt: { type: Date },  trackingId: { type: String, default: '' },
   carrierName: { type: String, default: '' },
   stripeSessionId: String,
   razorpayOrderId: String,
@@ -46,7 +45,9 @@ const orderSchema = new mongoose.Schema({
   returnRequested: { type: Boolean, default: false },
   returnReason: { type: String, default: '' },
   returnImages: [{ type: String }],
-  returnStatus: { type: String, enum: ['none', 'pending', 'approved', 'received', 'rejected', 'refunded'], default: 'none' }
+  returnStatus: { type: String, enum: ['none', 'pending', 'approved', 'received', 'rejected', 'refunded'], default: 'none' },
+  cancellationReason: { type: String, default: '' },
+  cancelledBy: { type: String, enum: ['user', 'admin'], default: 'user' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
