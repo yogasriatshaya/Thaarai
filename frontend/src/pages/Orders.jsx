@@ -13,6 +13,7 @@ export function Orders() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
   const [expandedOrders, setExpandedOrders] = useState({});
+  const [invoiceOrder, setInvoiceOrder] = useState(null);
   const [returnDays, setReturnDays] = useState(7);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedCancelOrder, setSelectedCancelOrder] = useState(null);
@@ -20,6 +21,10 @@ export function Orders() {
 
   const toggleExpand = (id) => {
     setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const viewInvoice = (order) => {
+    setInvoiceOrder(order);
   };
 
   const handleCancelOrder = (orderId) => {
@@ -215,6 +220,18 @@ export function Orders() {
                 const isExpanded = !!expandedOrders[order._id];
                 return (
                   <div key={order._id} className="w-full bg-white shadow-[0_1px_2px_0_rgba(0,0,0,0.2)] hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.2)] transition-shadow rounded-sm flex flex-col group/row relative">
+                    {/* Order-level cancellation info banner */}
+                    {order.orderStatus === 'cancelled' && (
+                      <div className="bg-red-50 border-b border-red-100 px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-red-700">Order Cancelled</p>
+                            {order.cancellationReason && <p className="text-xs text-red-600 mt-1">Reason: {order.cancellationReason}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {order.items?.map((item, index) => {
                       const statusInfo = getStatusDisplay(order.orderStatus, order.createdAt, order);
                       return (
@@ -269,10 +286,10 @@ export function Orders() {
                             
                             <div className="mt-4 flex gap-4 pl-5">
                               <button 
-                                onClick={() => toggleExpand(order._id)}
+                                onClick={() => viewInvoice(order)}
                                 className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
                               >
-                                {isExpanded ? 'Hide Details' : 'View Details'}
+                                View Invoice
                               </button>
                               
                               {/* Order Actions */}
@@ -306,37 +323,6 @@ export function Orders() {
                         </div>
                       );
                     })}
-                    {isExpanded && (
-                      <div className="p-6 bg-gray-50/50 border-t border-gray-100 animate-fade-in">
-                        <div className="max-w-md ml-auto space-y-2">
-                           <div className="flex justify-between text-xs text-gray-500">
-                              <span>Subtotal</span>
-                              <span>{formatPrice(order.subtotal || order.totalAmount, order.currency)}</span>
-                           </div>
-                           {order.taxAmount > 0 && (
-                             <div className="flex justify-between text-xs text-gray-500">
-                                <span>{order.taxName || 'Tax'} ({order.taxPercentage}%)</span>
-                                <span>{formatPrice(order.taxAmount, order.currency)}</span>
-                             </div>
-                           )}
-                           {order.shippingAmount > 0 && (
-                             <div className="flex justify-between text-xs text-gray-500">
-                                <span>Shipping</span>
-                                <span>{formatPrice(order.shippingAmount, order.currency)}</span>
-                             </div>
-                           )}
-                           {order.discountAmount > 0 && (
-                             <div className="flex justify-between text-xs text-green-600 font-bold">
-                                <span>Discount</span>
-                                <span>-{formatPrice(order.discountAmount, order.currency)}</span>
-                             </div>
-                           )}
-                           <div className="flex justify-between text-sm font-bold border-t border-gray-200 pt-2 mt-2">
-                              <span>Total Amount</span>
-                              <span>{formatPrice(order.totalAmount, order.currency)}</span>
-                           </div>
-                        </div>
-                      </div>
                     )}
                   </div>
                 );
@@ -344,6 +330,119 @@ export function Orders() {
           )}
         </div>
       </div>
+
+      {/* Invoice Modal */}
+      {invoiceOrder && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white max-w-2xl w-full rounded-md shadow-2xl p-8 my-8 relative">
+            <button 
+              onClick={() => setInvoiceOrder(null)} 
+              className="absolute text-2xl right-4 top-4 text-gray-400 hover:text-black hover:scale-110 transition-transform"
+            >
+              ×
+            </button>
+
+            {/* Invoice Header */}
+            <div className="border-b border-gray-200 pb-6 mb-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-black">INVOICE</h1>
+                  <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">Order ID: #{invoiceOrder._id.slice(-8).toUpperCase()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Date: {new Date(invoiceOrder.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* Order Status */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`text-xs font-bold uppercase px-3 py-1 rounded ${invoiceOrder.orderStatus === 'cancelled' ? 'bg-red-100 text-red-700' : invoiceOrder.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                  {invoiceOrder.orderStatus}
+                </span>
+                {invoiceOrder.cancellationReason && <p className="text-xs text-red-600">Reason: {invoiceOrder.cancellationReason}</p>}
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className="mb-8">
+              <h3 className="text-sm font-bold text-black uppercase tracking-wide mb-4">Order Items</h3>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left font-bold text-gray-700 pb-2">Product</th>
+                    <th className="text-left font-bold text-gray-700 pb-2">Size/Color</th>
+                    <th className="text-center font-bold text-gray-700 pb-2">Qty</th>
+                    <th className="text-right font-bold text-gray-700 pb-2">Price</th>
+                    <th className="text-right font-bold text-gray-700 pb-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceOrder.items?.map((item, idx) => (
+                    <tr key={idx} className="border-b border-gray-100">
+                      <td className="py-3 text-gray-800">{item.name}</td>
+                      <td className="py-3 text-gray-600">{item.size} / {item.color}</td>
+                      <td className="py-3 text-center text-gray-800">{item.quantity}</td>
+                      <td className="py-3 text-right text-gray-800">{formatPrice(item.price, invoiceOrder.currency || 'INR')}</td>
+                      <td className="py-3 text-right font-bold text-gray-900">{formatPrice(item.price * item.quantity, invoiceOrder.currency || 'INR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary */}
+            <div className="mb-8 flex justify-end">
+              <div className="w-full max-w-xs space-y-2">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(invoiceOrder.subtotal || invoiceOrder.totalAmount, invoiceOrder.currency)}</span>
+                </div>
+                {invoiceOrder.shippingAmount > 0 && (
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span>Shipping</span>
+                    <span>{formatPrice(invoiceOrder.shippingAmount, invoiceOrder.currency)}</span>
+                  </div>
+                )}
+                {invoiceOrder.taxAmount > 0 && (
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span>{invoiceOrder.taxName || 'Tax'} ({invoiceOrder.taxPercentage}%)</span>
+                    <span>{formatPrice(invoiceOrder.taxAmount, invoiceOrder.currency)}</span>
+                  </div>
+                )}
+                {invoiceOrder.discountAmount > 0 && (
+                  <div className="flex justify-between text-xs text-green-600 font-bold">
+                    <span>Discount</span>
+                    <span>-{formatPrice(invoiceOrder.discountAmount, invoiceOrder.currency)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-bold border-t border-gray-300 pt-2 mt-2">
+                  <span>Total Amount</span>
+                  <span className="text-lg">{formatPrice(invoiceOrder.totalAmount, invoiceOrder.currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-4 text-center">
+              <p className="text-[11px] text-gray-500">Thank you for your order!</p>
+              <div className="mt-4 flex gap-2 justify-center">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 transition-colors uppercase tracking-wide"
+                >
+                  Print Invoice
+                </button>
+                <button
+                  onClick={() => setInvoiceOrder(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 text-xs font-bold rounded hover:bg-gray-300 transition-colors uppercase tracking-wide"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Return Policy Request Modal */}
       {returnModalOpen && (
