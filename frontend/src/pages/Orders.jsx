@@ -223,12 +223,20 @@ export function Orders() {
                     {/* Order-level cancellation info banner */}
                     {order.orderStatus === 'cancelled' && (
                       <div className="bg-red-50 border-b border-red-100 px-6 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-red-700">Order Cancelled</p>
-                            {order.cancellationReason && <p className="text-xs text-red-600 mt-1">Reason: {order.cancellationReason}</p>}
+                        <div className="flex items-center gap-2 justify-between">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-700">Order Cancelled</p>
+                              {order.cancellationReason && <p className="text-xs text-red-600 mt-1">Reason: {order.cancellationReason}</p>}
+                            </div>
                           </div>
+                          <button 
+                            onClick={() => viewInvoice(order)}
+                            className="text-xs font-bold text-blue-600 uppercase hover:underline whitespace-nowrap ml-4"
+                          >
+                            View Invoice
+                          </button>
                         </div>
                       </div>
                     )}
@@ -285,15 +293,8 @@ export function Orders() {
                             </div>
                             
                             <div className="mt-4 flex gap-4 pl-5">
-                              <button 
-                                onClick={() => viewInvoice(order)}
-                                className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
-                              >
-                                View Invoice
-                              </button>
-                              
-                              {/* Order Actions */}
-                              {!order.returnRequested && (
+                              {/* Order Actions - only for non-cancelled orders */}
+                              {!order.returnRequested && order.orderStatus !== 'cancelled' && (
                                 <>
                                   {(order.orderStatus === 'processing' || order.orderStatus === 'pending') && (
                                     <button 
@@ -316,14 +317,20 @@ export function Orders() {
                                        </button>
                                      )
                                   )}
-                                </>
                               )}
-                            </div>
+                              {/* For non-cancelled orders, show View Invoice button */}
+                              {order.orderStatus !== 'cancelled' && !order.returnRequested && (
+                                <button 
+                                  onClick={() => viewInvoice(order)}
+                                  className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
+                                >
+                                  View Invoice
+                                </button>
+                              )}
                           </div>
                         </div>
                       );
                     })}
-                    )}
                   </div>
                 );
               })
