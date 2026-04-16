@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { getProductPrice } from '../utils/priceUtils';
+import { getProductPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 import API from '../api';
 import { toast } from 'react-toastify';
 
@@ -141,7 +141,11 @@ export default function Checkout() {
   const codAvailable = countryConfig.codAvailable !== undefined ? countryConfig.codAvailable : (country === 'IN');
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, i) => sum + getProductPrice(i, country) * i.quantity, 0);
+  const subtotal = cartItems.reduce((sum, i) => {
+    // Use offer price if active, otherwise use regular price
+    const itemPrice = getOfferActive(i, country) ? getOfferPrice(i, country) : getProductPrice(i, country);
+    return sum + itemPrice * i.quantity;
+  }, 0);
   
   useEffect(() => {
     // If cart becomes empty during checkout, redirect back to cart
@@ -211,10 +215,12 @@ export default function Checkout() {
       if (displayImage) {
         imageUrl = getFullImgUrl(displayImage);
       }
+      // Use offer price if active, otherwise use regular price
+      const itemPrice = getOfferActive(i, country) ? getOfferPrice(i, country) : getProductPrice(i, country);
       const itemToSave = {
         name: i.name,
         image: imageUrl,
-        price: getProductPrice(i, country),
+        price: itemPrice,
         size: i.size,
         color: i.color,
         quantity: i.quantity
@@ -483,7 +489,7 @@ export default function Checkout() {
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-gray-900 text-sm">
-                            {formatPrice(getProductPrice(item, country) * item.quantity)}
+                            {formatPrice((getOfferActive(item, country) ? getOfferPrice(item, country) : getProductPrice(item, country)) * item.quantity)}
                           </div>
                           {isItemUnavailable && <div className="text-[10px] text-red-500 font-bold mt-1">UNAVAILABLE</div>}
                         </div>

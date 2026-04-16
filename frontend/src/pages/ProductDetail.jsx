@@ -395,23 +395,7 @@ export default function ProductDetail() {
                       );
                     })()}
 
-                    {(() => {
-                      const base = getProductPrice(product, country);
-                      const current = (getOfferActive(product, country) && !offerExpired && getOfferPrice(product, country) > 0)
-                        ? getOfferPrice(product, country)
-                        : base;
-                      const original = getProductOriginalPrice(product, country) || base;
 
-                      if (original > current && current > 0) {
-                        const disc = Math.round(((original - current) / original) * 100);
-                        return (
-                          <span className="bg-teal-500 text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full self-start">
-                            -{disc}%
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
                   </div>
                 </div>
               </div>

@@ -90,24 +90,7 @@ export default function ProductCard({ product }) {
           </>
         )}
 
-        {(() => {
-          // Calculate discount based on current country/currency
-          const base = getProductPrice(product, country);
-          const current = (isActiveOffer && getOfferPrice(product, country) > 0)
-            ? getOfferPrice(product, country)
-            : base;
-          const original = getProductOriginalPrice(product, country) || base;
 
-          if (original > current && current > 0) {
-            const disc = Math.round(((original - current) / original) * 100);
-            return (
-              <span className="absolute top-3 left-3 z-[5] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] bg-teal-500 text-white rounded-full shadow-lg">
-                -{disc}%
-              </span>
-            );
-          }
-          return null;
-        })()}
 
         {product.label && (() => {
           const label = product.label;

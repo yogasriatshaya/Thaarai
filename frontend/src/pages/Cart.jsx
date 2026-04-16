@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { getProductPrice, getProductOriginalPrice } from '../utils/priceUtils';
+import { getProductPrice, getProductOriginalPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 import API from '../api';
 
 export default function Cart() {
@@ -46,7 +46,8 @@ export default function Cart() {
   }, [cartData]);
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = getProductPrice(item, country);
+    // Use offer price if active, otherwise use regular price
+    const itemPrice = getOfferActive(item, country) ? getOfferPrice(item, country) : getProductPrice(item, country);
     return sum + itemPrice * item.quantity;
   }, 0);
   
@@ -170,7 +171,16 @@ export default function Cart() {
                       )}
                       <div className="space-y-1">
                            <span className="text-gray-400 block">Price</span>
-                           <span className="text-black">{formatPrice(getProductPrice(item, country))}</span>
+                           <div className="flex items-baseline gap-2">
+                             {getOfferActive(item, country) ? (
+                               <>
+                                 <span className="text-black text-lg font-bold">{formatPrice(getOfferPrice(item, country))}</span>
+                                 <span className="text-gray-400 line-through text-sm">{formatPrice(getProductPrice(item, country))}</span>
+                               </>
+                             ) : (
+                               <span className="text-black">{formatPrice(getProductPrice(item, country))}</span>
+                             )}
+                           </div>
                       </div>
                     </div>
 
@@ -195,7 +205,7 @@ export default function Cart() {
                         </div>
 
                         <div className="text-2xl font-serif font-black italic text-black">
-                          {formatPrice(getProductPrice(item, country) * item.quantity)}
+                          {formatPrice((getOfferActive(item, country) ? getOfferPrice(item, country) : getProductPrice(item, country)) * item.quantity)}
                         </div>
                     </div>
 
