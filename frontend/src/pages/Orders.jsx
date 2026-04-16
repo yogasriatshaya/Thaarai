@@ -317,20 +317,23 @@ export function Orders() {
                                        </button>
                                      )
                                   )}
-                              )}
-                              {/* For non-cancelled orders, show View Invoice button */}
-                              {order.orderStatus !== 'cancelled' && !order.returnRequested && (
-                                <button 
-                                  onClick={() => viewInvoice(order)}
-                                  className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
-                                >
-                                  View Invoice
-                                </button>
+                                </>
                               )}
                           </div>
                         </div>
+                      </div>
                       );
                     })}
+                    {order.orderStatus !== 'cancelled' && !order.returnRequested && (
+                      <div className="p-4 sm:px-6 w-full border-t border-gray-100 bg-white flex justify-end">
+                        <button 
+                          onClick={() => viewInvoice(order)}
+                          className="text-xs font-bold text-[#2874f0] uppercase hover:underline whitespace-nowrap"
+                        >
+                          View Invoice
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })
