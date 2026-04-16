@@ -5,9 +5,6 @@ import ProductCard from '../components/ProductCard';
 import { useCurrency } from '../context/CurrencyContext';
 import { ProductSkeleton } from '../components/Skeleton';
 import { useShop } from '../context/ShopContext';
-import MenBanner from '../assets/Men-Banner.png';
-import WomenBanner from '../assets/Women-Banner.png';
-import KidsBanner from '../assets/Kids-Banner.png';
 
 const CATEGORY_ORDER = ['Women', 'Men', 'Kids', 'Shoes'];
 
@@ -217,7 +214,7 @@ export default function Collection() {
   const pageTitle = urlSearch ? `Search: "${urlSearch}"` : urlCategory || 'All Collections';
 
   const getCategoryBanner = () => {
-    // 1. Try to find the specific sub-category banner
+    // 1. Try to find the specific sub-category banner from cloud
     if (urlCategory && urlSubcategory) {
       const cat = categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase());
       if (cat && cat.subcategories) {
@@ -231,7 +228,7 @@ export default function Collection() {
       }
     }
 
-    // 2. Try the parent category banner
+    // 2. Try the parent category banner from cloud
     if (urlCategory) {
       const cat = categories.find(c => c.name.toLowerCase() === urlCategory.toLowerCase());
       if (cat && cat.banner) {
@@ -239,28 +236,27 @@ export default function Collection() {
       }
     }
 
-    // 3. Global Banner Fallback from settings
+    // 3. Global Banner Fallback from cloud settings only
     if (settings?.bannerFallback) {
       return `${API.defaults.baseURL.replace('/api', '')}/${settings.bannerFallback.replace(/^\//, '')}`;
     }
 
-    // 4. Hardcoded Fallbacks
-    if (urlCategory === 'Men') return MenBanner;
-    if (urlCategory === 'Kids') return KidsBanner;
-    
-    return WomenBanner;
+    // No local fallback - cloud banners only
+    return null;
   };
 
   return (
     <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
-      {/* Category Banner */}
-      <div className="relative w-full bg-[#fbfbfb] pt-8 sm:pt-0">
-        <img 
-          src={getCategoryBanner()} 
-          alt={urlCategory || 'All Pieces'}
-          className="w-full aspect-[21/9] object-cover block transition-all duration-700"
-        />
-      </div>
+      {/* Category Banner - Cloud sourced only */}
+      {getCategoryBanner() && (
+        <div className="relative w-full bg-[#fbfbfb] pt-8 sm:pt-0">
+          <img 
+            src={getCategoryBanner()} 
+            alt={urlCategory || 'All Pieces'}
+            className="w-full aspect-[21/9] object-cover block transition-all duration-700"
+          />
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-6 pt-4 pb-12">
         {/* Breadcrumb - Minimalist Style */}

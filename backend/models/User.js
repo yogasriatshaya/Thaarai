@@ -11,7 +11,18 @@ const userSchema = new mongoose.Schema({
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   cartData: { type: Object, default: {} },
   preferredCountry: { type: String, enum: ['IN', 'US'], default: 'IN' },
-  preferredCurrency: { type: String, enum: ['INR', 'USD'], default: 'INR' }
+  preferredCurrency: { type: String, enum: ['INR', 'USD'], default: 'INR' },
+  // Security fields for account lockout protection
+  failedLoginAttempts: { type: Number, default: 0 },
+  lockedUntil: { type: Date, default: null },
+  // Password history to prevent reuse
+  passwordHistory: [{
+    password: String,
+    changedAt: Date
+  }],
+  // Login tracking
+  lastLogin: { type: Date },
+  lastLoginIP: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

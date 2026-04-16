@@ -129,15 +129,72 @@ router.post('/resend-otp', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const clientIP = req.ip || req.connection.remoteAddress;
+    
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: 'Account not found', accountNotFound: true });
+    
+    // ============================================
+    // SECURITY: Check if account is locked
+    // ============================================
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const remainingMinutes = Math.ceil((user.lockedUntil - new Date()) / 1000 / 60);
+      return res.status(429).json({
+        success: false,
+        message: `Account is temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+        locked: true,
+        lockedUntil: user.lockedUntil,
+        remainingMinutes
+      });
+    }
+
+    // Reset lock if expired
+    if (user.lockedUntil && user.lockedUntil <= new Date()) {
+      user.lockedUntil = null;
+      user.failedLoginAttempts = 0;
+    }
     
     if (!user.isVerified) {
       return res.status(401).json({ success: false, message: 'Please verify your email first', unverfied: true });
     }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ success: false, message: 'Incorrect password' });
+    if (!match) {
+      // ============================================
+      // SECURITY: Increment failed attempts
+      // ============================================
+      user.failedLoginAttempts += 1;
+      
+      // Lock account after 5 failed attempts
+      if (user.failedLoginAttempts >= 5) {
+        user.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
+        await user.save();
+        
+        return res.status(429).json({
+          success: false,
+          message: 'Account locked due to too many failed login attempts. Please try again in 30 minutes.',
+          locked: true,
+          lockedUntil: user.lockedUntil
+        });
+      }
+      
+      await user.save();
+      
+      return res.status(401).json({
+        success: false,
+        message: `Incorrect password (${5 - user.failedLoginAttempts} attempts remaining before account is locked)`,
+        attemptsRemaining: 5 - user.failedLoginAttempts
+      });
+    }
+    
+    // ============================================
+    // SECURITY: Successful login - reset attempts
+    // ============================================
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    user.lastLogin = new Date();
+    user.lastLoginIP = clientIP;
+    await user.save();
     
     const token = generateToken(user);
     res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
