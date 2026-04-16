@@ -9,16 +9,7 @@ import autoTable from 'jspdf-autotable';
 import ConfirmModal from '../components/ConfirmModal';
 
 const ORDER_STATUSES = ['processing', 'shipped', 'delivered', 'returned', 'cancelled'];
-const FILTER_TABS = ['', 'processing', 'shipped', 'delivered', 'returned', 'cancelled', 'returns'];
-const RETURN_STATUS_FILTERS = [
-  { label: 'All Returns', value: 'all' },
-  { label: 'Return Request', value: 'return_request' },
-  { label: 'Return Approved', value: 'return_approved' },
-  { label: 'Item Received', value: 'item_received' },
-  { label: 'Refund Pending', value: 'refund_pending' },
-  { label: 'Refunded', value: 'refunded' },
-  { label: 'Return Cancelled', value: 'return_cancelled' }
-];
+const FILTER_TABS = ['', 'processing', 'shipped', 'delivered', 'returned', 'cancelled'];
 const statusColors = {
   processing: 'bg-yellow-100 text-yellow-800',
   shipped: 'bg-blue-100 text-blue-800',
@@ -35,8 +26,8 @@ export default function Orders() {
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState(initialStatus === 'return' ? 'returns' : (initialStatus === 'pending,processing' ? 'processing' : ''));
-  const [returnStatusFilter, setReturnStatusFilter] = useState('all');
+  const [filter, setFilter] = useState(initialStatus === 'pending,processing' ? 'processing' : '');
+
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -61,12 +52,7 @@ export default function Orders() {
     setLoading(true);
     try {
       let statusParam = '';
-      if (filter === 'returns') {
-        statusParam = '&status=returns';
-        if (returnStatusFilter !== 'all') {
-          statusParam += `&returnStatus=${returnStatusFilter}`;
-        }
-      } else if (filter) {
+      if (filter) {
         statusParam = `&status=${filter}`;
       }
       
@@ -84,7 +70,7 @@ export default function Orders() {
       load(); 
     }, 500);
     return () => clearTimeout(debounceTimer);
-  }, [filter, returnStatusFilter, page, limit, searchQuery]);
+  }, [filter, page, limit, searchQuery]);
 
   const updateStatus = (id, field, value) => {
     // Just open modal, don't update yet
@@ -261,15 +247,9 @@ export default function Orders() {
         </div>
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-3 border-t border-gray-50 mt-4">
-           {/* Return Status Filter or Bulk Actions on Line 2 */}
+           {/* Bulk Actions */}
            <div className="flex-1">
-              {filter === 'returns' ? (
-                 <div className="flex items-center gap-2">
-                    <select value={returnStatusFilter} onChange={e => { setReturnStatusFilter(e.target.value); setPage(1); }} className="text-[10px] border border-gray-200 px-3 py-2 focus:outline-none focus:border-gold-500 rounded-lg bg-white cursor-pointer uppercase tracking-wider font-bold">
-                        {RETURN_STATUS_FILTERS.map(rs => <option key={rs.value} value={rs.value}>{rs.label}</option>)}
-                    </select>
-                 </div>
-              ) : selectedOrders.length > 0 && (
+              {selectedOrders.length > 0 && (
                  <div className="flex items-center gap-2 bg-gold-50/50 px-3 py-2 rounded border border-gold-100 animate-fadeIn">
                     <span className="text-[10px] font-sans text-gold-700 font-bold">{selectedOrders.length} selected</span>
                     <select onChange={e => handleBulkAction('orderStatus', e.target.value)} className="text-[10px] border border-gold-200 px-2 py-1.5 focus:outline-none focus:border-gold-500 rounded-sm bg-white cursor-pointer uppercase tracking-wider font-bold">
