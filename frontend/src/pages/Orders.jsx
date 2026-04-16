@@ -132,6 +132,7 @@ export function Orders() {
       case 'processing': return { text: `Ordered on ${d}`, color: 'bg-green-500', sub: 'Your order is being processed' };
       case 'shipped': return { text: `Shipped on ${d}`, color: 'bg-green-500', sub: 'Your item is on the way' };
       case 'delivered': return { text: `Delivered on ${d}`, color: 'bg-green-500', sub: 'Your item has been delivered' };
+      case 'returned': return { text: `Returned on ${d}`, color: 'bg-purple-500', sub: 'Your returned item has been received' };
       case 'cancelled': return { text: `Cancelled on ${d}`, color: 'bg-red-500', sub: 'You cancelled this order' };
       default: return { text: `Pending on ${d}`, color: 'bg-orange-500', sub: 'Awaiting confirmation' };
     }
@@ -176,7 +177,7 @@ export function Orders() {
           <div className="p-4">
             <h3 className="text-sm font-medium text-black mb-3 uppercase tracking-wide">Order Status</h3>
             <div className="space-y-4">
-              {['all', 'processing', 'shipped', 'delivered', 'cancelled'].map(f => (
+              {['all', 'processing', 'shipped', 'delivered', 'returned', 'cancelled'].map(f => (
                 <label key={f} className="flex items-center gap-3 cursor-pointer group">
                   <input type="checkbox" checked={activeFilter === f} onChange={() => setActiveFilter(f)} className="w-[15px] h-[15px] accent-[#2874f0] text-white border-gray-300 rounded-[2px] cursor-pointer" />
                   <span className={`text-sm tracking-wide ${activeFilter === f ? 'text-black' : 'text-[#212121] group-hover:text-black'}`}>
@@ -267,17 +268,15 @@ export function Orders() {
                             </div>
                             
                             <div className="mt-4 flex gap-4 pl-5">
-                              {index === 0 && (
-                                <button 
-                                  onClick={() => toggleExpand(order._id)}
-                                  className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
-                                >
-                                  {isExpanded ? 'Hide Details' : 'View Details'}
-                                </button>
-                              )}
+                              <button 
+                                onClick={() => toggleExpand(order._id)}
+                                className="text-xs font-bold text-[#2874f0] uppercase hover:underline"
+                              >
+                                {isExpanded ? 'Hide Details' : 'View Details'}
+                              </button>
                               
                               {/* Order Actions */}
-                              {index === 0 && !order.returnRequested && (
+                              {!order.returnRequested && (
                                 <>
                                   {(order.orderStatus === 'processing' || order.orderStatus === 'pending') && (
                                     <button 

@@ -158,6 +158,7 @@ export function Login() {
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
+                  maxLength={25}
                   className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-gray-800"
                   placeholder="••••••••"
                   required
@@ -265,6 +266,7 @@ export function Login() {
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
+                  maxLength={25}
                   className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-gray-800"
                   placeholder="Enter new password"
                   required
@@ -341,9 +343,9 @@ export function Register() {
     const newErrors = {};
     if (form.name.length > 25) newErrors.name = "Max 25 characters";
     
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,25}$/;
     if (!passwordRegex.test(form.password)) {
-      newErrors.password = "Must have 8+ chars, Uppercase, Lowercase, Number & Special Char";
+      newErrors.password = "Must be 8-25 chars, with Uppercase, Lowercase, Number & Special Char";
     }
     
     setErrors(newErrors);
@@ -428,7 +430,8 @@ export function Register() {
               <InputGroup label="Full Name" error={errors.name}>
                 <input
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value.substring(0, 26) })}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  maxLength={25}
                   className={`w-full px-6 py-4 bg-white border ${errors.name ? 'border-rose-500 focus:ring-rose-500/10' : 'border-gray-100 focus:border-rose-500 focus:ring-rose-500/10'} rounded-2xl shadow-sm outline-none transition-all duration-300 text-gray-800`}
                   placeholder="Jane Doe"
                   required
@@ -452,6 +455,7 @@ export function Register() {
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
+                  maxLength={25}
                   className={`w-full px-6 py-4 bg-white border ${errors.password ? 'border-rose-500 focus:ring-rose-500/10' : 'border-gray-100 focus:border-rose-500 focus:ring-rose-500/10'} rounded-2xl shadow-sm outline-none transition-all duration-300 text-gray-800`}
                   placeholder="••••••••"
                   required

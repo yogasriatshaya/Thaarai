@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import API, { BACKEND_URL, getFullUrl } from '../api';
 import { toast } from 'react-toastify';
@@ -7,8 +8,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ConfirmModal from '../components/ConfirmModal';
 
-const ORDER_STATUSES = ['processing', 'shipped', 'delivered', 'cancelled'];
-const FILTER_TABS = ['', 'processing', 'shipped', 'delivered', 'cancelled', 'returns'];
+const ORDER_STATUSES = ['processing', 'shipped', 'delivered', 'returned', 'cancelled'];
+const FILTER_TABS = ['', 'processing', 'shipped', 'delivered', 'returned', 'cancelled', 'returns'];
 const RETURN_STATUS_FILTERS = [
   { label: 'All Returns', value: 'all' },
   { label: 'Return Request', value: 'return_request' },
@@ -22,14 +23,19 @@ const statusColors = {
   processing: 'bg-yellow-100 text-yellow-800',
   shipped: 'bg-blue-100 text-blue-800',
   delivered: 'bg-green-100 text-green-800',
+  returned: 'bg-purple-100 text-purple-800',
   cancelled: 'bg-red-100 text-red-800',
   refunded: 'bg-purple-100 text-purple-800'
 };
 
 export default function Orders() {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialStatus = queryParams.get('status');
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(initialStatus === 'return' ? 'returns' : (initialStatus === 'pending,processing' ? 'processing' : ''));
   const [returnStatusFilter, setReturnStatusFilter] = useState('all');
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
@@ -44,6 +50,9 @@ export default function Orders() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  
   // Pending update for confirmation
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [pendingBulkUpdate, setPendingBulkUpdate] = useState(null);
@@ -52,19 +61,30 @@ export default function Orders() {
     setLoading(true);
     try {
       let statusParam = '';
-      if (filter === 'returns' && returnStatusFilter !== 'all') {
-        statusParam = `&returnStatus=${returnStatusFilter}`;
+      if (filter === 'returns') {
+        statusParam = '&status=returns';
+        if (returnStatusFilter !== 'all') {
+          statusParam += `&returnStatus=${returnStatusFilter}`;
+        }
       } else if (filter) {
         statusParam = `&status=${filter}`;
       }
-      const res = await API.get(`/orders/all?page=${page}&limit=${limit}${statusParam}`);
+      
+      let searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+      
+      const res = await API.get(`/orders/all?page=${page}&limit=${limit}${statusParam}${searchParam}`);
       setOrders(res.data.orders || []);
       setTotal(res.data.total || 0);
     } catch { toast.error('Failed to load orders'); }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [filter, returnStatusFilter, page, limit]);
+  useEffect(() => { 
+    const debounceTimer = setTimeout(() => {
+      load(); 
+    }, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [filter, returnStatusFilter, page, limit, searchQuery]);
 
   const updateStatus = (id, field, value) => {
     // Just open modal, don't update yet
@@ -84,8 +104,12 @@ export default function Orders() {
       const payload = { [field]: value };
       if (value === 'cancelled') payload.cancellationReason = adminCancelReason;
       
-      await API.put(`/orders/${id}/status`, payload);
-      setOrders(prev => prev.map(o => o._id === id ? { ...o, [field]: value, cancellationReason: value === 'cancelled' ? adminCancelReason : o.cancellationReason, cancelledBy: value === 'cancelled' ? 'admin' : o.cancelledBy } : o));
+      const res = await API.put(`/orders/${id}/status`, payload);
+      if (res.data.success && res.data.order) {
+        setOrders(prev => prev.map(o => o._id === id ? { ...o, ...res.data.order } : o));
+      } else {
+        setOrders(prev => prev.map(o => o._id === id ? { ...o, [field]: value, cancellationReason: value === 'cancelled' ? adminCancelReason : o.cancellationReason, cancelledBy: value === 'cancelled' ? 'admin' : o.cancelledBy } : o));
+      }
       toast.success('Order status updated successfully');
     } catch { 
       toast.error('Failed to update order'); 
@@ -221,7 +245,22 @@ export default function Orders() {
            </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-3 border-t border-gray-50">
+        {/* Search Bar */}
+        <div className="flex bg-gray-50 border border-gray-100 rounded-lg p-2 mt-4 items-center">
+           <svg className="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+           <input 
+              type="text" 
+              placeholder="Search by Order ID, Email, Name, or Phone..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              className="bg-transparent w-full focus:outline-none text-sm text-charcoal font-sans"
+           />
+           {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="text-gray-400 hover:text-red-500 mx-2 text-lg">×</button>
+           )}
+        </div>
+
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-3 border-t border-gray-50 mt-4">
            {/* Return Status Filter or Bulk Actions on Line 2 */}
            <div className="flex-1">
               {filter === 'returns' ? (

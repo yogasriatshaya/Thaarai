@@ -7,6 +7,7 @@ import { Package, ArrowUpRight, ArrowDownRight, RefreshCw, Search, Download } fr
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Inventory() {
   const [logs, setLogs] = useState([]);
@@ -14,6 +15,7 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [soldStats, setSoldStats] = useState({});
+  const [variantSoldStats, setVariantSoldStats] = useState({});
   const [adjustQty, setAdjustQty] = useState({});
   const [adjustReason, setAdjustReason] = useState({});
   const [startDate, setStartDate] = useState('');
@@ -30,7 +32,7 @@ export default function Inventory() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('view') === 'low_stock') {
+    if (params.get('filter') === 'low-stock' || params.get('view') === 'low_stock') {
       setShowLowStock(true);
     }
   }, [location]);
@@ -70,6 +72,7 @@ export default function Inventory() {
       setTotalLogs(logRes.data.total || 0);
       setTotalRemoved(logRes.data.totalRemoved || 0);
       setSoldStats(statsRes.data.stats || {});
+      setVariantSoldStats(statsRes.data.variantStats || {});
     } catch (err) {
       console.error(err);
       toast.error('Failed to load inventory data');
@@ -108,12 +111,43 @@ export default function Inventory() {
     const wb = XLSX.utils.book_new();
     
     // Products Sheet
-    const productData = reportProducts.map(p => ({
-      Product: p.name,
-      'Sub-Category': p.subcategory || 'N/A',
-      'Current Stock': p.stock || 0,
-      'Selled stack': soldStats[p._id] || 0
-    }));
+    const productData = [];
+    reportProducts.forEach(p => {
+      productData.push({
+        Product: p.name,
+        'Sub-Category': p.subcategory || 'N/A',
+        Color: 'All',
+        Size: 'All',
+        'Current Stock': p.stock || 0,
+        'Selled stack': soldStats[p._id] || 0
+      });
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach(v => {
+          if (v.inventory && v.inventory.length > 0) {
+            v.inventory.forEach(inv => {
+              productData.push({
+                Product: `   -- ${v.color} - ${inv.size}`,
+                'Sub-Category': '',
+                Color: v.color,
+                Size: inv.size,
+                'Current Stock': inv.stock || 0,
+                'Selled stack': variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || 0
+              });
+            });
+          } else {
+            productData.push({
+              Product: `   -- ${v.color} (No sizes)`,
+              'Sub-Category': '',
+              Color: v.color,
+              Size: 'N/A',
+              'Current Stock': 0,
+              'Selled stack': variantSoldStats[`${p._id}-${v.color}-`] || 0
+            });
+          }
+        });
+      }
+    });
+
     const wsProducts = XLSX.utils.json_to_sheet(productData);
     XLSX.utils.book_append_sheet(wb, wsProducts, "Available Stock");
 
@@ -149,16 +183,42 @@ export default function Inventory() {
     const reportTitle = (startDate && endDate) ? `(${startDate} to ${endDate})` : '(Full)';
     doc.text(`Inventory Stock Report ${reportTitle}`, 14, 15);
     
-    // Products Table
-    autoTable(doc, {
-      startY: 20,
-      head: [['Product', 'Sub-Category', 'Current Stock', 'Selled stack']],
-      body: reportProducts.map(p => [
+    const pdfProductData = [];
+    reportProducts.forEach(p => {
+      pdfProductData.push([
         p.name, 
         p.subcategory || 'N/A',
         p.stock || 0, 
         soldStats[p._id] || 0
-      ]),
+      ]);
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach(v => {
+          if (v.inventory && v.inventory.length > 0) {
+            v.inventory.forEach(inv => {
+              pdfProductData.push([
+                `   -- ${v.color} - ${inv.size}`,
+                '',
+                inv.stock || 0,
+                variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || 0
+              ]);
+            });
+          } else {
+            pdfProductData.push([
+              `   -- ${v.color} (No sizes)`,
+              '',
+              0,
+              variantSoldStats[`${p._id}-${v.color}-`] || 0
+            ]);
+          }
+        });
+      }
+    });
+
+    // Products Table
+    autoTable(doc, {
+      startY: 20,
+      head: [['Product', 'Sub-Category', 'Current Stock', 'Selled stack']],
+      body: pdfProductData,
       theme: 'grid',
       headStyles: { fillColor: [139, 127, 192] },
       styles: { fontSize: 8 }
@@ -194,8 +254,12 @@ export default function Inventory() {
      setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleAdjust = async (id, variantId = null, size = null) => {
-    const key = variantId ? `${id}-${variantId}-${size}` : id;
+  const [confirmModal, setConfirmModal] = useState({ open: false, data: null });
+
+  const confirmAdjust = (p, variantId, invSize, variantObj) => {
+    const id = p._id;
+    const size = invSize;
+    const key = variantId !== null ? `${id}-${variantId}-${size}` : id;
     const qty = adjustQty[key];
     const reason = adjustReason[key] || 'Manual Adjustment';
     
@@ -203,9 +267,32 @@ export default function Inventory() {
       toast.warning('Please enter a valid quantity');
       return;
     }
+    
+    const numQty = Number(qty);
+    const actionText = numQty >= 0 ? "Add" : "Remove";
+    const variantInfo = variantObj ? `${variantObj.color}${size && size !== 'nosize' ? ` (Size: ${size})` : ''}` : '(No Variant)';
+    
+    setConfirmModal({
+      open: true,
+      data: {
+        id, variantId, size, key, qty: numQty, reason,
+        message: (
+          <span>
+            Are you sure you want to <strong>{actionText} {Math.abs(numQty)}</strong> items for:<br />
+            <strong className="text-gray-800">{p.name}</strong><br />
+            <span className="text-xs text-gray-500">{variantInfo}</span>
+          </span>
+        )
+      }
+    });
+  };
+
+  const handleAdjustConfirmed = async () => {
+    if (!confirmModal.data) return;
+    const { id, variantId, size, key, qty, reason } = confirmModal.data;
 
     try {
-      const res = await API.put(`/inventory/adjust/${id}`, { quantity: Number(qty), reason, variantId, size });
+      const res = await API.put(`/inventory/adjust/${id}`, { quantity: qty, reason, variantId, size: size === 'nosize' ? null : size });
       if (res.data.success) {
          toast.success('Stock adjusted successfully');
          setAdjustQty({ ...adjustQty, [key]: '' });
@@ -214,11 +301,22 @@ export default function Inventory() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Adjustment failed');
+    } finally {
+      setConfirmModal({ open: false, data: null });
     }
   };
 
   return (
     <Layout title="Inventory & Stock">
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        title="Confirm Stock Adjustment"
+        message={confirmModal.data?.message}
+        onConfirm={handleAdjustConfirmed}
+        onCancel={() => setConfirmModal({ open: false, data: null })}
+        type={confirmModal.data?.qty >= 0 ? 'info' : 'danger'}
+        confirmText={confirmModal.data?.qty >= 0 ? 'Confirm Add' : 'Confirm Remove'}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
          <div className="lg:col-span-2 space-y-6">
@@ -299,18 +397,16 @@ export default function Inventory() {
                                   <td className="px-2 py-3 text-center"><span className={`${(p.stock || 0) <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{p.stock || 0}</span></td>
                                   <td className="px-2 py-3 text-center text-gold-600 font-bold">{soldStats[p._id] || 0}</td>
                                   <td className="px-2 py-3">
-                                     <div className="flex items-center gap-1">
-                                        <input type="number" placeholder="Qty" value={adjustQty[p._id] || ''} onChange={e => setAdjustQty({ ...adjustQty, [p._id]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
-                                        <input type="text" placeholder="Reason" value={adjustReason[p._id] || ''} onChange={e => setAdjustReason({ ...adjustReason, [p._id]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 text-[10px] w-24 focus:border-gold-500 focus:outline-none font-sans" />
-                                     </div>
+                                     <span className="text-gray-400 text-xs italic">Expand to adjust sizes</span>
                                   </td>
                                   <td className="px-2 py-3 text-center">
-                                     <button onClick={() => handleAdjust(p._id)} className="bg-charcoal text-white px-2.5 py-1.5 text-[9px] tracking-widest uppercase hover:bg-gold-600 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Apply</button>
+                                     {/* Empty action column for parent product */}
                                   </td>
                                </tr>
                                {expandedRows[p._id] && p.variants && p.variants.map((v, i) => (
                                  (v.inventory && v.inventory.length > 0) ? (
                                    v.inventory.map(inv => {
+                                      if (showLowStock && inv.stock > 10) return null; // Hide healthy sizes if filtering
                                       const vKey = `${p._id}-${v._id || i}-${inv.size}`;
                                       return (
                                         <tr key={vKey} className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-sans">
@@ -320,7 +416,7 @@ export default function Inventory() {
                                            </td>
                                            <td className="px-2 py-2 text-gray-500">—</td>
                                            <td className="px-2 py-2 text-center"><span className={`${inv.stock <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{inv.stock}</span></td>
-                                           <td className="px-2 py-2 text-center text-gold-600 font-bold">—</td>
+                                           <td className="px-2 py-2 text-center text-gold-600 font-bold">{variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || '—'}</td>
                                            <td className="px-2 py-2">
                                               <div className="flex items-center gap-1">
                                                  <input type="number" placeholder="Qty" value={adjustQty[vKey] || ''} onChange={e => setAdjustQty({ ...adjustQty, [vKey]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />
@@ -328,12 +424,13 @@ export default function Inventory() {
                                               </div>
                                            </td>
                                            <td className="px-2 py-2 text-center">
-                                              <button onClick={() => handleAdjust(p._id, v._id || i, inv.size)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
+                                              <button onClick={() => confirmAdjust(p, v._id || i, inv.size, v)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
                                            </td>
                                         </tr>
                                       );
                                    })
                                  ) : (
+                                   (showLowStock && (v.stock || 0) > 10) ? null : (
                                    <tr key={`${p._id}-${v._id || i}`} className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-sans">
                                       <td className="px-2 py-2 pl-8 text-gray-600 flex items-center gap-2">
                                          <span className="w-2 h-2 rounded-full bg-gray-300"></span>
@@ -349,9 +446,10 @@ export default function Inventory() {
                                          </div>
                                       </td>
                                       <td className="px-2 py-2 text-center">
-                                         <button onClick={() => handleAdjust(p._id, v._id || i, null)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
+                                         <button onClick={() => confirmAdjust(p, v._id || i, 'nosize', v)} className="bg-teal-600 text-white px-2.5 py-1.5 text-[8px] tracking-widest uppercase hover:bg-teal-700 transition-colors font-sans rounded-sm shadow-sm whitespace-nowrap">Update</button>
                                       </td>
                                    </tr>
+                                   )
                                  )
                                ))}
                              </React.Fragment>

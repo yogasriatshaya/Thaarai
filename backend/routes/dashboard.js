@@ -80,8 +80,18 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
     const todaySalesUSD = todaySalesAgg.find(s => s._id === 'USD')?.today || 0;
 
     // 4. Products Stock Count
-    const lowStockCount = await Product.countDocuments({ stock: { $gt: 0, $lte: 10 } });
-    const outOfStockCount = await Product.countDocuments({ stock: 0 });
+    const lowStockCount = await Product.countDocuments({
+      $or: [
+        { stock: { $gt: 0, $lte: 10 } },
+        { 'variants.inventory.stock': { $gt: 0, $lte: 10 } }
+      ]
+    });
+    const outOfStockCount = await Product.countDocuments({
+      $or: [
+        { stock: 0 },
+        { 'variants.inventory.stock': 0 }
+      ]
+    });
 
     // 5. New Customers
     // For general count we can use 30 days if no filter, or filter.

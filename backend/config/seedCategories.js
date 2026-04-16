@@ -57,11 +57,6 @@ const seedCategories = async () => {
       }
     }
 
-    // CLEANUP: Remove old categories that are now subcategories
-    const subNames = ['Kurti', 'Maxi', 'Co-ords', 'Anarkali'];
-    await Category.deleteMany({ name: { $in: subNames } });
-    console.log(`✓ Cleaned up legacy categories: ${subNames.join(', ')}`);
-
   } catch (error) {
     console.error('✗ Error seeding categories:', error.message);
   }

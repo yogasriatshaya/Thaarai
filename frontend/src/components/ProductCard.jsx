@@ -19,7 +19,15 @@ export default function ProductCard({ product }) {
   const isActiveOffer = getOfferActive(product, country);
 
   const cardFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
-  const images = (product.images && product.images.length > 0) ? product.images : (cardFallback ? [cardFallback] : []);
+  
+  let extractedImages = [];
+  if (product.variants && product.variants.length > 0 && product.variants[0].images && product.variants[0].images.length > 0) {
+    extractedImages = product.variants[0].images;
+  } else if (product.images && product.images.length > 0) {
+    extractedImages = product.images;
+  }
+
+  const images = extractedImages.length > 0 ? extractedImages : (cardFallback ? [cardFallback] : []);
 
   const nextImg = (e) => {
     e.stopPropagation();

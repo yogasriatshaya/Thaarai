@@ -144,11 +144,26 @@ router.post('/create', optionalAuth, checkMaintenance, async (req, res) => {
            // Stock alert emails
            const stockSettings = await Settings.findOne();
            const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
-           if (prod.stock <= 0) {
-              await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
-              sendStockAlertEmail(prod, 'out_of_stock', 0);
-           } else if (prod.stock <= lowStockThreshold) {
-              sendStockAlertEmail(prod, 'low_stock', prod.stock);
+           
+           let variantInfo = null;
+           if (item.color || item.size) {
+               variantInfo = { color: item.color || '-', size: item.size || '-' };
+           }
+
+           if (variantInfo) {
+               if (updatedStock <= 0) {
+                   await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+                   sendStockAlertEmail(prod, 'out_of_stock', 0, reasonText, variantInfo);
+               } else if (updatedStock <= lowStockThreshold) {
+                   sendStockAlertEmail(prod, 'low_stock', updatedStock, reasonText, variantInfo);
+               }
+           } else {
+               if (prod.stock <= 0) {
+                   await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+                   sendStockAlertEmail(prod, 'out_of_stock', 0, reasonText);
+               } else if (prod.stock <= lowStockThreshold) {
+                   sendStockAlertEmail(prod, 'low_stock', prod.stock, reasonText);
+               }
            }
         }
       }
@@ -281,11 +296,26 @@ router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
            // Stock alert emails
            const stockSettings = await Settings.findOne();
            const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
-           if (prod.stock <= 0) {
-              await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
-              sendStockAlertEmail(prod, 'out_of_stock', 0);
-           } else if (prod.stock <= lowStockThreshold) {
-              sendStockAlertEmail(prod, 'low_stock', prod.stock);
+           
+           let variantInfo = null;
+           if (item.color || item.size) {
+               variantInfo = { color: item.color || '-', size: item.size || '-' };
+           }
+
+           if (variantInfo) {
+               if (updatedStock <= 0) {
+                   await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+                   sendStockAlertEmail(prod, 'out_of_stock', 0, reasonText, variantInfo);
+               } else if (updatedStock <= lowStockThreshold) {
+                   sendStockAlertEmail(prod, 'low_stock', updatedStock, reasonText, variantInfo);
+               }
+           } else {
+               if (prod.stock <= 0) {
+                   await Product.findByIdAndUpdate(item.productId, { label: 'Sold Out' });
+                   sendStockAlertEmail(prod, 'out_of_stock', 0, reasonText);
+               } else if (prod.stock <= lowStockThreshold) {
+                   sendStockAlertEmail(prod, 'low_stock', prod.stock, reasonText);
+               }
            }
         }
       }
@@ -724,8 +754,13 @@ router.post('/:id/return', authMiddleware, upload.array('images', 5), async (req
 // Get all orders (admin)
 router.get('/all', adminMiddleware, async (req, res) => {
   try {
-    const { status, page = 1, limit = 20, startDate, endDate, returns, returnStatus } = req.query;
-    const query = status && status !== 'returns' ? { orderStatus: status } : {};
+    const { status, page = 1, limit = 20, startDate, endDate, returns, returnStatus, search } = req.query;
+    let query = {};
+    if (status && status !== 'returns' && !status.includes(',')) {
+      query.orderStatus = status;
+    } else if (status && status.includes(',')) {
+      query.orderStatus = { $in: status.split(',') };
+    }
     
     if (returns === 'true' || status === 'returns') {
       query.returnRequested = true;
@@ -740,7 +775,7 @@ router.get('/all', adminMiddleware, async (req, res) => {
           query.returnStatus = 'received';
         } else if (returnStatus === 'refund_pending') {
           query.returnStatus = 'received';
-          query.paymentStatus = 'pending';
+          query.paymentStatus = { $ne: 'refunded' };
         } else if (returnStatus === 'refunded') {
           query.paymentStatus = 'refunded';
         } else if (returnStatus === 'return_cancelled') {
@@ -751,6 +786,39 @@ router.get('/all', adminMiddleware, async (req, res) => {
     
     if (startDate && endDate) {
       query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    if (search && search.trim() !== '') {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const orConditions = [
+        { 'address.fullName': searchRegex },
+        { 'address.phone': searchRegex },
+        { guestEmail: searchRegex },
+        { guestPhone: searchRegex }
+      ];
+
+      // Try searching _id if the search looks like a valid 24 char hex
+      if (search.trim().length === 24 && /^[0-9a-fA-F]{24}$/.test(search.trim())) {
+        orConditions.push({ _id: search.trim() });
+      }
+
+      // We will need to query Users to match email or name in user reference
+      const User = require('../models/User');
+      const matchedUsers = await User.find({
+        $or: [{ name: searchRegex }, { email: searchRegex }, { phone: searchRegex }]
+      }).select('_id');
+      
+      if (matchedUsers.length > 0) {
+        orConditions.push({ userId: { $in: matchedUsers.map(u => u._id) } });
+      }
+
+      if (query.$or) {
+        // If there are already any $or conditions from somewhere else (currently there aren't but defensive coding)
+        query.$and = query.$and || [];
+        query.$and.push({ $or: orConditions });
+      } else {
+        query.$or = orConditions;
+      }
     }
 
     const total = await Order.countDocuments(query);
@@ -770,6 +838,15 @@ router.put('/:id/status', adminMiddleware, async (req, res) => {
     
     const update = {};
     if (orderStatus) {
+      if (orderStatus === 'shipped') {
+        const hasLogistics = (carrierName && trackingId) || (order.carrierName && order.trackingId);
+        if (!hasLogistics) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'To mark an order as shipped, you must first provide Carrier Name and Tracking ID.' 
+          });
+        }
+      }
       update.orderStatus = orderStatus;
       if (orderStatus === 'delivered' && order.orderStatus !== 'delivered') {
         update.deliveredAt = new Date();
@@ -841,6 +918,8 @@ router.put('/:id/status', adminMiddleware, async (req, res) => {
     if (returnStatus) {
       // 1. INVENTORY RESTORATION: When an item is marked as "received" for the FIRST time in this return flow
       if (returnStatus === 'received' && order.returnStatus !== 'received') {
+        update.orderStatus = 'returned'; // Automatically update order status to returned
+        
         for (const item of order.items) {
            if (item.productId) {
              let prod = await Product.findById(item.productId);

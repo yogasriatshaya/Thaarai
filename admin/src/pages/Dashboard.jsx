@@ -104,7 +104,7 @@ export default function Dashboard() {
      { label: 'Total Requests', value: stats.totalReturns || 0, icon: ShoppingBag, color: 'text-indigo-500' }
   ];
 
-  const statusColors = { processing: 'text-yellow-700 bg-yellow-50', shipped: 'text-blue-700 bg-blue-50', delivered: 'text-green-700 bg-green-50', cancelled: 'text-red-700 bg-red-50' };
+  const statusColors = { processing: 'text-yellow-700 bg-yellow-50', shipped: 'text-blue-700 bg-blue-50', delivered: 'text-green-700 bg-green-50', returned: 'text-purple-700 bg-purple-50', cancelled: 'text-red-700 bg-red-50' };
   const returnStatusColors = { pending: 'text-yellow-600 bg-yellow-50', approved: 'text-blue-600 bg-blue-50', received: 'text-green-600 bg-green-50', rejected: 'text-red-600 bg-red-50', refunded: 'text-indigo-600 bg-indigo-50' };
 
   return (
@@ -178,9 +178,9 @@ export default function Dashboard() {
                     {isReturn ? <ShoppingBag size={14} /> : isOutStock || isLowStock ? <Package size={14} /> : <Clock size={14} />}
                     <span className="font-medium">{alt.message}</span>
                  </div>
-                 {isReturn && <Link to="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Manage Returns →</Link>}
-                 {isOrder && <Link to="/orders" className="text-[10px] font-bold uppercase tracking-widest hover:underline">View Orders →</Link>}
-                 {(isLowStock || isOutStock) && <Link to="/inventory?view=low_stock" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Restock →</Link>}
+                 {isReturn && <Link to="/orders?status=return" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Manage Returns →</Link>}
+                 {isOrder && <Link to="/orders?status=pending,processing" className="text-[10px] font-bold uppercase tracking-widest hover:underline">View Orders →</Link>}
+                 {(isLowStock || isOutStock) && <Link to="/inventory?filter=low-stock" className="text-[10px] font-bold uppercase tracking-widest hover:underline">Restock →</Link>}
                </div>
              );
            })}

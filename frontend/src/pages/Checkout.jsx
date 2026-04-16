@@ -5,7 +5,6 @@ import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
 import API from '../api';
 import { toast } from 'react-toastify';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 export default function Checkout() {
   const { cartData, setCartData, token, BACKEND_URL, getFullImgUrl, removeFromCart, settings } = useShop();
@@ -112,8 +111,8 @@ export default function Checkout() {
         const item = cartData[key];
         if (item?.productId) {
           if (item.productId.startsWith('mock_')) {
-            const mock = MOCK_PRODUCTS.find(p => p._id === item.productId);
-            if (mock) items.push({ ...mock, ...item });
+            // Skip mock products
+            continue;
           } else if (item.productId.startsWith('local_')) {
             const localData = localStorage.getItem('thaarai_local_products');
             const locals = localData ? JSON.parse(localData) : [];

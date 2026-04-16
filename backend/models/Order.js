@@ -36,7 +36,7 @@ const orderSchema = new mongoose.Schema({
   // Payment & status
   paymentMethod: { type: String, enum: ['stripe', 'razorpay', 'cod'], required: true },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
-  orderStatus: { type: String, enum: ['processing', 'shipped', 'delivered', 'cancelled'], default: 'processing' },    deliveredAt: { type: Date },  trackingId: { type: String, default: '' },
+  orderStatus: { type: String, enum: ['processing', 'shipped', 'delivered', 'returned', 'cancelled'], default: 'processing' },    deliveredAt: { type: Date },  trackingId: { type: String, default: '' },
   carrierName: { type: String, default: '' },
   stripeSessionId: String,
   razorpayOrderId: String,

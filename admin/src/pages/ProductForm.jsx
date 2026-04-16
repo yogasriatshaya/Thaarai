@@ -609,66 +609,6 @@ export default function ProductForm() {
                 <Plus size={16} /> Add New Color Lookbook
               </button>
             </div>
-
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-5">
-                 <h3 className="font-serif text-lg text-charcoal">Catalog Card Image</h3>
-                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">Used for Collection Card Only</span>
-              </div>
-              {existingImages.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Current Images</p>
-                  <div className="flex flex-wrap gap-3">
-                    {existingImages.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <img 
-                          src={getFullUrl(img)} 
-                          alt="" 
-                          className="w-20 h-24 object-cover bg-gray-100 rounded-lg" 
-                        />
-                        <button type="button" onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity">×</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-               <label className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-gold-400 transition-all">
-                <input type="file" accept="image/*" multiple onChange={e => {
-                  const files = Array.from(e.target.files);
-                  if (files.length === 0) return;
-                  
-                  let currentIdx = 0;
-                  const processNext = () => {
-                    if (currentIdx < files.length) {
-                      initiateCrop(files[currentIdx], 3/4, (croppedFile) => {
-                        setImages(prev => [...prev, croppedFile]);
-                        currentIdx++;
-                        processNext();
-                      });
-                    }
-                  };
-                  processNext();
-                }} className="hidden" />
-                <div className="flex flex-col items-center gap-2">
-                  <Plus className="w-8 h-8 text-gray-300" />
-                  <p className="text-sm font-sans text-gray-500">Click or Drag & Drop to upload images</p>
-                </div>
-              </label>
-
-              {images.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-3">Pending Uploads ({images.length})</p>
-                  <div className="flex flex-wrap gap-3">
-                    {images.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <img src={URL.createObjectURL(img)} alt="" className="w-20 h-24 object-cover bg-gray-100 rounded-lg border border-gold-200" />
-                        <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">×</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           <div className="space-y-6">

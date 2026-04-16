@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import API from '../api';
 import { toast } from 'react-toastify';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 const ShopContext = createContext();
 
@@ -117,15 +116,11 @@ export const ShopProvider = ({ children }) => {
         const localData = localStorage.getItem('thaarai_local_products');
         const locals = localData ? JSON.parse(localData) : [];
 
-        // Remove duplicate mocks if they exist in real db
-        const combined = [...locals, ...real];
-        const uniqueMocks = MOCK_PRODUCTS.filter(m => !combined.some(c => c.name === m.name));
-
-        setProducts([...combined, ...uniqueMocks]);
+        setProducts([...locals, ...real]);
       } catch (err) {
         const localData = localStorage.getItem('thaarai_local_products');
         const locals = localData ? JSON.parse(localData) : [];
-        setProducts([...locals, ...MOCK_PRODUCTS]);
+        setProducts([...locals]);
       }
     };
     fetchGlobalCatalog();
@@ -221,8 +216,8 @@ export const ShopProvider = ({ children }) => {
       const item = cartData[key];
       if (item?.productId) {
         if (item.productId.startsWith('mock_')) {
-          const mock = (await import('../data/mockProducts')).MOCK_PRODUCTS.find(p => p._id === item.productId);
-          total += (mock?.price || 0) * item.quantity;
+          // Skip mock products
+          continue;
         } else if (item.productId.startsWith('local_')) {
           const localData = localStorage.getItem('thaarai_local_products');
           const locals = localData ? JSON.parse(localData) : [];

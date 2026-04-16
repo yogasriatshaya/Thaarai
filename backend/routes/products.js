@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
 
     const { category, subcategory, material, fabric, minPrice, maxPrice, bestseller, search, sort, page = 1, limit = 12, country, stock_lte, status } = req.query;
     const query = {};
+    const andClauses = [];
     
     // Default to 'Publish' if no status is provided, but allow override
     if (status && status !== 'All') {
@@ -40,7 +41,12 @@ router.get('/', async (req, res) => {
     }
 
     if (stock_lte !== undefined) {
-      query.stock = { $lte: Number(stock_lte) };
+      andClauses.push({
+        $or: [
+           { stock: { $lte: Number(stock_lte) } },
+           { 'variants.inventory.stock': { $lte: Number(stock_lte) } }
+        ]
+      });
     }
 
     if (country === 'US') query.availableInUS = true;
@@ -50,20 +56,24 @@ router.get('/', async (req, res) => {
       const parentCat = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
       if (parentCat) {
         const subNames = (parentCat.subcategories || []).map(s => typeof s === 'string' ? s : s?.name || '').filter(Boolean);
-        query.$or = [
-          { category: { $regex: new RegExp(`^${category}$`, 'i') } },
-          { category: { $in: subNames.map(s => new RegExp(`^${s}$`, 'i')) } }
-        ];
+        andClauses.push({
+          $or: [
+            { category: { $regex: new RegExp(`^${category}$`, 'i') } },
+            { category: { $in: subNames.map(s => new RegExp(`^${s}$`, 'i')) } }
+          ]
+        });
       } else {
         query.category = { $regex: new RegExp(`^${category}$`, 'i') };
       }
     }
     if (subcategory) {
       if (category) {
-        query.$or = [
-          { category: { $regex: new RegExp(`^${category}$`, 'i') }, subcategory: { $regex: new RegExp(`^${subcategory}$`, 'i') } },
-          { category: { $regex: new RegExp(`^${subcategory}$`, 'i') } }
-        ];
+        andClauses.push({
+          $or: [
+            { category: { $regex: new RegExp(`^${category}$`, 'i') }, subcategory: { $regex: new RegExp(`^${subcategory}$`, 'i') } },
+            { category: { $regex: new RegExp(`^${subcategory}$`, 'i') } }
+          ]
+        });
         delete query.category;
       } else {
         query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
@@ -84,11 +94,17 @@ router.get('/', async (req, res) => {
     }
 
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } }
-      ];
+      andClauses.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { category: { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
+
+    if (andClauses.length > 0) {
+      query.$and = andClauses;
     }
 
     const sortObj = {};

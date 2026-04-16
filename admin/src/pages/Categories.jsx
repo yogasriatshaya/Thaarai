@@ -18,7 +18,6 @@ export default function Categories() {
   
   const [form, setForm] = useState({
     name: '',
-    description: '',
     subcategories: [], // Array of { name, fabrics: [], styles: [] }
     availableSizes: [],
     defaultFabrics: [],
@@ -76,7 +75,6 @@ export default function Categories() {
         
         setForm({
           name: cat.name,
-          description: cat.description || '',
           subcategories: normalizedSubs,
           defaultFabrics: cat.defaultFabrics || [],
           defaultStyles: cat.defaultStyles || [],
@@ -93,7 +91,6 @@ export default function Categories() {
         setEditingCat(null);
         setForm({
           name: '',
-          description: '',
           subcategories: [],
           defaultFabrics: [],
           defaultStyles: [],
@@ -329,9 +326,6 @@ export default function Categories() {
           <p className="text-xs text-gray-500 mt-1 italic max-w-sm">Note: Changing a category name updates products automatically.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-           <a href="#subcategory-list" className="btn-outline flex items-center justify-center gap-2 text-[10px] py-3 md:py-2">
-             View Fabrics & Styles
-           </a>
            <button onClick={() => handleOpenModal()} className="btn-primary flex items-center justify-center gap-2 py-3 md:py-2">
              <Plus size={16} /> Add Category
            </button>
@@ -504,11 +498,6 @@ export default function Categories() {
               <div>
                 <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-2">Category Name *</label>
                 <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="input-field" required />
-              </div>
-
-              <div>
-                <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-gray-500 mb-2">Description</label>
-                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input-field min-h-[80px]" />
               </div>
 
               <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-100">

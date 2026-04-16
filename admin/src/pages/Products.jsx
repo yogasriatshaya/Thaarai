@@ -192,11 +192,14 @@ export default function Products() {
                  const toBool = v => v === true || v === 'true';
                  const indiaOfferActive = toBool(p.offerActiveIndia) && Number(p.offerPriceIndia) > 0 && p.offerEndTimeIndia && new Date(p.offerEndTimeIndia).getTime() > Date.now();
                  const usaOfferActive   = toBool(p.offerActiveUSA)   && Number(p.offerPriceUSDUSA) > 0 && p.offerEndTimeUSA   && new Date(p.offerEndTimeUSA).getTime()   > Date.now();
+                 
+                 const rowImage = p.variants?.[0]?.images?.[0] ? getFullUrl(p.variants[0].images[0]) : p.images?.[0] ? getFullUrl(p.images[0]) : '';
+
                  return (
                 <tr key={p._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4 min-w-0">
                     <div className="flex items-center gap-3">
-                      <img src={p.images?.[0] ? getFullUrl(p.images[0]) : ''} alt={p.name}
+                      <img src={rowImage} alt={p.name}
                         className="w-10 h-10 object-cover bg-gray-100 rounded shadow-sm border border-gray-100 flex-shrink-0"
                         onError={e => { e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=40&h=48&fit=crop'; }} />
                       <p className="text-sm font-serif text-charcoal truncate" title={p.name}>{p.name}</p>

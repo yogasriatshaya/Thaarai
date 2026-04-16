@@ -57,8 +57,9 @@ export default function AuthDrawer({ isOpen, onClose }) {
       if (!value) error = 'Required';
       else if (!emailRegex.test(value)) error = 'Invalid email';
     } else if (name === 'password') {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,25}$/;
       if (!value) error = 'Required';
+      else if (value.length > 25) error = 'Max 25 characters';
       else if (!passwordRegex.test(value)) error = 'Must meet requirements';
     } else if (name === 'name' && view === 'register') {
       if (!value) error = 'Required';
@@ -285,6 +286,7 @@ export default function AuthDrawer({ isOpen, onClose }) {
                     value={form.password}
                     onChange={e => setForm({ ...form, password: e.target.value })}
                     onBlur={handleBlur}
+                    maxLength={25}
                     className="w-full px-4 py-2 bg-white border border-gray-400 outline-none focus:border-black transition-all text-sm font-medium"
                     placeholder="••••••••"
                     required
@@ -367,7 +369,8 @@ export default function AuthDrawer({ isOpen, onClose }) {
                   <input
                     name="name"
                     value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value.substring(0, 26) })}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    maxLength={25}
                     onBlur={handleBlur}
                     className="w-full px-4 py-2 border border-gray-400 outline-none focus:border-black text-sm font-medium tracking-wide"
                     placeholder="Enter full name"
@@ -396,12 +399,13 @@ export default function AuthDrawer({ isOpen, onClose }) {
                     value={form.password}
                     onChange={e => setForm({ ...form, password: e.target.value })}
                     onBlur={handleBlur}
+                    maxLength={25}
                     className="w-full px-4 py-2 border border-gray-400 outline-none focus:border-black text-sm font-medium"
                     placeholder="Create password"
                     required
                   />
                   <p className="text-[9px] text-[#999] tracking-tight mt-1 px-1 leading-relaxed italic font-medium">
-                    (8+ chars, Uppercase, Lowercase, Number & Special)
+                    (8-25 chars, Uppercase, Lowercase, Number & Special)
                   </p>
                 </InputGroup>
 
@@ -448,6 +452,7 @@ export default function AuthDrawer({ isOpen, onClose }) {
                       value={form.password}
                       onChange={e => setForm({ ...form, password: e.target.value })}
                       onBlur={handleBlur}
+                      maxLength={25}
                       className="w-full px-4 py-2 border border-gray-400 outline-none focus:border-black text-sm font-medium"
                       placeholder="Enter new password"
                       required

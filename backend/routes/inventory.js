@@ -60,15 +60,30 @@ router.get('/sold-stats', authMiddleware, adminMiddleware, async (req, res) => {
 
         const statsAgg = await StockLog.aggregate([
             { $match: query },
-            { $group: { _id: '$productId', totalSold: { $sum: '$quantity' } } }
+            { $group: { 
+                _id: { productId: '$productId', color: '$color', size: '$size' }, 
+                totalSold: { $sum: '$quantity' } 
+            } }
         ]);
 
         const stats = {};
+        const variantStats = {};
+
         statsAgg.forEach(item => {
-            if (item._id) stats[item._id.toString()] = item.totalSold;
+            const pid = item._id.productId?.toString();
+            if (!pid) return;
+
+            // Total per product
+            stats[pid] = (stats[pid] || 0) + item.totalSold;
+
+            // Per variant (product-color-size)
+            if (item._id.color && item._id.size) {
+                const vKey = `${pid}-${item._id.color}-${item._id.size}`;
+                variantStats[vKey] = (variantStats[vKey] || 0) + item.totalSold;
+            }
         });
 
-        res.json({ success: true, stats });
+        res.json({ success: true, stats, variantStats });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -136,10 +151,20 @@ router.put('/adjust/:id', authMiddleware, adminMiddleware, async (req, res) => {
         if (Number(quantity) < 0) {
             const stockSettings = await Settings.findOne();
             const lowStockThreshold = stockSettings?.notifications?.lowStockThreshold ?? 5;
-            if (product.stock <= 0) {
-                sendStockAlertEmail(product, 'out_of_stock', 0, reason);
-            } else if (product.stock <= lowStockThreshold) {
-                sendStockAlertEmail(product, 'low_stock', product.stock, reason);
+            
+            let variantInfo = null;
+            let currentStockToCheck = product.stock;
+            if (adjusted && pColor && size) {
+                variantInfo = { color: pColor, size: size };
+                const variant = product.variants.id(variantId);
+                const invItem = variant.inventory.find(i => i.size === size);
+                currentStockToCheck = invItem ? invItem.stock : product.stock;
+            }
+
+            if (currentStockToCheck <= 0) {
+                sendStockAlertEmail(product, 'out_of_stock', 0, reason, variantInfo);
+            } else if (currentStockToCheck <= lowStockThreshold) {
+                sendStockAlertEmail(product, 'low_stock', currentStockToCheck, reason, variantInfo);
             }
         }
 

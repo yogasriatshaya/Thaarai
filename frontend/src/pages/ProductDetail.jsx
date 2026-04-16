@@ -6,7 +6,6 @@ import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice, getProductOriginalPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 import { toast } from 'react-toastify';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { createPortal } from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -133,22 +132,6 @@ export default function ProductDetail() {
   useEffect(() => {
     setLoading(true);
 
-    // ── Handle Mock IDs ──────────────────────────────────────────────────
-    if (id?.startsWith('mock_')) {
-      const mockProduct = MOCK_PRODUCTS.find(p => p._id === id);
-      if (mockProduct) {
-        setProduct(mockProduct);
-        if (mockProduct.sizes?.length > 0) setSelectedSize(mockProduct.sizes[0]);
-        if (mockProduct.colors?.length > 0) setSelectedColor(mockProduct.colors[0]);
-
-        // Pull related from mocks
-        const relatedMocks = MOCK_PRODUCTS.filter(p => p.category === mockProduct.category && p._id !== id).slice(0, 4);
-        setRelated(relatedMocks);
-        setLoading(false);
-        return;
-      }
-    }
-
     // ── Handle Local Admin IDs ───────────────────────────────────────────
     if (id?.startsWith('local_')) {
       const localData = localStorage.getItem('thaarai_local_products');
@@ -160,10 +143,9 @@ export default function ProductDetail() {
         if (localProduct.sizes?.length > 0) setSelectedSize(localProduct.sizes[0]);
         if (localProduct.colors?.length > 0) setSelectedColor(localProduct.colors[0]);
 
-        // Pull related from locals + mocks
+        // Pull related from locals only
         const relatedLocals = localProducts.filter(p => p.category === localProduct.category && p._id !== id);
-        const relatedMocks = MOCK_PRODUCTS.filter(p => p.category === localProduct.category && !relatedLocals.some(rl => rl.name === p.name));
-        setRelated([...relatedLocals, ...relatedMocks].slice(0, 4));
+        setRelated([...relatedLocals].slice(0, 4));
         setLoading(false);
         return;
       }
@@ -179,32 +161,11 @@ export default function ProductDetail() {
       return API.get(`/products?category=${realProduct.category}&limit=6`);
     }).then(r => {
       let realRelated = r.data.products?.filter(p => p._id !== id) || [];
-      if (realRelated.length < 4 && product) {
-        const mocks = MOCK_PRODUCTS.filter(p => p.category === product.category && !realRelated.some(rp => rp.name === p.name)).slice(0, 4 - realRelated.length);
-        setRelated([...realRelated, ...mocks]);
-      } else {
-        setRelated(realRelated.slice(0, 4));
-      }
+      setRelated(realRelated.slice(0, 4));
     }).catch(() => {
-      // Final fallback if real API fails completely for a non-mock ID
-      const fallbackMock = MOCK_PRODUCTS.find(p => p._id === id) || MOCK_PRODUCTS[0];
-      setProduct(fallbackMock);
-
-      let relatedItems = [];
-      if (fallbackMock.relatedProductIds?.length > 0) {
-        relatedItems = MOCK_PRODUCTS.filter(p => fallbackMock.relatedProductIds.includes(p._id));
-      }
-
-      if (relatedItems.length < 4) {
-        const remaining = MOCK_PRODUCTS.filter(p =>
-          p.category === fallbackMock.category &&
-          p._id !== fallbackMock._id &&
-          !relatedItems.find(r => r._id === p._id)
-        ).slice(0, 4 - relatedItems.length);
-        relatedItems = [...relatedItems, ...remaining];
-      }
-
-      setRelated(relatedItems.slice(0, 4));
+      // If API fails, show error
+      setProduct(null);
+      setRelated([]);
     }).finally(() => setLoading(false));
   }, [id, product?.category]);
 

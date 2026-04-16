@@ -3,7 +3,6 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import API from '../api';
 import ProductCard from '../components/ProductCard';
 import { useCurrency } from '../context/CurrencyContext';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { ProductSkeleton } from '../components/Skeleton';
 import { useShop } from '../context/ShopContext';
 import MenBanner from '../assets/Men-Banner.png';
@@ -95,23 +94,6 @@ export default function Collection() {
         let realProducts = r.data.products || [];
         let combined = [...realProducts];
 
-        if (combined.length === 0) {
-          const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-            const matchesCat = !urlCategory || mp.category.toLowerCase() === urlCategory.toLowerCase();
-            const matchesSub = !urlSubcategory || (mp.subcategory || '').toLowerCase() === urlSubcategory.toLowerCase();
-            const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
-            const matchesPrice = !maxPrice || mp.price <= parseFloat(maxPrice);
-            const matchesColor = selectedColors.length === 0 || (mp.colors && mp.colors.some(c => selectedColors.includes(c)));
-            const matchesSize = selectedSizes.length === 0 || (mp.sizes && mp.sizes.some(s => selectedSizes.includes(s)));
-            const matchesMaterial = selectedMaterials.length === 0 || (mp.material && selectedMaterials.includes(mp.material)) || (mp.fabric && selectedMaterials.includes(mp.fabric));
-            const matchesStyle = selectedStyles.length === 0 || (mp.style && selectedStyles.includes(mp.style));
-            const matchesRating = !minRating || (mp.averageRating || 0) >= minRating;
-            const matchesStock = !inStockOnly || (mp.stock > 0);
-            return matchesCat && matchesSub && matchesSearch && matchesPrice && matchesColor && matchesSize && matchesMaterial && matchesStyle && matchesRating && matchesStock;
-          });
-          combined = [...combined, ...filteredMocks.slice(0, 12)];
-        }
-
         const allColors = new Set();
         const allSizes = new Set();
         const allMaterials = new Set();
@@ -151,13 +133,7 @@ export default function Collection() {
           const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
           return matchesCat && matchesSub && matchesSearch;
         });
-        const filteredMocks = MOCK_PRODUCTS.filter(mp => {
-          const matchesCat = !activeCategory || normalizeCategory(mp.category).toLowerCase() === activeCategory.toLowerCase();
-          const matchesSub = !activeSub || (mp.subcategory || '').toLowerCase() === activeSub;
-          const matchesSearch = !urlSearch || mp.name.toLowerCase().includes(urlSearch.toLowerCase());
-          return matchesCat && matchesSub && matchesSearch;
-        });
-        const combined = [...filteredLocals, ...filteredMocks];
+        const combined = [...filteredLocals];
 
         if (sort === 'price_asc') combined.sort((a,b) => (a.price||0)-(b.price||0));
         else if (sort === 'price_desc') combined.sort((a,b) => (b.price||0)-(a.price||0));
@@ -187,6 +163,7 @@ export default function Collection() {
     params.delete('subcategory');
     params.set('page', '1');
     navigate(`/collection?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const toggleExpand = (catName) => {
@@ -202,6 +179,7 @@ export default function Collection() {
     else params.set('subcategory', subName);
     params.set('page', '1');
     navigate(`/collection?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLabelClick = (labelName) => {
@@ -212,11 +190,13 @@ export default function Collection() {
     navigate(`/collection?${params.toString()}`);
   };
 
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage, scrollToTop = false) => {
     const params = new URLSearchParams(searchParams);
     params.set('page', newPage.toString());
     navigate(`/collection?${params.toString()}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (scrollToTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const toggleFilterSection = (filterName) => {
@@ -443,8 +423,10 @@ export default function Collection() {
                     </button>
                     {expandedFilters.price && (
                     <div className="animate-in fade-in duration-200">
-                      <div className="flex justify-between items-center mb-6">
-                        <span className="text-sm font-bold text-gray-900 tracking-tight">{maxPrice ? `${currencySymbol}${Number(maxPrice).toLocaleString()}` : 'Maximum'}</span>
+                      <div className="flex items-center gap-1 mb-6">
+                        <span className="text-sm font-bold text-gray-900 tracking-tight">{currencySymbol}{priceMin.toLocaleString()}</span>
+                        <span className="text-sm font-bold text-gray-900 tracking-tight">-</span>
+                        <span className="text-sm font-bold text-gray-900 tracking-tight">{maxPrice ? `${currencySymbol}${Number(maxPrice).toLocaleString()}` : `${currencySymbol}${priceMax.toLocaleString()}`}</span>
                       </div>
                       <div className="px-1">
                         <input
@@ -761,9 +743,6 @@ export default function Collection() {
                     <>Displaying <span className="text-gray-900">{total}</span> masterworks</>
                   )}
                 </p>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 italic">
-                  Curated Collection
-                </div>
               </div>
             </div>
 
@@ -798,7 +777,7 @@ export default function Collection() {
             {/* Pagination */}
             {pages > 1 && (
               <div className="flex items-center justify-center gap-4 sm:gap-6 mt-12 sm:mt-20 border-t border-gray-100 pt-8 sm:pt-12">
-                <button onClick={() => handlePageChange(Math.max(1, urlPage - 1))}
+                <button onClick={() => handlePageChange(Math.max(1, urlPage - 1), true)}
                   disabled={urlPage === 1}
                   className="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center border border-gray-200 hover:border-gray-900 text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-all group rounded-lg">
                   <span className="group-hover:-translate-x-1 transition-transform">←</span>
@@ -806,7 +785,7 @@ export default function Collection() {
  
                 <div className="flex gap-2 sm:gap-4 overflow-x-auto px-2 max-w-[200px] sm:max-w-none no-scrollbar">
                   {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
-                    <button key={p} onClick={() => handlePageChange(p)}
+                    <button key={p} onClick={() => handlePageChange(p, true)}
                       className={`w-10 h-10 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center text-[9px] sm:text-[10px] font-bold tracking-widest transition-all rounded-lg
                         ${urlPage === p ? 'bg-black text-white shadow-xl' : 'bg-gray-50 text-gray-400 hover:text-gray-900 border border-gray-100'}`}>
                       {p < 10 ? `0${p}` : p}
@@ -814,7 +793,7 @@ export default function Collection() {
                   ))}
                 </div>
  
-                <button onClick={() => handlePageChange(Math.min(pages, urlPage + 1))}
+                <button onClick={() => handlePageChange(Math.min(pages, urlPage + 1), true)}
                   disabled={urlPage === pages}
                   className="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center border border-gray-200 hover:border-gray-900 text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-all group rounded-lg">
                   <span className="group-hover:translate-x-1 transition-transform">→</span>

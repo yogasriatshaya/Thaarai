@@ -14,10 +14,10 @@ export default function RecentlyViewed() {
     }
   }, []);
 
-  // Auto-hide after 5 seconds
+  // Auto-hide after 15 seconds so users actually have time to see it
   useEffect(() => {
     if (items.length > 0) {
-      const timer = setTimeout(() => setVisible(false), 5000);
+      const timer = setTimeout(() => setVisible(false), 15000);
       return () => clearTimeout(timer);
     }
   }, [items]);
@@ -26,7 +26,7 @@ export default function RecentlyViewed() {
   if (!visible || items.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-2xl pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
         <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-gray-400 shrink-0">Recently Viewed</span>
         <div className="flex gap-4 overflow-x-auto no-scrollbar flex-1">

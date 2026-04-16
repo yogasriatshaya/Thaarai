@@ -13,9 +13,9 @@ const connectDB = async () => {
     // const seedProducts = require('./seedProducts');
     // await seedProducts();
 
-    // Seed default categories (Men, Women, Kids etc.)
-    const seedCategories = require('./seedCategories');
-    await seedCategories();
+    // Seed default categories (Men, Women, Kids etc.) - DISABLED: Categories should be managed manually
+    // const seedCategories = require('./seedCategories');
+    // await seedCategories();
 
   } catch (error) {
     console.error('MongoDB connection error:', error.message);

@@ -147,7 +147,7 @@ const sendEmail = async (to, subject, title, message, orderDetails = '') => {
  * @param {number} currentStock - The stock level that triggered the alert
  * @param {string} reason - Reason for the adjustment (optional)
  */
-const sendStockAlertEmail = async (product, alertType, currentStock, reason = '') => {
+const sendStockAlertEmail = async (product, alertType, currentStock, reason = '', variantInfo = null) => {
     try {
         const settings = await Settings.findOne();
         if (!settings?.notifications?.lowStockAlert) return; // feature disabled
@@ -159,15 +159,23 @@ const sendStockAlertEmail = async (product, alertType, currentStock, reason = ''
         }
 
         const isOutOfStock = alertType === 'out_of_stock';
+        
+        let itemNameTitle = product.name;
+        let variantDetailHtml = '';
+        if (variantInfo) {
+            itemNameTitle = `${product.name} (Variant: ${variantInfo.color} - Size: ${variantInfo.size})`;
+            variantDetailHtml = `<b>Variant:</b> ${variantInfo.color} - Size ${variantInfo.size}<br>`;
+        }
+
         const subject = isOutOfStock
-            ? `⚠️ Out of Stock: ${product.name}`
-            : `🔔 Low Stock Alert: ${product.name}`;
+            ? `⚠️ Out of Stock: ${itemNameTitle}`
+            : `🔔 Low Stock Alert: ${itemNameTitle}`;
 
         const title = isOutOfStock ? 'Product Out of Stock!' : 'Low Stock Warning';
 
         const message = isOutOfStock
-            ? `The following product has gone <b>completely out of stock</b> after a recent order. Please restock it as soon as possible to avoid missing future sales.`
-            : `The following product is running <b>low on stock</b> (${currentStock} unit${currentStock !== 1 ? 's' : ''} remaining). Please consider restocking soon.`;
+            ? `The following item has gone <b>completely out of stock</b> after a recent order. Please restock it as soon as possible to avoid missing future sales.`
+            : `The following item is running <b>low on stock</b> (${currentStock} unit${currentStock !== 1 ? 's' : ''} remaining). Please consider restocking soon.`;
 
         const imageUrl = (product.images && product.images[0])
             ? product.images[0].startsWith('http')
@@ -185,15 +193,16 @@ const sendStockAlertEmail = async (product, alertType, currentStock, reason = ''
 
         const productDetails = `
             <b>Product Name:</b> ${product.name}<br>
+            ${variantDetailHtml}
             <b>Category:</b> ${product.category || '-'}${product.subcategory ? ' › ' + product.subcategory : ''}<br>
             <b>SKU / ID:</b> ${product._id.toString().slice(-10).toUpperCase()}<br>
             <b>Price (INR):</b> ₹${product.price || 0}${product.priceUSD ? ` &nbsp;|&nbsp; <b>Price (USD):</b> $${product.priceUSD}` : ''}<br>
             <b>Current Stock:</b> <span style="color:${stockBadgeColor};font-weight:700;">${currentStock}</span><br>
             ${reason ? `<b>Adjustment Reason:</b> ${reason}<br>` : ''}
             ${product.label ? `<b>Label:</b> ${product.label}<br>` : ''}
-            ${product.fabric ? `<b>Fabric:</b> ${product.fabric}<br>` : ''}
-            ${product.sizes && product.sizes.length ? `<b>Sizes:</b> ${product.sizes.join(', ')}<br>` : ''}
-            ${product.colors && product.colors.length ? `<b>Colors:</b> ${product.colors.join(', ')}<br>` : ''}
+            ${product.fabric && !variantInfo ? `<b>Fabric:</b> ${product.fabric}<br>` : ''}
+            ${product.sizes && product.sizes.length && !variantInfo ? `<b>Sizes:</b> ${product.sizes.join(', ')}<br>` : ''}
+            ${product.colors && product.colors.length && !variantInfo ? `<b>Colors:</b> ${product.colors.join(', ')}<br>` : ''}
         `;
 
         // Build a custom HTML email with the image and stock badge inline

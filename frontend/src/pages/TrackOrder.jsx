@@ -116,6 +116,7 @@ export default function TrackOrder() {
       case 'processing': return { text: `Processing`, icon: '✦' };
       case 'shipped': return { text: `Dispatched`, icon: '🚚' };
       case 'delivered': return { text: `Delivered`, icon: '✓' };
+      case 'returned': return { text: `Returned`, icon: '⤺' };
       case 'cancelled': return { text: `void`, icon: '✕' };
       default: return { text: `Confirmed`, icon: '✧' };
     }
