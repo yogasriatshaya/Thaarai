@@ -246,7 +246,7 @@ export default function Collection() {
   };
 
   return (
-    <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
+    <div className="bg-white min-h-screen text-gray-900">
       {/* Category Banner - Cloud sourced only */}
       {getCategoryBanner() && (
         <div className="relative w-full bg-[#fbfbfb] pt-8 sm:pt-0">
@@ -279,7 +279,7 @@ export default function Collection() {
           {/* Mobile Filter Backdrop */}
           {showMobileFilters && (
              <div 
-               className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] animate-fade-in" 
+               className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] animate-fade-in" 
                onClick={() => setShowMobileFilters(false)}
              />
           )}
@@ -287,12 +287,12 @@ export default function Collection() {
           {/* Sidebar - Desktop Sticky / Mobile Drawer */}
           <aside className={`
             lg:w-64 shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar
-            fixed top-0 bottom-0 left-0 w-[85%] max-w-[340px] z-[100] bg-white transition-transform duration-500 
-            lg:static lg:bg-transparent lg:z-0 lg:translate-x-0 flex flex-col h-[100dvh]
+            fixed top-0 bottom-0 left-0 w-[85%] max-w-[340px] z-[120] bg-white transition-transform duration-500 
+            lg:static lg:bg-transparent lg:z-0 lg:translate-x-0 flex flex-col h-[100dvh] lg:h-auto
             ${showMobileFilters ? 'translate-x-0 shadow-[20px_0_100px_rgba(0,0,0,0.2)]' : '-translate-x-full'}
           `}>
              {/* Mobile Drawer Header */}
-             <div className="lg:hidden flex items-center justify-between px-8 py-7 border-b border-gray-100 bg-white sticky top-0 z-20">
+             <div className="lg:hidden flex items-center justify-between px-8 py-7 border-b border-gray-100 bg-white sticky top-0 z-20 shrink-0">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-[13px] font-bold uppercase tracking-[0.2em] text-black">Filters</h3>
                   <button onClick={clearFilters} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors w-fit">
@@ -304,7 +304,7 @@ export default function Collection() {
                 </button>
              </div>
 
-             <div className="lg:p-0 p-8 space-y-10 flex-1 overflow-y-auto custom-scrollbar bg-white">
+             <div className="lg:p-0 p-8 space-y-10 flex-1 overflow-y-auto custom-scrollbar bg-white pb-20">
                 {/* Category filter */}
                 <div className="lg:bg-gray-50 lg:p-6 lg:pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
                   <div className="relative z-10">
@@ -722,7 +722,7 @@ export default function Collection() {
           {/* ── Product Grid ─────────────────────────────────────────────── */}
           <div className="flex-1 w-full">
             {/* Toolbar */}
-            <div className="sticky top-[65px] sm:static z-30 mb-6 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300">
+            <div className="sticky top-[64px] sm:static z-40 mb-6 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300 shadow-sm sm:shadow-none">
               <div className="flex lg:hidden">
                 <button 
                   onClick={() => setShowMobileFilters(true)}

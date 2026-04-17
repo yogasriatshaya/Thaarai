@@ -5,6 +5,7 @@ import { useShop } from '../context/ShopContext';
 import ProductCard from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
 import springCollectionBg from '../assets/Spring Collection.jpg';
+import heroImg from '../assets/hero-img.jpeg';
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -35,79 +36,78 @@ export default function Home() {
   return (
     <div>
       {/* ======================== LUXURY HERO ======================== */}
-      {heroImgSrc && (
-        <section className="relative h-[90vh] min-h-[600px] md:min-h-[800px] overflow-hidden bg-slate-950 no-reveal">
-          {/* Background Image with Enhanced Overlay */}
-          <div className="absolute inset-0">
-            <img
-              src={heroImgSrc}
-              alt={heroBanner?.title || "Thaarai Luxury"}
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-            {/* Minimal overlay for text readability - Lightened significantly for better visibility */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/10 to-transparent md:from-black/20 md:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-          </div>
+      <section className="relative h-[90vh] min-h-[600px] md:min-h-[800px] overflow-hidden bg-slate-950 no-reveal">
+        {/* Background Image with Enhanced Overlay */}
+        <div className="absolute inset-0">
+          <img
+            src={heroImgSrc || heroImg}
+            alt={heroBanner?.title || "Thaarai Luxury"}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null; // prevent infinite loop
+              e.target.src = heroImg; // force fallback on load error
+            }}
+          />
+          {/* Minimal overlay for text readability - Lightened significantly for better visibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-black/10 md:from-black/40 md:via-black/20 md:to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        </div>
 
-          {/* Main Content Container */}
-          <div className="relative z-10 h-full flex items-start pt-24 md:pt-40">
-            <div className="w-full grid grid-cols-1 gap-12 px-6 md:px-12 lg:px-20 max-w-7xl mx-auto">
+        {/* Main Content Container */}
+        <div className="relative z-10 h-full flex items-start pt-24 md:pt-40">
+          <div className="w-full grid grid-cols-1 gap-12 px-6 md:px-12 lg:px-20 max-w-7xl mx-auto">
 
-              {/* LEFT: Text Content */}
-              <div className="flex flex-col justify-center pt-0 pb-16 md:pb-12 md:pt-0">
-                {/* Top Accent Line */}
-                <div className="mb-8 flex items-center justify-center md:justify-start gap-4">
-                  <div className="w-16 h-1 bg-gradient-to-r from-[#101e42] to-transparent" />
+            {/* LEFT: Text Content */}
+            <div className="flex flex-col justify-center pt-0 pb-16 md:pb-12 md:pt-0">
+              {/* Top Accent Line */}
+              <div className="mb-8 flex items-center justify-center md:justify-start gap-4">
+                <div className="w-16 h-1 bg-gradient-to-r from-[#101e42] to-transparent" />
+              </div>
+
+              {/* Left text alignment container shifted to center on mobile */}
+              <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                {/* Main Heading - Removed 'Luxury Heritage' part as requested */}
+                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 leading-none tracking-tighter drop-shadow-xl uppercase">
+                  {heroBanner?.title ? heroBanner.title.replace(/Luxury Heritage/i, '').trim() : "THAARAI"}
+                </h1>
+
+                {/* Decorative Element */}
+                <div className="mb-8 w-12 h-1 bg-gradient-to-r from-[#101e42] to-transparent mx-auto md:mx-0" />
+
+                {/* Tagline */}
+                <p className="text-[15px] md:text-lg lg:text-xl text-white/90 font-light mb-10 leading-relaxed max-w-lg">
+                  {heroBanner?.subtitle || "Where heritage meets contemporary elegance. Each piece tells a story of artisanal mastery and timeless sophistication."}
+                </p>
+
+                {/* CTA Buttons */}
+                <div className="flex flex-col sm:flex-row items-center md:items-center gap-6 pt-4">
+                  <Link
+                    to={heroBanner?.link || "/collection"}
+                    className="group px-10 py-4 bg-[#101e42] text-white text-[11px] font-semibold uppercase tracking-widest hover:bg-[#1c3c7d] transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 transform hover:scale-105 rounded-sm"
+                  >
+                    {heroBanner?.buttonText || "Explore Collection"}
+                  </Link>
+                  <div className="hidden sm:block w-px h-10 bg-white/20 mx-2" />
+                  <Link
+                    to={heroBanner?.link || "/collection"}
+                    className="group text-white text-[11px] font-light uppercase tracking-widest hover:text-[#1c3c7d] transition-all duration-300 flex items-center gap-2 pb-2 border-b-2 border-white/30 hover:border-white"
+                  >
+                    {heroBanner?.buttonText ? `Discover ${heroBanner.buttonText}` : "Discover Now"}
+                    <span className="group-hover:translate-x-2 transition-transform duration-300">→</span>
+                  </Link>
                 </div>
-
-                {/* Left text alignment container shifted to center on mobile */}
-                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                  {/* Main Heading - Removed 'Luxury Heritage' part as requested */}
-                  <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 leading-none tracking-tighter drop-shadow-xl uppercase">
-                    {heroBanner?.title ? heroBanner.title.replace(/Luxury Heritage/i, '').trim() : "THAARAI"}
-                  </h1>
-
-                  {/* Decorative Element */}
-                  <div className="mb-8 w-12 h-1 bg-gradient-to-r from-[#101e42] to-transparent mx-auto md:mx-0" />
-
-                  {/* Tagline */}
-                  <p className="text-[15px] md:text-lg lg:text-xl text-white/90 font-light mb-10 leading-relaxed max-w-lg">
-                    {heroBanner?.subtitle || "Where heritage meets contemporary elegance. Each piece tells a story of artisanal mastery and timeless sophistication."}
-                  </p>
-
-                  {/* CTA Buttons */}
-                  <div className="flex flex-col sm:flex-row items-center md:items-center gap-6 pt-4">
-                    <Link
-                      to={heroBanner?.link || "/collection"}
-                      className="group px-10 py-4 bg-[#101e42] text-white text-[11px] font-semibold uppercase tracking-widest hover:bg-[#1c3c7d] transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 transform hover:scale-105 rounded-sm"
-                    >
-                      {heroBanner?.buttonText || "Explore Collection"}
-                    </Link>
-                    <div className="hidden sm:block w-px h-10 bg-white/20 mx-2" />
-                    <Link
-                      to={heroBanner?.link || "/collection"}
-                      className="group text-white text-[11px] font-light uppercase tracking-widest hover:text-[#1c3c7d] transition-all duration-300 flex items-center gap-2 pb-2 border-b-2 border-white/30 hover:border-white"
-                    >
-                      {heroBanner?.buttonText ? `Discover ${heroBanner.buttonText}` : "Discover Now"}
-                      <span className="group-hover:translate-x-2 transition-transform duration-300">→</span>
-                    </Link>
-                  </div>
-                </div>
-
-
               </div>
 
 
             </div>
-          </div>
 
-          {/* Bottom accent line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-200 via-slate-400 to-transparent opacity-100" />
-        </section>
-      )}
+
+          </div>
+        </div>
+
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-200 via-slate-400 to-transparent opacity-100" />
+      </section>
 
       {/* ======================== LUXURY INTRO ======================== */}
       <section className="relative py-24 md:py-40 overflow-hidden bg-gradient-to-b from-gray-200 via-gray-100/50 to-gray-200">
