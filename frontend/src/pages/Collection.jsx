@@ -244,12 +244,11 @@ export default function Collection() {
     // No local fallback - cloud banners only
     return null;
   };
-
   return (
     <div className="bg-white min-h-screen text-gray-900">
       {/* Category Banner - Cloud sourced only */}
       {getCategoryBanner() && (
-        <div className="relative w-full bg-[#fbfbfb] pt-8 sm:pt-0">
+        <div className="relative w-full bg-[#fbfbfb] pt-0">
           <img 
             src={getCategoryBanner()} 
             alt={urlCategory || 'All Pieces'}
@@ -258,9 +257,9 @@ export default function Collection() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 pt-4 pb-12">
+      <div className="max-w-7xl mx-auto px-6 pt-2 pb-12">
         {/* Breadcrumb - Minimalist Style */}
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-6">
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>
           <span className="text-gray-200">/</span>
           {urlCategory && !urlSearch ? (
@@ -304,7 +303,7 @@ export default function Collection() {
                 </button>
              </div>
 
-             <div className="lg:p-0 p-8 space-y-10 flex-1 overflow-y-auto custom-scrollbar bg-white pb-20">
+             <div className="lg:p-0 p-6 space-y-8 flex-1 overflow-y-auto custom-scrollbar bg-white pb-20">
                 {/* Category filter */}
                 <div className="lg:bg-gray-50 lg:p-6 lg:pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
                   <div className="relative z-10">
@@ -722,11 +721,11 @@ export default function Collection() {
           {/* ── Product Grid ─────────────────────────────────────────────── */}
           <div className="flex-1 w-full">
             {/* Toolbar */}
-            <div className="sticky top-[64px] sm:static z-40 mb-6 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300 shadow-sm sm:shadow-none">
+            <div className="sticky top-[64px] sm:static z-40 mb-4 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300 shadow-sm sm:shadow-none">
               <div className="flex lg:hidden">
                 <button 
                   onClick={() => setShowMobileFilters(true)}
-                  className="flex-1 py-4 flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-black active:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-black active:bg-gray-50 transition-colors"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16m-7 6h7" /></svg>
                   Filter

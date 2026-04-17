@@ -54,7 +54,7 @@ export default function Home() {
         </div>
 
         {/* Main Content Container */}
-        <div className="relative z-10 h-full flex items-start pt-24 md:pt-40">
+        <div className="relative z-10 h-full flex items-start pt-16 md:pt-40">
           <div className="w-full grid grid-cols-1 gap-12 px-6 md:px-12 lg:px-20 max-w-7xl mx-auto">
 
             {/* LEFT: Text Content */}

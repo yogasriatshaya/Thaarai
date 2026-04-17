@@ -523,7 +523,7 @@ export default function Navbar() {
       </div>
 
       <AuthDrawer isOpen={authDrawerOpen} onClose={() => setAuthDrawerOpen(false)} />
-      <div className={`${scrolled ? 'h-[65px]' : 'h-[90px]'} transition-all duration-300`} />
+      <div className={`${scrolled ? (location.pathname.includes('/collection') ? 'h-[64px] sm:h-[65px]' : 'h-[65px]') : (location.pathname.includes('/collection') ? 'h-[80px] sm:h-[90px]' : 'h-[90px]')} transition-all duration-300`} />
     </>
   );
 }
