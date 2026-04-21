@@ -450,7 +450,7 @@ export default function Checkout() {
                   const isItemUnavailable = (country === 'IN' && item.availableInIndia === false) ||
                                             (country === 'US' && item.availableInUS === false);
                   const cartVariant = item.variants?.find(v => v.color === item.color);
-                  const displayImage = cartVariant?.image ? cartVariant.image : item.images?.[0];
+                  const displayImage = cartVariant?.images?.[0] ? cartVariant.images[0] : item.images?.[0];
                   return (
                   <div key={i} className={`flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0 ${isItemUnavailable ? 'opacity-50' : ''}`}>
                     <div className="w-16 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">

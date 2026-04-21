@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import API from '../api';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../utils/priceUtils';
@@ -322,8 +322,8 @@ export function Orders() {
                           </div>
                         </div>
                       </div>
-                      );
-                    })}
+                    )
+                  })}
                     {order.orderStatus !== 'cancelled' && !order.returnRequested && (
                       <div className="p-4 sm:px-6 w-full border-t border-gray-100 bg-white flex justify-end">
                         <button 
@@ -335,9 +335,9 @@ export function Orders() {
                       </div>
                     )}
                   </div>
-                );
-              })
-          )}
+                )
+              }))
+          }
         </div>
       </div>
 
@@ -573,7 +573,7 @@ export function Orders() {
   );
 }
 
-import { useLocation } from 'react-router-dom';
+
 
 export function OrderSuccess() {
   const { state } = useLocation();

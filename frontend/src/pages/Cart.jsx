@@ -122,7 +122,7 @@ export default function Cart() {
                 const isItemUnavailable = (country === 'IN' && item.availableInIndia === false) ||
                                           (country === 'US' && item.availableInUS === false);
                 const cartVariant = item.variants?.find(v => v.color === item.color);
-                const displayImage = cartVariant?.image ? cartVariant.image : item.images?.[0];
+                const displayImage = cartVariant?.images?.[0] ? cartVariant.images[0] : item.images?.[0];
                 return (
                 <div key={item.key} className={`py-10 flex flex-col md:flex-row gap-10 first:pt-0 ${isItemUnavailable ? 'opacity-30' : ''}`}>
                   {/* Image */}

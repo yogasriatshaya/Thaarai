@@ -23,6 +23,7 @@ const seedAdmin = async () => {
       email: adminEmail,
       password: hashedPassword,
       role: 'admin',
+      isVerified: true,
       wishlist: [],
       cartData: {}
     });

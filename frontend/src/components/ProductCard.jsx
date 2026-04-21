@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -9,6 +9,32 @@ const HeartIcon = ({ filled }) => (
     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.89-8.89 1.06-1.06a5.5 5.5 0 000-7.78z" />
   </svg>
 );
+
+const Countdown = ({ endDate }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (!endDate) return;
+    const update = () => {
+      const now = new Date();
+      const end = new Date(endDate);
+      const diff = end - now;
+      if (diff <= 0) {
+        setTimeLeft('EXPIRED');
+        return;
+      }
+      const h = Math.floor((diff / (1000 * 60 * 60)));
+      const m = Math.floor((diff / (1000 * 60)) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+      setTimeLeft(`${h}H ${m}M ${s}S`);
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [endDate]);
+
+  return <span>{timeLeft}</span>;
+};
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -201,6 +227,28 @@ export default function ProductCard({ product }) {
         >
           <HeartIcon filled={isWishlisted} />
         </button>
+
+        {/* Static Offer Bar */}
+        {isActiveOffer && (() => {
+          const original = getProductPrice(product, country);
+          const offer = getOfferPrice(product, country);
+          const discountPercent = original > 0 ? Math.round(((original - offer) / original) * 100) : 0;
+          
+          return (
+            <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md h-6 flex items-center justify-center z-10 border-t border-gray-100 px-1 shadow-sm">
+              <div className="flex items-center gap-2 text-[8.5px] font-bold tracking-[0.08em] text-charcoal uppercase whitespace-nowrap">
+                <span className="flex items-center gap-0.5">
+                  <span className="text-red-500">★</span> 
+                  {discountPercent}% OFFER 
+                </span>
+                <span className="text-gray-200">|</span>
+                <span className="flex items-center gap-1 text-red-600">
+                  ENDS IN <Countdown endDate={country === 'US' ? product.offerEndTimeUSA : product.offerEndTimeIndia} />
+                </span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <div>
         <p className="text-[10px] tracking-[0.2em] uppercase text-muted font-sans mb-0.5">

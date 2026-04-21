@@ -4,16 +4,31 @@ const Settings = require('../models/Settings');
 const getTransporter = async () => {
     try {
         const settings = await Settings.findOne();
-        if (!settings || !settings.smtpConfig || !settings.smtpConfig.host) {
-            console.warn('SMTP not configured.');
+        let smtp = settings?.smtpConfig;
+
+        // Fallback to process.env if not in DB
+        if (!smtp || !smtp.host) {
+            if (process.env.SMTP_HOST) {
+                smtp = {
+                    host: process.env.SMTP_HOST,
+                    port: process.env.SMTP_PORT || 587,
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                    secure: process.env.SMTP_SECURE === 'true'
+                };
+            }
+        }
+
+        if (!smtp || !smtp.host) {
+            console.warn('SMTP not configured in DB or .env');
             return null;
         }
 
-        const { host, port, user, pass, secure } = settings.smtpConfig;
+        const { host, port, user, pass, secure } = smtp;
         
         let transportConfig;
         
-        if (host && host.includes('gmail.com')) {
+        if (host && (host.includes('gmail.com') || host.includes('smtp.gmail.com'))) {
             // Priority 1: Use the built-in 'gmail' service config which is most robust
             transportConfig = {
                 service: 'gmail',
@@ -111,8 +126,10 @@ const getEmailTemplate = (title, message, orderDetails = '') => {
 const sendEmail = async (to, subject, title, message, orderDetails = '') => {
     try {
         const settings = await Settings.findOne();
-        if (!settings || !settings.smtpConfig || !settings.smtpConfig.host) {
-            console.warn('Email skipped: SMTP not configured in Settings.');
+        const hasSmtp = settings?.smtpConfig?.host || process.env.SMTP_HOST;
+        
+        if (!hasSmtp) {
+            console.warn('Email skipped: SMTP not configured in Settings or .env.');
             return { success: false, message: 'Email service not configured' };
         }
 
@@ -121,8 +138,8 @@ const sendEmail = async (to, subject, title, message, orderDetails = '') => {
             return { success: false, message: 'Failed to create mail transporter' };
         }
 
-        const fromName = settings.siteName || 'Thaarai Designers';
-        const fromEmail = settings.smtpConfig.from || settings.smtpConfig.user;
+        const fromName = settings?.siteName || process.env.SITE_NAME || 'Thaarai Designers';
+        const fromEmail = settings?.smtpConfig?.from || settings?.smtpConfig?.user || process.env.SMTP_USER || 'no-reply@thaarai.com';
 
         const mailOptions = {
             from: `"${fromName}" <${fromEmail}>`,

@@ -343,9 +343,9 @@ export function Register() {
     const newErrors = {};
     if (form.name.length > 25) newErrors.name = "Max 25 characters";
     
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,25}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,25}$/;
     if (!passwordRegex.test(form.password)) {
-      newErrors.password = "Must be 8-25 chars, with Uppercase, Lowercase, Number & Special Char";
+      newErrors.password = "Must be 8-25 chars with Uppercase, Lowercase & Number";
     }
     
     setErrors(newErrors);

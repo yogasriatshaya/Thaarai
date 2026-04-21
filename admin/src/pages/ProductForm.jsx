@@ -356,10 +356,14 @@ export default function ProductForm() {
       }
     }
 
+    // AUTO-SYNC COLORS: Extract color names from variants list
+    const autoColors = Array.from(new Set(form.variants.map(v => v.color).filter(Boolean)));
+    const updatedForm = { ...form, colors: autoColors };
+
     setLoading(true);
     try {
       const data = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
+      Object.entries(updatedForm).forEach(([k, v]) => {
         if (k === 'sizes' || k === 'colors' || k === 'variants') {
            if (k === 'variants') {
               const cleanVariants = v.map(varItem => ({ 

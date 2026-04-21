@@ -56,7 +56,6 @@ export default function ProductDetail() {
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [editComment, setEditComment] = useState('');
   const [editRating, setEditRating] = useState(5);
-  const [confirmModal, setConfirmModal] = useState({ open: false, reviewId: null });
 
   const currentVariant = product?.variants?.find(v => v.color === selectedColor);
   
@@ -91,20 +90,18 @@ export default function ProductDetail() {
     } catch (err) { toast.error(err.response?.data?.message || 'Update failed'); }
   };
 
-  const handleDeleteReview = (reviewId) => {
-    setConfirmModal({ open: true, reviewId });
-  };
-
-  const executeDeleteReview = async () => {
-    const { reviewId } = confirmModal;
-    setConfirmModal({ ...confirmModal, open: false });
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to remove your review? This action cannot be undone.')) return;
     try {
-      const res = await API.delete(`/products/${id}/reviews/${reviewId}`);
+      const res = await API.delete(`/products/${id}/reviews/${String(reviewId)}`);
       if (res.data.success) {
         toast.success('Review deleted!');
         setProduct(res.data.product);
       }
-    } catch (err) { toast.error(err.response?.data?.message || 'Delete failed'); }
+    } catch (err) { 
+      console.error('Delete failed:', err);
+      toast.error(err.response?.data?.message || 'Delete failed'); 
+    }
   };
 
   const handleSubmitReview = async (e) => {
@@ -306,9 +303,9 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-white min-h-screen text-gray-900 animate-fade-in">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 pb-12">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-12">
+        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-8">
           <Link to="/" className="hover:text-gray-900 transition-colors border-b border-transparent hover:border-gray-900">Home</Link>
           <span className="text-gray-200">/</span>
           <Link to="/collection" className="hover:text-gray-900 transition-colors border-b border-transparent hover:border-gray-900">Collection</Link>
@@ -351,51 +348,53 @@ export default function ProductDetail() {
                     ));
                   })()}
                 </div>
-                <div className="flex-1 relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
-                  {(() => {
-                    const variantImgs = [];
-                    if (currentVariant) {
-                       if (currentVariant.images && currentVariant.images.length > 0) {
+                <div className="flex-1 space-y-4">
+                  <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden group border border-gray-100 rounded-xl shadow-2xl">
+                    {(() => {
+                      const variantImgs = [];
+                      if (currentVariant) {
+                        if (currentVariant.images && currentVariant.images.length > 0) {
                           currentVariant.images.forEach(img => variantImgs.push(img));
-                       } else if (currentVariant.image) {
+                        } else if (currentVariant.image) {
                           variantImgs.push(currentVariant.image);
-                       }
-                    }
-                    const displayImages = variantImgs.length > 0 ? variantImgs : (product.images || []);
-                    const mainImg = displayImages[selectedImage] || displayImages[0];
-
-                    return (
-                      <img src={getFullImgUrl(mainImg)} alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                        fetchpriority="high" decoding="async"
-                        onError={e => { 
-                           if (detailFallback && e.target.src !== detailFallback) {
-                              e.target.src = detailFallback;
-                           }
-                        }} />
-                    );
-                  })()}
-                  <button
-                    onClick={() => toggleWishlist(product._id)}
-                    className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-red-500 border-red-500 text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-black'
-                      }`}
-                  >
-                    <HeartIcon filled={isWishlisted(product._id)} />
-                  </button>
-                  <div className="absolute top-6 left-6 flex flex-col gap-3">
-                    {(product.label || isSoldOut) && (() => {
-                      const lowerLabel = (product.label || '').toLowerCase().trim();
-                      if (lowerLabel.includes('-') && lowerLabel.includes('%')) return null;
+                        }
+                      }
+                      const displayImages = variantImgs.length > 0 ? variantImgs : (product.images || []);
+                      const mainImg = displayImages[selectedImage] || displayImages[0];
 
                       return (
-                        <span className={`text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full ${isSoldOut ? 'bg-gray-800' : product.label === 'Hot' ? 'bg-red-500' : 'bg-emerald-500'
-                          }`}>
-                          {isSoldOut ? 'Sold Out' : product.label}
-                        </span>
+                        <img src={getFullImgUrl(mainImg)} alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                          fetchpriority="high" decoding="async"
+                          onError={e => {
+                            if (detailFallback && e.target.src !== detailFallback) {
+                              e.target.src = detailFallback;
+                            }
+                          }} />
                       );
                     })()}
 
+                    <button
+                      onClick={() => toggleWishlist(product._id)}
+                      className={`absolute top-6 right-6 w-12 h-12 backdrop-blur-md border flex items-center justify-center rounded-full shadow-2xl transition-all duration-500 group/fav ${isWishlisted(product._id) ? 'bg-red-500 border-red-500 text-white' : 'bg-white/80 border-gray-100 text-gray-400 hover:text-black'
+                        }`}
+                    >
+                      <HeartIcon filled={isWishlisted(product._id)} />
+                    </button>
 
+                    <div className="absolute top-6 left-6 flex flex-col gap-3">
+                      {(product.label || isSoldOut) && (() => {
+                        const lowerLabel = (product.label || '').toLowerCase().trim();
+                        if (lowerLabel.includes('-') && lowerLabel.includes('%')) return null;
+
+                        return (
+                          <span className={`text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 shadow-xl rounded-full ${isSoldOut ? 'bg-gray-800' : product.label === 'Hot' ? 'bg-red-500' : 'bg-emerald-500'
+                            }`}>
+                            {isSoldOut ? 'Sold Out' : product.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -728,7 +727,9 @@ export default function ProductDetail() {
               ) : (
                 <div className="divide-y divide-gray-100">
                   {product.reviews.map((r, i) => {
-                    const isOwner = user && (r.userId === user._id || r.userId === user.id);
+                    const isOwner = user && (String(r.userId) === String(user._id) || String(r.userId) === String(user.id));
+                    const isAdmin = user && (user.role === 'admin');
+                    const canManage = isOwner || isAdmin;
                     const isEditing = editingReviewId === r._id;
 
                     return (
@@ -763,12 +764,14 @@ export default function ProductDetail() {
                                       Verified Buyer
                                     </span>
                                   )}
-                                  {isOwner && (
-                                    <div className="flex gap-2 ml-2">
+                                  <div className="flex gap-2 ml-2">
+                                    {isOwner && (
                                       <button onClick={() => { setEditingReviewId(r._id); setEditComment(r.comment); setEditRating(r.rating); }} className="text-[10px] text-purple-500 hover:underline">Edit</button>
+                                    )}
+                                    {canManage && (
                                       <button onClick={() => handleDeleteReview(r._id)} className="text-[10px] text-red-500 hover:underline">Delete</button>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-0.5">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : 'Recently'}</p>
                               </div>
@@ -850,13 +853,6 @@ export default function ProductDetail() {
         document.body
       )}
 
-      <ConfirmModal 
-        isOpen={confirmModal.open}
-        title="Delete Review"
-        message="Are you sure you want to remove your review? This action cannot be undone."
-        onConfirm={executeDeleteReview}
-        onCancel={() => setConfirmModal({ ...confirmModal, open: false })}
-      />
     </div>
   );
 }

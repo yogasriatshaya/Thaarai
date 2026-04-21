@@ -52,7 +52,7 @@ export default function Inventory() {
     setLoading(true);
     try {
       const stockFilter = showLowStock ? '&stock_lte=10' : '';
-      const prodRes = await API.get(`/products?limit=${productLimit}&page=${productPage}${search ? `&search=${search}` : ''}${stockFilter}`);
+      const prodRes = await API.get(`/products?limit=${productLimit}&page=${productPage}${search ? `&search=${search}` : ''}${stockFilter}&status=All`);
       
       let logQuery = `limit=${logLimit}&page=${logPage}`;
       if (startDate && endDate) {
@@ -389,8 +389,27 @@ export default function Inventory() {
                                <tr className="border-b border-gray-50 text-[11px] hover:bg-gray-50 transition-colors font-sans">
                                   <td className="px-2 py-3 overflow-hidden cursor-pointer" onClick={() => toggleRow(p._id)}>
                                      <div className="flex items-center gap-2">
-                                        <span className="text-gray-400">{expandedRows[p._id] ? '▼' : '▶'}</span>
-                                        <p className="font-bold text-charcoal truncate" title={p.name}>{p.name}</p>
+                                         <span className="text-gray-400">{expandedRows[p._id] ? '▼' : '▶'}</span>
+                                         <div className="flex flex-col min-w-0">
+                                            <p className="font-bold text-charcoal truncate" title={p.name}>{p.name}</p>
+                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                               {p.colors && p.colors.length > 0 && (
+                                                  <div className="flex gap-1">
+                                                     {p.colors.map(c => (
+                                                        <span key={c} className="bg-gray-100 text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded text-gray-500">{c}</span>
+                                                     ))}
+                                                  </div>
+                                               )}
+                                               {p.colors?.length > 0 && p.sizes?.length > 0 && <span className="text-gray-200">|</span>}
+                                               {p.sizes && p.sizes.length > 0 && (
+                                                  <div className="flex gap-1">
+                                                     {p.sizes.map(s => (
+                                                        <span key={s} className="bg-gold-50 text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded text-gold-600 border border-gold-100">{s}</span>
+                                                     ))}
+                                                  </div>
+                                               )}
+                                            </div>
+                                         </div>
                                      </div>
                                   </td>
                                   <td className="px-2 py-3 text-gray-500 truncate" title={p.subcategory || '—'}>{p.subcategory || '—'}</td>

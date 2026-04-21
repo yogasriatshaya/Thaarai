@@ -1,0 +1,9 @@
+Server running on http://0.0.0.0:5001
+MongoDB Connected: localhost
+✓ Admin user already exists
+Email skipped: SMTP not configured in Settings.
+[DEV] OTP for testuser@example.com: 676950
+Email skipped: SMTP not configured in Settings.
+[DEV] OTP for atshay@gmail.com: 440491
+Email skipped: SMTP not configured in Settings.
+[DEV] OTP for atshaya@gmail.com: 351235

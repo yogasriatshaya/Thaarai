@@ -42,7 +42,7 @@ export default function AdminLogin() {
               <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-white/50 mb-2">Email</label>
               <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                 className="w-full bg-white/10 border border-white/20 text-white px-4 py-2.5 text-sm font-sans focus:outline-none focus:border-gold-500 transition-colors placeholder-white/30"
-                placeholder="admin@cube.com" required />
+                placeholder="admin@thaarai.com" required />
             </div>
             <div>
               <label className="block text-[10px] tracking-[0.2em] uppercase font-sans text-white/50 mb-2">Password</label>
@@ -56,7 +56,7 @@ export default function AdminLogin() {
             </button>
           </form>
           <p className="text-xs text-white/30 font-sans mt-5 text-center">
-            Default: admin@cube.com / Admin@123
+            Default: admin@thaarai.com / admin123
           </p>
         </div>
       </div>

@@ -283,12 +283,58 @@ router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
     updateData.codAllowed = req.body.codAllowed !== 'false' && req.body.codAllowed !== false;
     updateData.returnWindowDays = req.body.returnWindowDays ? Number(req.body.returnWindowDays) : null;
     const existingProduct = await Product.findById(req.params.id);
-    const oldStock = existingProduct ? Number(existingProduct.stock) : 0;
+    if (!existingProduct) return res.status(404).json({ success: false, message: 'Not found' });
+    
+    const oldStock = Number(existingProduct.stock) || 0;
     const newStock = Number(stock) || 0;
+
+    // ── Log Variant-Level Stock Changes ───────────────────────────
+    if (parsedVariants && existingProduct.variants) {
+      for (const newV of parsedVariants) {
+        const oldV = existingProduct.variants.find(ov => ov.color === newV.color);
+        if (newV.inventory && Array.isArray(newV.inventory)) {
+          for (const newInv of newV.inventory) {
+            const oldInv = oldV?.inventory?.find(oi => oi.size === newInv.size);
+            const oldQty = oldInv ? Number(oldInv.stock) : 0;
+            const newQty = Number(newInv.stock) || 0;
+
+            if (newQty !== oldQty) {
+              const diff = newQty - oldQty;
+              await StockLog.create({
+                productId: existingProduct._id,
+                action: diff > 0 ? 'increment' : 'decrement',
+                quantity: Math.abs(diff),
+                previousStock: oldQty,
+                currentStock: newQty,
+                reason: 'Product updated (Variant)',
+                color: newV.color,
+                size: newInv.size
+              });
+            }
+          }
+        } else if (newV.stock !== undefined) {
+           // Fallback for variants without matrix inventory
+           const oldVQty = oldV ? Number(oldV.stock) : 0;
+           const newVQty = Number(newV.stock) || 0;
+           if (newVQty !== oldVQty) {
+             const diff = newVQty - oldVQty;
+             await StockLog.create({
+                productId: existingProduct._id,
+                action: diff > 0 ? 'increment' : 'decrement',
+                quantity: Math.abs(diff),
+                previousStock: oldVQty,
+                currentStock: newVQty,
+                reason: 'Product updated (Variant)',
+                color: newV.color
+             });
+           }
+        }
+      }
+    }
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-    // ── Log stock change in inventory ────────────────────────────────
+    // ── Log total stock change ────────────────────────────────────
     if (product && newStock !== oldStock) {
       const diff = newStock - oldStock;
       await StockLog.create({
@@ -297,7 +343,7 @@ router.put('/:id', adminMiddleware, upload.any(), async (req, res) => {
         quantity: Math.abs(diff),
         previousStock: oldStock,
         currentStock: newStock,
-        reason: 'Product updated'
+        reason: 'Product updated (Total)'
       });
     }
 
@@ -325,6 +371,33 @@ router.post('/:id/reviews', authMiddleware, async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Not found' });
     product.reviews.push({ userId: req.user.id, name: name || req.user.name, rating: Number(rating), comment, createdAt: new Date() });
+    product.reviewCount = product.reviews.length;
+    product.averageRating = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
+    await product.save();
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/:id/reviews/:reviewId', authMiddleware, async (req, res) => {
+  try {
+    const { rating, comment, name } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    
+    const review = product.reviews.id(req.params.reviewId);
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+    
+    const isOwner = review.userId && String(review.userId) === String(req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ success: false, message: 'Unauthorized' });
+    
+    if (rating) review.rating = Number(rating);
+    if (comment) review.comment = comment;
+    if (name) review.name = name;
+    
+    product.reviewCount = product.reviews.length;
     product.averageRating = product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length;
     await product.save();
     res.json({ success: true, product });
@@ -336,12 +409,31 @@ router.post('/:id/reviews', authMiddleware, async (req, res) => {
 router.delete('/:id/reviews/:reviewId', authMiddleware, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: 'Not found' });
-    product.reviews.pull({ _id: req.params.reviewId });
-    product.averageRating = product.reviews.length > 0 ? product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length : 0;
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    
+    // Authorization check
+    const review = product.reviews.id(req.params.reviewId);
+    if (!review) {
+      // If already gone, just return success
+      return res.json({ success: true, product });
+    }
+
+    const isOwner = review.userId && String(review.userId) === String(req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ success: false, message: 'Unauthorized' });
+
+    // Remove the review using Mongoose subdocument remove() or pull
+    product.reviews.pull(req.params.reviewId);
+    
+    product.reviewCount = product.reviews.length;
+    product.averageRating = product.reviews.length > 0 
+      ? product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length 
+      : 0;
+      
     await product.save();
     res.json({ success: true, product });
   } catch (err) {
+    console.error('DELETE REVIEW ERROR:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

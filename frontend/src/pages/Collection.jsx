@@ -23,6 +23,8 @@ export default function Collection() {
   const urlSubcategory = searchParams.get('subcategory') || '';
   const urlLabel = searchParams.get('label') || '';
   const urlSearch = searchParams.get('search') || '';
+  const urlMinPrice = searchParams.get('minPrice') || '';
+  const urlMaxPrice = searchParams.get('maxPrice') || '';
   const urlPage = parseInt(searchParams.get('page')) || 1;
 
   const [expandedCats, setExpandedCats] = useState([]);
@@ -45,7 +47,8 @@ export default function Collection() {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('newest');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [minPrice, setMinPrice] = useState(urlMinPrice);
+  const [maxPrice, setMaxPrice] = useState(urlMaxPrice);
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
@@ -80,7 +83,8 @@ export default function Collection() {
     if (urlSubcategory) params.set('subcategory', urlSubcategory);
     if (urlLabel) params.set('label', urlLabel);
     if (urlSearch) params.set('search', urlSearch);
-    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (urlMinPrice) params.set('minPrice', urlMinPrice);
+    if (urlMaxPrice) params.set('maxPrice', urlMaxPrice);
     params.set('sort', sort);
     params.set('page', urlPage);
     params.set('limit', 100);
@@ -89,63 +93,111 @@ export default function Collection() {
     API.get(`/products?${params.toString()}`)
       .then(r => {
         let realProducts = r.data.products || [];
-        let combined = [...realProducts];
+        
+        // 1. Calculate STRICT available filters based ONLY on the products in this category/search
+        const dynamicColors = new Set();
+        const dynamicSizes = new Set();
+        const dynMaterials = new Set();
+        const dynStyles = new Set();
 
-        const allColors = new Set();
-        const allSizes = new Set();
-        const allMaterials = new Set();
-        const allStyles = new Set();
-        combined.forEach(p => {
-          if (p.colors) p.colors.forEach(c => allColors.add(c));
-          if (p.sizes) p.sizes.forEach(s => allSizes.add(s));
-          if (p.material) allMaterials.add(p.material);
-          if (p.fabric) allMaterials.add(p.fabric);
-          if (p.style) allStyles.add(p.style);
+        realProducts.forEach(p => {
+          if (p.colors) p.colors.forEach(c => dynamicColors.add(c));
+          if (p.sizes) p.sizes.forEach(s => dynamicSizes.add(s));
+          if (p.material) dynMaterials.add(p.material);
+          if (p.fabric) dynMaterials.add(p.fabric);
+          if (p.style) dynStyles.add(p.style);
         });
 
-        setAvailableColors(Array.from(allColors).sort());
-        setAvailableSizes(['XS', 'S', 'M', 'L', 'XL', 'XXL'].filter(s => Array.from(allSizes).includes(s)));
-        setAvailableMaterials(Array.from(allMaterials).sort());
-        setAvailableStyles(Array.from(allStyles).sort());
+        // 2. Filter the items based on USER selections
+        let filtered = realProducts.filter(p => {
+          const matchesColor = selectedColors.length === 0 || p.colors?.some(c => selectedColors.includes(c));
+          const matchesSize = selectedSizes.length === 0 || p.sizes?.some(s => selectedSizes.includes(s));
+          
+          // Cross-check: If they selected a size, we only show colors for that size
+          if (selectedSizes.length > 0) {
+            const hasSize = p.sizes?.some(s => selectedSizes.includes(s));
+            if (!hasSize) return false;
+          }
 
-        if (sort === 'price_asc') combined.sort((a,b) => (a.price||0)-(b.price||0));
-        else if (sort === 'price_desc') combined.sort((a,b) => (b.price||0)-(a.price||0));
-        else if (sort === 'rating') combined.sort((a,b) => (b.rating||Math.random()*5)-(a.rating||Math.random()*5));
-        else if (sort === 'name_asc') combined.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-        else if (sort === 'name_desc') combined.sort((a,b) => (b.name||'').localeCompare(a.name||''));
+          const matchesMaterial = selectedMaterials.length === 0 || selectedMaterials.includes(p.material) || selectedMaterials.includes(p.fabric);
+          const matchesStyle = selectedStyles.length === 0 || selectedStyles.includes(p.style);
+          const matchesRating = !minRating || (p.rating || 4) >= minRating;
+          const matchesStock = !inStockOnly || (p.countInStock > 0 || p.stock > 0);
+          
+          const price = country === 'US' ? (p.priceUSD || 0) : (p.price || 0);
+          const matchesMinPrice = !minPrice || price >= Number(minPrice);
+          const matchesMaxPrice = !maxPrice || price <= Number(maxPrice);
+          
+          return matchesColor && matchesSize && matchesMaterial && matchesStyle && matchesRating && matchesStock && matchesMinPrice && matchesMaxPrice;
+        });
 
-        setProducts(combined);
-        setTotal(r.data.total || combined.length);
-        setPages(r.data.pages || Math.ceil(combined.length / 100));
+        // 3. Update the Sidebar (Hide options that aren't available in current category)
+        setAvailableColors(Array.from(dynamicColors).sort());
+        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
+        setAvailableSizes(sizeOrder.filter(s => dynamicSizes.has(s)));
+        setAvailableMaterials(Array.from(dynMaterials).sort());
+        setAvailableStyles(Array.from(dynStyles).sort());
+
+        // 4. Sort and Set
+        if (sort === 'price_asc') filtered.sort((a,b) => (a.price||0)-(b.price||0));
+        else if (sort === 'price_desc') filtered.sort((a,b) => (b.price||0)-(a.price||0));
+        else if (sort === 'rating') filtered.sort((a,b) => (b.rating||0)-(a.rating||0));
+        else if (sort === 'name_asc') filtered.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        else if (sort === 'name_desc') filtered.sort((a,b) => (b.name||'').localeCompare(a.name||''));
+
+        setProducts(filtered);
+        setTotal(filtered.length);
+        setPages(Math.ceil(filtered.length / 100));
       })
       .catch(() => {
-        const localData = localStorage.getItem('thaarai_local_products');
-        const localProducts = localData ? JSON.parse(localData) : [];
-        const activeCategory = normalizeCategory(urlCategory);
-        const activeSub = (urlSubcategory || '').toLowerCase();
-
-        const filteredLocals = localProducts.filter(lp => {
-          const matchesCat = !activeCategory || normalizeCategory(lp.category).toLowerCase() === activeCategory.toLowerCase();
-          const matchesSub = !activeSub || (lp.subcategory || '').toLowerCase() === activeSub;
-          const matchesSearch = !urlSearch || lp.name.toLowerCase().includes(urlSearch.toLowerCase());
-          return matchesCat && matchesSub && matchesSearch;
-        });
-        const combined = [...filteredLocals];
-
-        if (sort === 'price_asc') combined.sort((a,b) => (a.price||0)-(b.price||0));
-        else if (sort === 'price_desc') combined.sort((a,b) => (b.price||0)-(a.price||0));
-        else if (sort === 'rating') combined.sort((a,b) => (b.rating||Math.random()*5)-(a.rating||Math.random()*5));
-        else if (sort === 'name_asc') combined.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-        else if (sort === 'name_desc') combined.sort((a,b) => (b.name||'').localeCompare(a.name||''));
-
-        setProducts(combined);
-        setTotal(combined.length);
-        setPages(Math.ceil(combined.length / 100));
+        setProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [urlCategory, urlSubcategory, urlLabel, urlSearch, urlPage, maxPrice, sort, selectedColors, selectedSizes, selectedMaterials, selectedStyles, minRating, inStockOnly, country, normalizeCategory]);
+  }, [urlCategory, urlSubcategory, urlLabel, urlSearch, urlMinPrice, urlMaxPrice, urlPage, sort, selectedColors, selectedSizes, selectedMaterials, selectedStyles, minRating, inStockOnly, country, normalizeCategory]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // Reset price filters when switching countries to prevent invalid range errors
+  useEffect(() => {
+    setMinPrice('');
+    setMaxPrice('');
+    const params = new URLSearchParams(searchParams);
+    params.delete('minPrice');
+    params.delete('maxPrice');
+    navigate(`/collection?${params.toString()}`);
+  }, [country]);
+
+  // Debounced price updates to avoid freezing while typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      let changed = false;
+      
+      if (minPrice !== urlMinPrice) {
+        if (minPrice && (country !== 'US' || Number(minPrice) > 0)) {
+          params.set('minPrice', minPrice);
+        } else {
+          params.delete('minPrice');
+        }
+        changed = true;
+      }
+      if (maxPrice !== urlMaxPrice) {
+        if (maxPrice && (country !== 'US' || Number(maxPrice) > 0)) {
+          params.set('maxPrice', maxPrice);
+        } else {
+          params.delete('maxPrice');
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        params.set('page', '1');
+        navigate(`/collection?${params.toString()}`, { replace: true });
+      }
+    }, 800); // Wait 800ms after last keystroke
+
+    return () => clearTimeout(timer);
+  }, [minPrice, maxPrice, urlMinPrice, urlMaxPrice, searchParams, navigate]);
 
   useEffect(() => {
     if (showMobileFilters) document.body.style.overflow = 'hidden';
@@ -196,6 +248,14 @@ export default function Collection() {
     }
   };
 
+  const handlePriceApply = () => {
+    const params = new URLSearchParams(searchParams);
+    if (minPrice) params.set('minPrice', minPrice); else params.delete('minPrice');
+    if (maxPrice) params.set('maxPrice', maxPrice); else params.delete('maxPrice');
+    params.set('page', '1');
+    navigate(`/collection?${params.toString()}`);
+  };
+
   const toggleFilterSection = (filterName) => {
     setExpandedFilters(prev => ({ ...prev, [filterName]: !prev[filterName] }));
   };
@@ -236,28 +296,33 @@ export default function Collection() {
       }
     }
 
-    // 3. Global Banner Fallback from cloud settings only
+    // 3. Global Banner Fallback from cloud settings
     if (settings?.bannerFallback) {
       return `${API.defaults.baseURL.replace('/api', '')}/${settings.bannerFallback.replace(/^\//, '')}`;
     }
 
-    // No local fallback - cloud banners only
-    return null;
+    // 4. Final Luxury Placeholder for Development
+    return "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop";
   };
   return (
     <div className="bg-white min-h-screen text-gray-900">
-      {/* Category Banner - Cloud sourced only */}
-      {getCategoryBanner() && (
-        <div className="relative w-full bg-[#fbfbfb] pt-0">
-          <img 
-            src={getCategoryBanner()} 
-            alt={urlCategory || 'All Pieces'}
-            className="w-full aspect-[21/9] object-cover block transition-all duration-700"
-          />
-        </div>
-      )}
+      {/* Category Banner - Full Width Edge-to-Edge */}
+      {(() => {
+        const bannerUrl = getCategoryBanner();
+        if (!bannerUrl) return null;
+        return (
+          <div className="w-full mb-10 overflow-hidden bg-gray-50 border-b border-gray-100">
+            <img 
+              src={bannerUrl} 
+              alt={urlCategory || 'Collection'}
+              className="w-full h-auto aspect-[21/9] md:aspect-[3/1] object-cover block transition-transform duration-1000"
+              onError={(e) => { e.target.closest('.w-full').style.display = 'none'; }}
+            />
+          </div>
+        );
+      })()}
 
-      <div className="max-w-7xl mx-auto px-6 pt-2 pb-12">
+      <div className="max-w-7xl mx-auto px-6 pb-12">
         {/* Breadcrumb - Minimalist Style */}
         <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>
@@ -418,19 +483,49 @@ export default function Collection() {
                     </button>
                     {expandedFilters.price && (
                     <div className="animate-in fade-in duration-200">
-                      <div className="flex items-center gap-1 mb-6">
-                        <span className="text-sm font-bold text-gray-900 tracking-tight">{currencySymbol}{priceMin.toLocaleString()}</span>
-                        <span className="text-sm font-bold text-gray-900 tracking-tight">-</span>
-                        <span className="text-sm font-bold text-gray-900 tracking-tight">{maxPrice ? `${currencySymbol}${Number(maxPrice).toLocaleString()}` : `${currencySymbol}${priceMax.toLocaleString()}`}</span>
+                      <div className="flex items-center gap-2">
+                        {/* Minimum Price Box */}
+                        <div className="flex-1 relative">
+                          <input 
+                            type="number"
+                            placeholder={`${currencySymbol} Min`}
+                            value={minPrice}
+                            onChange={e => setMinPrice(e.target.value)}
+                            className="w-full px-3 py-2 text-[11px] font-bold tracking-widest text-black border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
+                          />
+                        </div>
+
+                        <span className="text-gray-300 font-light">—</span>
+
+                        {/* Maximum Price Box */}
+                        <div className="flex-1 relative">
+                          <input 
+                            type="number"
+                            placeholder={`${currencySymbol} Max`}
+                            value={maxPrice}
+                            onChange={e => setMaxPrice(e.target.value)}
+                            className="w-full px-3 py-2 text-[11px] font-bold tracking-widest text-black border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
+                          />
+                        </div>
                       </div>
-                      <div className="px-1">
-                        <input
-                          type="range" min={priceMin} max={priceMax} step={priceStep}
-                          value={maxPrice || priceMax}
-                        onChange={e => { setMaxPrice(e.target.value); handlePageChange(1); }}
-                        className="w-full h-1 bg-gray-200 accent-black appearance-none cursor-pointer rounded-full"
-                      />
-                      </div>
+                      
+                      {/* Optional Reset Helper */}
+                      {(minPrice || maxPrice || urlMinPrice || urlMaxPrice) && (
+                        <button 
+                          onClick={() => { 
+                            setMinPrice(''); 
+                            setMaxPrice(''); 
+                            const params = new URLSearchParams(searchParams);
+                            params.delete('minPrice');
+                            params.delete('maxPrice');
+                            params.set('page', '1');
+                            navigate(`/collection?${params.toString()}`);
+                          }}
+                          className="mt-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          Reset Price
+                        </button>
+                      )}
                     </div>
                     )}
                   </div>
@@ -448,23 +543,36 @@ export default function Collection() {
                         </svg>
                       </button>
                       {expandedFilters.color && (
-                      <div className="space-y-2 animate-in fade-in duration-200">
+                      <div className="space-y-4 animate-in fade-in duration-200 mt-4">
                         {availableColors.map(color => (
-                          <label key={color} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={selectedColors.includes(color)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedColors([...selectedColors, color]);
-                                } else {
-                                  setSelectedColors(selectedColors.filter(c => c !== color));
-                                }
-                                handlePageChange(1);
-                              }}
-                              className="w-4 h-4 accent-black cursor-pointer"
-                            />
-                            <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{color}</span>
+                          <label key={color} className="flex items-center gap-4 cursor-pointer group">
+                            <div className="relative flex items-center justify-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedColors.includes(color)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedColors([...selectedColors, color]);
+                                  } else {
+                                    setSelectedColors(selectedColors.filter(c => c !== color));
+                                  }
+                                  handlePageChange(1);
+                                }}
+                                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-400 transition-all checked:bg-black checked:border-black"
+                              />
+                              <svg
+                                className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              >
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
+                            <span className="text-[13px] text-gray-700 tracking-wide font-medium group-hover:text-black transition-colors lowercase">
+                              {color}
+                            </span>
                           </label>
                         ))}
                       </div>

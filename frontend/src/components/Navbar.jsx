@@ -5,6 +5,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
 import CountrySwitcher from './CountrySwitcher';
 import AuthDrawer from './AuthDrawer';
+import LogoutConfirmModal from './LogoutConfirmModal';
 
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -34,6 +35,7 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -488,7 +490,7 @@ export default function Navbar() {
                   <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400 mb-4">Account</p>
                   <div className="space-y-3">
                     {user ? (
-                      <button onClick={() => { logout(); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign Out</button>
+                      <button onClick={() => setShowLogoutModal(true)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign Out</button>
                     ) : (
                       <button onClick={() => { setAuthDrawerOpen(true); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign In</button>
                     )}
@@ -523,6 +525,15 @@ export default function Navbar() {
       </div>
 
       <AuthDrawer isOpen={authDrawerOpen} onClose={() => setAuthDrawerOpen(false)} />
+      <LogoutConfirmModal 
+        isOpen={showLogoutModal} 
+        onConfirm={() => {
+          logout();
+          setShowLogoutModal(false);
+          setMobileOpen(false);
+        }}
+        onCancel={() => setShowLogoutModal(false)}
+      />
       <div className={`${scrolled ? (location.pathname.includes('/collection') ? 'h-[64px] sm:h-[65px]' : 'h-[65px]') : (location.pathname.includes('/collection') ? 'h-[80px] sm:h-[90px]' : 'h-[90px]')} transition-all duration-300`} />
     </>
   );

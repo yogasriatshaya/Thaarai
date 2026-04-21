@@ -25,11 +25,11 @@ router.post('/register', async (req, res) => {
     if (name.length > 25)
       return res.status(400).json({ success: false, message: 'Name must be 25 characters or less' });
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,25}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,25}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Password must be between 8 and 25 characters long and include one uppercase, one lowercase, one number, and one special character' 
+        message: 'Password must be between 8 and 25 characters long and include one uppercase, one lowercase, and one number' 
       });
     }
 
