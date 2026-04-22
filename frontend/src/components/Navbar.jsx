@@ -107,8 +107,8 @@ export default function Navbar() {
           : 'bg-white'
           }`}
       >
-        <div className={`py-2 px-4 text-center bg-black ${location.pathname.includes('/collection') ? 'hidden sm:block' : ''}`}>
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white">
+        <div className={`py-2 px-4 text-center bg-[#FFDAB9] ${location.pathname.includes('/collection') ? 'hidden sm:block' : ''}`}>
+          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-black">
             Fashion Frenzy: Up to 60% off on all styles &nbsp;·&nbsp; Free Shipping Over {currencySymbol}{country === 'US' ? '50' : '500'}
           </p>
         </div>

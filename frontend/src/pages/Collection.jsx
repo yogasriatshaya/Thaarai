@@ -5,6 +5,7 @@ import ProductCard from '../components/ProductCard';
 import { useCurrency } from '../context/CurrencyContext';
 import { ProductSkeleton } from '../components/Skeleton';
 import { useShop } from '../context/ShopContext';
+import { getProductPrice, getOfferPrice, getOfferActive } from '../utils/priceUtils';
 
 const CATEGORY_ORDER = ['Women', 'Men', 'Kids', 'Shoes'];
 
@@ -85,6 +86,7 @@ export default function Collection() {
     if (urlSearch) params.set('search', urlSearch);
     if (urlMinPrice) params.set('minPrice', urlMinPrice);
     if (urlMaxPrice) params.set('maxPrice', urlMaxPrice);
+    if (country) params.set('country', country);
     params.set('sort', sort);
     params.set('page', urlPage);
     params.set('limit', 100);
@@ -124,9 +126,9 @@ export default function Collection() {
           const matchesRating = !minRating || (p.rating || 4) >= minRating;
           const matchesStock = !inStockOnly || (p.countInStock > 0 || p.stock > 0);
           
-          const price = country === 'US' ? (p.priceUSD || 0) : (p.price || 0);
-          const matchesMinPrice = !minPrice || price >= Number(minPrice);
-          const matchesMaxPrice = !maxPrice || price <= Number(maxPrice);
+          const effectivePrice = getOfferActive(p, country) ? getOfferPrice(p, country) : getProductPrice(p, country);
+          const matchesMinPrice = !minPrice || effectivePrice >= Number(minPrice);
+          const matchesMaxPrice = !maxPrice || effectivePrice <= Number(maxPrice);
           
           return matchesColor && matchesSize && matchesMaterial && matchesStyle && matchesRating && matchesStock && matchesMinPrice && matchesMaxPrice;
         });
@@ -483,19 +485,41 @@ export default function Collection() {
                     </button>
                     {expandedFilters.price && (
                     <div className="animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2">
-                        {/* Minimum Price Box */}
+                      {/* Single Handle Slider (Max Price) */}
+                      <div className="relative pt-2 pb-6 px-2">
+                        <div className="relative h-1 w-full bg-gray-100 rounded-full">
+                          <div 
+                            className="absolute h-1 bg-black rounded-full"
+                            style={{
+                              left: '0%',
+                              right: `${100 - (((maxPrice || priceMax) - priceMin) / (priceMax - priceMin) * 100)}%`
+                            }}
+                          />
+                          <input 
+                            type="range"
+                            min={priceMin}
+                            max={priceMax}
+                            step={priceStep}
+                            value={maxPrice || priceMax}
+                            onChange={e => setMaxPrice(Number(e.target.value))}
+                            className="absolute inset-0 w-full h-1 bg-transparent appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-100 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        {/* Minimum Price Box (Read Only if needed, or just let them type) */}
                         <div className="flex-1 relative">
                           <input 
                             type="number"
                             placeholder={`${currencySymbol} Min`}
                             value={minPrice}
                             onChange={e => setMinPrice(e.target.value)}
-                            className="w-full px-3 py-2 text-[11px] font-bold tracking-widest text-black border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
+                            className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all placeholder:text-gray-300"
                           />
                         </div>
 
-                        <span className="text-gray-300 font-light">—</span>
+                        <span className="text-gray-200 font-light">—</span>
 
                         {/* Maximum Price Box */}
                         <div className="flex-1 relative">
@@ -504,7 +528,7 @@ export default function Collection() {
                             placeholder={`${currencySymbol} Max`}
                             value={maxPrice}
                             onChange={e => setMaxPrice(e.target.value)}
-                            className="w-full px-3 py-2 text-[11px] font-bold tracking-widest text-black border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
+                            className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
                           />
                         </div>
                       </div>

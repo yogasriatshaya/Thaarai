@@ -114,8 +114,11 @@ export default function Sidebar({ isOpen, onClose }) {
       `}>
         <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-1">
-              <span className="font-serif text-white text-lg">Thaarai</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-purple-300 rounded flex items-center justify-center shrink-0">
+                 <span className="font-serif text-white text-xl font-bold">T</span>
+              </div>
+              <span className="font-serif text-white text-lg font-medium tracking-tight">Thaarai</span>
             </div>
             <p className="text-[9px] tracking-[0.3em] uppercase text-white/40 font-sans mt-0.5">Admin Panel</p>
           </div>

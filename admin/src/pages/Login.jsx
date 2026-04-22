@@ -30,8 +30,10 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-charcoal flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-3">
-            <img src={logo} alt="Thaarai" className="h-12 w-auto object-contain brightness-0 invert" />
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-purple-300 rounded flex items-center justify-center">
+              <span className="font-serif text-white text-2xl font-bold">T</span>
+            </div>
           </div>
           <p className="text-[9px] tracking-[0.35em] uppercase text-gold-500 font-sans">Admin Portal</p>
         </div>

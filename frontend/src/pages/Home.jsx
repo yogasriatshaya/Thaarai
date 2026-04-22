@@ -380,7 +380,7 @@ export default function Home() {
                 {/* Tharai Logo */}
                 <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center">
                   <img
-                    src="/tharrai-logo.png"
+                    src="/logo.svg"
                     alt="Tharai Logo"
                     className="w-full h-full object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_30px_rgba(217,119,6,0.5)] transition-all duration-500"
                   />

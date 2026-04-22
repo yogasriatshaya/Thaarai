@@ -560,7 +560,7 @@ export default function ProductDetail() {
                   </div>
                 )}
                 {((country === 'US' ? product?.offerActiveUSA : product?.offerActiveIndia) && !offerExpired) && (
-                  <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5">
+                  <div className="flex items-center justify-between bg-[#FFDAB9]/30 border border-[#FFDAB9]/50 rounded-lg px-4 py-2.5">
                     <span className="text-amber-700 text-xs font-semibold">Limited offer ends in</span>
                     <span className="font-mono font-bold text-amber-800 text-sm">
                       {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}

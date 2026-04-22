@@ -235,15 +235,16 @@ export default function ProductCard({ product }) {
           const discountPercent = original > 0 ? Math.round(((original - offer) / original) * 100) : 0;
           
           return (
-            <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md h-6 flex items-center justify-center z-10 border-t border-gray-100 px-1 shadow-sm">
-              <div className="flex items-center gap-2 text-[8.5px] font-bold tracking-[0.08em] text-charcoal uppercase whitespace-nowrap">
+            <div className="absolute bottom-0 left-0 right-0 bg-[#FFDAB9]/95 backdrop-blur-md h-6 flex items-center justify-center z-10 border-t border-gray-100 px-1 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-1 sm:gap-2 text-[7px] min-[400px]:text-[8.5px] font-bold tracking-tight sm:tracking-[0.08em] text-charcoal uppercase whitespace-nowrap">
                 <span className="flex items-center gap-0.5">
                   <span className="text-red-500">★</span> 
                   {discountPercent}% OFFER 
                 </span>
-                <span className="text-gray-200">|</span>
+                <span className="text-gray-300">|</span>
                 <span className="flex items-center gap-1 text-red-600">
-                  ENDS IN <Countdown endDate={country === 'US' ? product.offerEndTimeUSA : product.offerEndTimeIndia} />
+                  <span className="hidden min-[360px]:inline">ENDS IN</span>
+                  <Countdown endDate={country === 'US' ? product.offerEndTimeUSA : product.offerEndTimeIndia} />
                 </span>
               </div>
             </div>

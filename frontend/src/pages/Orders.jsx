@@ -371,6 +371,19 @@ export function Orders() {
                 </span>
                 {invoiceOrder.cancellationReason && <p className="text-xs text-red-600">Reason: {invoiceOrder.cancellationReason}</p>}
               </div>
+
+              {/* Shipping Address */}
+              <div className="bg-gray-50 p-4 rounded-sm border border-gray-100 flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Shipping To:</p>
+                <p className="text-sm font-bold text-black">{invoiceOrder.address?.fullName}</p>
+                <div className="text-xs text-gray-600 space-y-0.5">
+                  <p>{invoiceOrder.address?.addressLine1}</p>
+                  {invoiceOrder.address?.addressLine2 && <p>{invoiceOrder.address?.addressLine2}</p>}
+                  <p>{invoiceOrder.address?.city}, {invoiceOrder.address?.postalCode}</p>
+                  <p>{invoiceOrder.address?.country}</p>
+                  <p className="pt-1 mt-1 border-t border-gray-200/60 font-medium">Phone: {invoiceOrder.address?.phone}</p>
+                </div>
+              </div>
             </div>
 
             {/* Order Items */}

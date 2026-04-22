@@ -793,6 +793,8 @@ router.get('/all', adminMiddleware, async (req, res) => {
       const orConditions = [
         { 'address.fullName': searchRegex },
         { 'address.phone': searchRegex },
+        { 'address.addressLine1': searchRegex },
+        { 'address.addressLine2': searchRegex },
         { guestEmail: searchRegex },
         { guestPhone: searchRegex }
       ];

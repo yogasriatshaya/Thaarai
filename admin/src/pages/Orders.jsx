@@ -415,7 +415,8 @@ export default function Orders() {
                             {order.address ? (
                               <div className="bg-white p-4 border border-gray-100 rounded-lg space-y-2">
                                 <p className="text-xs font-bold text-gray-900">{order.address.fullName}</p>
-                                <p className="text-xs text-gray-600">{order.address.addressLine}</p>
+                                <p className="text-xs text-gray-600">{order.address.addressLine1}</p>
+                                {order.address.addressLine2 && <p className="text-xs text-gray-600">{order.address.addressLine2}</p>}
                                 <p className="text-xs text-gray-600">{order.address.city}, {order.address.postalCode}</p>
                                 <p className="text-xs text-gray-600">{order.address.country}</p>
                                 <div className="pt-2 border-t border-gray-50 mt-2 flex items-center gap-2">
@@ -593,7 +594,8 @@ export default function Orders() {
                            <p className="font-bold text-gray-400 text-[8px] uppercase tracking-widest mb-1.5 border-b pb-0.5">Bill To:</p>
                            <p className="font-bold text-charcoal text-xs">{printOrder.address?.fullName || printOrder.userId?.name || 'Customer'}</p>
                            <div className="text-gray-500 mt-0.5 leading-tight text-[11px]">
-                               <p>{printOrder.address?.addressLine}</p>
+                               <p>{printOrder.address?.addressLine1}</p>
+                               {printOrder.address?.addressLine2 && <p>{printOrder.address?.addressLine2}</p>}
                                <p>{printOrder.address?.city}, {printOrder.address?.postalCode}</p>
                                <p>{printOrder.address?.country}</p>
                            </div>

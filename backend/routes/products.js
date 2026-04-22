@@ -87,10 +87,35 @@ router.get('/', async (req, res) => {
     if (bestseller === 'true') query.bestseller = true;
 
     if (minPrice !== undefined || maxPrice !== undefined) {
-      const priceField = country === 'US' ? 'priceUSD' : 'price';
-      query[priceField] = {};
-      if (minPrice !== undefined) query[priceField].$gte = Number(minPrice);
-      if (maxPrice !== undefined) query[priceField].$lte = Number(maxPrice);
+      const min = minPrice !== undefined && minPrice !== "" ? Number(minPrice) : null;
+      const max = maxPrice !== undefined && maxPrice !== "" ? Number(maxPrice) : null;
+
+      const priceField = country === "US" ? "priceUSD" : "price";
+      const offerActiveField = country === "US" ? "offerActiveUSA" : "offerActiveIndia";
+      const offerPriceField = country === "US" ? "offerPriceUSDUSA" : "offerPriceIndia";
+      const offerEndTimeField = country === "US" ? "offerEndTimeUSA" : "offerEndTimeIndia";
+
+      const priceFilter = {};
+      if (min !== null) priceFilter.$gte = min;
+      if (max !== null) priceFilter.$lte = max;
+
+      if (Object.keys(priceFilter).length > 0) {
+        andClauses.push({
+          $or: [
+            {
+              // Case 1: No active offer OR offer has expired, use regular price
+              $or: [{ [offerActiveField]: { $ne: true } }, { [offerEndTimeField]: { $lte: new Date() } }],
+              [priceField]: priceFilter,
+            },
+            {
+              // Case 2: Active offer, check offer price
+              [offerActiveField]: true,
+              $or: [{ [offerEndTimeField]: { $exists: false } }, { [offerEndTimeField]: null }, { [offerEndTimeField]: { $gt: new Date() } }],
+              [offerPriceField]: priceFilter,
+            },
+          ],
+        });
+      }
     }
 
     if (search) {

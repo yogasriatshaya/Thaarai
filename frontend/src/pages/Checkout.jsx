@@ -25,7 +25,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(country === 'US' ? 'stripe' : 'cod');
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', addressLine: '', city: '', postalCode: '', country: countryName
+    fullName: '', email: '', phone: '', addressLine1: '', addressLine2: '', city: '', postalCode: '', country: countryName
   });
 
   useEffect(() => {
@@ -58,7 +58,8 @@ export default function Checkout() {
         else if (val.length < 10) error = 'Minimum 10 digits required';
         else if (val.length > 12) error = 'Phone cannot exceed 12 digits';
       }
-      if (name === 'addressLine' && val.length > 100) error = 'Address is too long (max 100)';
+      if (name === 'addressLine1' && val.length > 100) error = 'Address Line 1 is too long (max 100)';
+      if (name === 'addressLine2' && val.length > 100) error = 'Address Line 2 is too long (max 100)';
       if (name === 'city' && val.length > 30) error = 'City name is too long (max 30)';
       if (name === 'postalCode') {
         if (!/^\d+$/.test(val)) error = 'Postal code should be numeric';
@@ -352,10 +353,15 @@ export default function Checkout() {
                   <input name="phone" value={form.phone} onChange={handleChange} onBlur={handleBlur} maxLength={12} placeholder="Mobile Number" className={`w-full p-3 bg-gray-50/80 border ${errors.phone && touched.phone ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
                   {errors.phone && touched.phone && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phone}</p>}
                 </div>
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line</label>
-                  <input name="addressLine" value={form.addressLine} onChange={handleChange} onBlur={handleBlur} maxLength={100} placeholder={country === 'US' ? 'Street Address, Apt/Suite' : 'Flat/House No, Street, Landmark'} className={`w-full p-3 bg-gray-50/80 border ${errors.addressLine && touched.addressLine ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
-                  {errors.addressLine && touched.addressLine && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.addressLine}</p>}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line 1</label>
+                  <input name="addressLine1" value={form.addressLine1} onChange={handleChange} onBlur={handleBlur} maxLength={100} placeholder={country === 'US' ? 'Street Address' : 'Flat/House No, Street'} className={`w-full p-3 bg-gray-50/80 border ${errors.addressLine1 && touched.addressLine1 ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} required />
+                  {errors.addressLine1 && touched.addressLine1 && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.addressLine1}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Address Line 2 (Optional)</label>
+                  <input name="addressLine2" value={form.addressLine2} onChange={handleChange} onBlur={handleBlur} maxLength={100} placeholder={country === 'US' ? 'Apt, Suite, Floor, etc.' : 'Landmark, Area, etc.'} className={`w-full p-3 bg-gray-50/80 border ${errors.addressLine2 && touched.addressLine2 ? 'border-red-400' : 'border-gray-100'} rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm`} />
+                  {errors.addressLine2 && touched.addressLine2 && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.addressLine2}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">City</label>
