@@ -317,7 +317,7 @@ export default function Navbar() {
             </Link>
 
             {/* Cart */}
-            <Link to="/cart" className="relative p-2.5 text-gray-900 hover:opacity-60 transition-all hidden sm:block">
+            <Link to="/cart" className="relative hidden sm:block p-2.5 text-gray-900 hover:opacity-60 transition-all">
               <CartIcon />
               {cartCount > 0 && (
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transform translate-x-1 -translate-y-1">

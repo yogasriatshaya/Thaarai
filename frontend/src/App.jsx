@@ -19,6 +19,7 @@ import { AdminLogin, AdminDashboard } from './pages/Admin';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import TrackOrder from './pages/TrackOrder';
+import MobileBottomBar from './components/MobileBottomBar';
 // Navigation components consolidated at top
 import ExitIntentPopup from './components/ExitIntentPopup';
 import RecentlyViewed from './components/RecentlyViewed';
@@ -110,7 +111,7 @@ const AppContent = () => {
         </div>
       )}
       <Navbar />
-      <main className="flex-1 transition-colors duration-500">
+      <main className="flex-1 transition-colors duration-500 pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/collection" element={<Collection />} />
@@ -133,6 +134,7 @@ const AppContent = () => {
           } />
         </Routes>
       </main>
+      <MobileBottomBar />
       {/* Conditionally hide footer on mobile for Collection and Product Detail pages, or entirely for auth */}
       {!hideFooterEntirely && (
         <div className={hideFooterOnMobile ? 'hidden lg:block' : 'block'}>
