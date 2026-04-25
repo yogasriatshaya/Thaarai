@@ -484,7 +484,7 @@ export default function Inventory() {
                       <div className="flex items-center gap-2">
                         <span>Rows:</span>
                         <select value={productLimit} onChange={e => { setProductLimit(Number(e.target.value)); setProductPage(1); }} className="bg-gray-50 border border-gray-100 rounded px-1 py-0.5 outline-none text-charcoal cursor-pointer">
-                           {[10, 25, 50].map(v => <option key={v} value={v}>{v}</option>)}
+                           {[10, 25, 50, 1000].map(v => <option key={v} value={v}>{v === 1000 ? 'All' : v}</option>)}
                         </select>
                       </div>
                       <span>
@@ -547,7 +547,7 @@ export default function Inventory() {
                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         <span>Rows:</span>
                         <select value={logLimit} onChange={e => { setLogLimit(Number(e.target.value)); setLogPage(1); }} className="bg-gray-50 border border-gray-100 rounded px-1 py-0.5 outline-none text-charcoal cursor-pointer">
-                           {[10, 25, 50].map(v => <option key={v} value={v}>{v}</option>)}
+                           {[10, 25, 50, 1000].map(v => <option key={v} value={v}>{v === 1000 ? 'All' : v}</option>)}
                         </select>
                      </div>
                      <span className="text-[10px] text-gray-400 font-bold">

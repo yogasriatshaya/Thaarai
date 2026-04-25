@@ -95,7 +95,7 @@ export default function Collection() {
     API.get(`/products?${params.toString()}`)
       .then(r => {
         let realProducts = r.data.products || [];
-        
+
         // 1. Calculate STRICT available filters based ONLY on the products in this category/search
         const dynamicColors = new Set();
         const dynamicSizes = new Set();
@@ -114,7 +114,7 @@ export default function Collection() {
         let filtered = realProducts.filter(p => {
           const matchesColor = selectedColors.length === 0 || p.colors?.some(c => selectedColors.includes(c));
           const matchesSize = selectedSizes.length === 0 || p.sizes?.some(s => selectedSizes.includes(s));
-          
+
           // Cross-check: If they selected a size, we only show colors for that size
           if (selectedSizes.length > 0) {
             const hasSize = p.sizes?.some(s => selectedSizes.includes(s));
@@ -125,11 +125,11 @@ export default function Collection() {
           const matchesStyle = selectedStyles.length === 0 || selectedStyles.includes(p.style);
           const matchesRating = !minRating || (p.rating || 4) >= minRating;
           const matchesStock = !inStockOnly || (p.countInStock > 0 || p.stock > 0);
-          
+
           const effectivePrice = getOfferActive(p, country) ? getOfferPrice(p, country) : getProductPrice(p, country);
           const matchesMinPrice = !minPrice || effectivePrice >= Number(minPrice);
           const matchesMaxPrice = !maxPrice || effectivePrice <= Number(maxPrice);
-          
+
           return matchesColor && matchesSize && matchesMaterial && matchesStyle && matchesRating && matchesStock && matchesMinPrice && matchesMaxPrice;
         });
 
@@ -141,11 +141,11 @@ export default function Collection() {
         setAvailableStyles(Array.from(dynStyles).sort());
 
         // 4. Sort and Set
-        if (sort === 'price_asc') filtered.sort((a,b) => (a.price||0)-(b.price||0));
-        else if (sort === 'price_desc') filtered.sort((a,b) => (b.price||0)-(a.price||0));
-        else if (sort === 'rating') filtered.sort((a,b) => (b.rating||0)-(a.rating||0));
-        else if (sort === 'name_asc') filtered.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-        else if (sort === 'name_desc') filtered.sort((a,b) => (b.name||'').localeCompare(a.name||''));
+        if (sort === 'price_asc') filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+        else if (sort === 'price_desc') filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+        else if (sort === 'rating') filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        else if (sort === 'name_asc') filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        else if (sort === 'name_desc') filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
 
         setProducts(filtered);
         setTotal(filtered.length);
@@ -174,7 +174,7 @@ export default function Collection() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams);
       let changed = false;
-      
+
       if (minPrice !== urlMinPrice) {
         if (minPrice && (country !== 'US' || Number(minPrice) > 0)) {
           params.set('minPrice', minPrice);
@@ -219,7 +219,7 @@ export default function Collection() {
 
   const toggleExpand = (catName) => {
     const name = catName.toLowerCase();
-    setExpandedCats(prev => 
+    setExpandedCats(prev =>
       prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
     );
   };
@@ -314,8 +314,8 @@ export default function Collection() {
         if (!bannerUrl) return null;
         return (
           <div className="w-full mb-10 overflow-hidden bg-gray-50 border-b border-gray-100">
-            <img 
-              src={bannerUrl} 
+            <img
+              src={bannerUrl}
               alt={urlCategory || 'Collection'}
               className="w-full h-auto aspect-[21/9] md:aspect-[3/1] object-cover block transition-transform duration-1000"
               onError={(e) => { e.target.closest('.w-full').style.display = 'none'; }}
@@ -341,13 +341,13 @@ export default function Collection() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12 items-start relative">
-          
+
           {/* Mobile Filter Backdrop */}
           {showMobileFilters && (
-             <div 
-               className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] animate-fade-in" 
-               onClick={() => setShowMobileFilters(false)}
-             />
+            <div
+              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] animate-fade-in"
+              onClick={() => setShowMobileFilters(false)}
+            />
           )}
 
           {/* Sidebar - Desktop Sticky / Mobile Drawer */}
@@ -357,505 +357,504 @@ export default function Collection() {
             lg:static lg:bg-transparent lg:z-0 lg:translate-x-0 flex flex-col h-[100dvh] lg:h-auto
             ${showMobileFilters ? 'translate-x-0 shadow-[20px_0_100px_rgba(0,0,0,0.2)]' : '-translate-x-full'}
           `}>
-             {/* Mobile Drawer Header */}
-             <div className="lg:hidden flex items-center justify-between px-8 py-7 border-b border-gray-100 bg-white sticky top-0 z-20 shrink-0">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-[13px] font-bold uppercase tracking-[0.2em] text-black">Filters</h3>
-                  <button onClick={clearFilters} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors w-fit">
-                    Clear All
-                  </button>
-                </div>
-                <button onClick={() => setShowMobileFilters(false)} className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-black hover:bg-gray-100 transition-all">
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            {/* Mobile Drawer Header */}
+            <div className="lg:hidden flex items-center justify-between px-8 py-7 border-b border-gray-100 bg-white sticky top-0 z-20 shrink-0">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-[13px] font-bold uppercase tracking-[0.2em] text-black">Filters</h3>
+                <button onClick={clearFilters} className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors w-fit">
+                  Clear All
                 </button>
-             </div>
+              </div>
+              <button onClick={() => setShowMobileFilters(false)} className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-black hover:bg-gray-100 transition-all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
 
-             <div className="lg:p-0 p-6 space-y-8 flex-1 overflow-y-auto custom-scrollbar bg-white pb-20">
-                {/* Category filter */}
-                <div className="lg:bg-gray-50 lg:p-6 lg:pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
-                  <div className="relative z-10">
-                    <div className="hidden lg:flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
-                      <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-black flex-shrink-0">Refine by</h3>
-                      {urlCategory || maxPrice || selectedColors.length > 0 || selectedSizes.length > 0 ? (
-                          <button onClick={clearFilters}
-                            className="text-[9px] font-bold uppercase tracking-widest text-black hover:text-gray-400 transition-colors flex-shrink-0">
-                            Reset
-                          </button>
-                      ) : null}
-                    </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('category')}
-                      className="flex items-center justify-between w-full mb-6 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Category</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.category ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.category && (
-                    <ul className="space-y-1 animate-in fade-in duration-200">
-                      {/* "All" option */}
-                      <li>
-                        <button
-                          onClick={() => handleCategoryClick('')}
-                            className={`group flex items-center justify-between w-full py-2 px-4 text-[11px] font-bold tracking-widest transition-all rounded-sm
-                            ${!urlCategory ? 'bg-white text-black shadow-sm border border-gray-100' : 'text-black hover:text-gray-400'}`}
-                        >
-                          ALL PIECES
-                          {!urlCategory && <span className="w-1 h-1 rounded-full bg-black" />}
-                        </button>
-                      </li>
-                      {/* Dynamic categories from DB */}
-                      {categories.map(cat => {
-                        const catName = typeof cat.name === 'string' ? cat.name : '';
-                        return (
-                          <li key={catName} className="space-y-1">
-                            <button
-                              onClick={() => { handleCategoryClick(catName); toggleExpand(catName); }}
-                              className={`group flex items-center justify-between w-full py-1.5 px-4 text-[11px] font-bold tracking-widest transition-all rounded-sm
-                              ${urlCategory.toLowerCase() === catName.toLowerCase() ? 'bg-white text-black shadow-sm border border-gray-100' : 'text-black hover:text-gray-400'}`}
-                            >
-                              <div className="flex-1 flex items-center gap-2 uppercase text-left">
-                                {urlCategory.toLowerCase() === catName.toLowerCase() && <span className="w-1 h-1 rounded-full bg-black" />}
-                                {catName}
-                              </div>
-                              {cat.subcategories && cat.subcategories.length > 0 && (
-                                <div className="p-1 flex items-center justify-center">
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform duration-300 ${expandedCats.includes(catName.toLowerCase()) ? 'rotate-90' : ''}`}>
-                                    <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                </div>
-                              )}
-                            </button>
-                            
-                            {/* Subcategories (show based on manual expanded state) */}
-                            {expandedCats.includes(catName.toLowerCase()) && cat.subcategories && cat.subcategories.length > 0 && (
-                              <div className="pl-4 py-2 space-y-1 mt-1 border-l-2 border-gray-100 ml-4 animate-slide-down">
-                                {/* ── ALL (top) ── */}
-                                <button
-                                  onClick={() => handleSubcategoryClick('')}
-                                  className={`relative flex items-center gap-2 w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
-                                    ${!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase()
-                                      ? 'text-black font-black'
-                                      : 'text-gray-500 hover:text-black'}`}
-                                >
-                                  {!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase() && (
-                                    <span className="w-1 h-1 rounded-full bg-black shadow-sm" />
-                                  )}
-                                  All {catName}
-                                </button>
-                                {/* ── individual subs ── */}
-                                {cat.subcategories.map(sub => {
-                                  const subName = typeof sub === 'string' ? sub : (sub?.name || '');
-                                  return (
-                                    <button
-                                      key={subName}
-                                      onClick={() => handleSubcategoryClick(subName)}
-                                      className={`relative block w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
-                                          ${urlSubcategory.toLowerCase() === subName.toLowerCase() ? 'text-black font-black' : 'text-gray-500 hover:text-black'}`}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {urlSubcategory.toLowerCase() === subName.toLowerCase() && <span className="w-1 h-1 rounded-full bg-black shadow-sm" />}
-                                          {subName}
-                                        </div>
-                                      </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    )}
+            <div className="lg:p-0 p-6 space-y-8 flex-1 overflow-y-auto custom-scrollbar bg-white pb-20">
+              {/* Category filter */}
+              <div className="lg:bg-gray-50 lg:p-6 lg:pt-4 lg:border lg:border-gray-100 lg:shadow-sm relative overflow-hidden rounded-sm bg-white border-0 shadow-none">
+                <div className="relative z-10">
+                  <div className="hidden lg:flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-black flex-shrink-0">Refine by</h3>
+                    {urlCategory || maxPrice || selectedColors.length > 0 || selectedSizes.length > 0 ? (
+                      <button onClick={clearFilters}
+                        className="text-[9px] font-bold uppercase tracking-widest text-black hover:text-gray-400 transition-colors flex-shrink-0">
+                        Reset
+                      </button>
+                    ) : null}
                   </div>
 
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('price')}
-                      className="flex items-center justify-between w-full mb-6 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Price Range</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.price ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.price && (
-                    <div className="animate-in fade-in duration-200">
-                      {/* Single Handle Slider (Max Price) */}
-                      <div className="relative pt-2 pb-6 px-2">
-                        <div className="relative h-1 w-full bg-gray-100 rounded-full">
-                          <div 
-                            className="absolute h-1 bg-black rounded-full"
-                            style={{
-                              left: '0%',
-                              right: `${100 - (((maxPrice || priceMax) - priceMin) / (priceMax - priceMin) * 100)}%`
-                            }}
-                          />
-                          <input 
-                            type="range"
-                            min={priceMin}
-                            max={priceMax}
-                            step={priceStep}
-                            value={maxPrice || priceMax}
-                            onChange={e => setMaxPrice(Number(e.target.value))}
-                            className="absolute inset-0 w-full h-1 bg-transparent appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-100 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        {/* Minimum Price Box (Read Only if needed, or just let them type) */}
-                        <div className="flex-1 relative">
-                          <input 
-                            type="number"
-                            placeholder={`${currencySymbol} Min`}
-                            value={minPrice}
-                            onChange={e => setMinPrice(e.target.value)}
-                            className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all placeholder:text-gray-300"
-                          />
-                        </div>
-
-                        <span className="text-gray-200 font-light">—</span>
-
-                        {/* Maximum Price Box */}
-                        <div className="flex-1 relative">
-                          <input 
-                            type="number"
-                            placeholder={`${currencySymbol} Max`}
-                            value={maxPrice}
-                            onChange={e => setMaxPrice(e.target.value)}
-                            className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Optional Reset Helper */}
-                      {(minPrice || maxPrice || urlMinPrice || urlMaxPrice) && (
-                        <button 
-                          onClick={() => { 
-                            setMinPrice(''); 
-                            setMaxPrice(''); 
-                            const params = new URLSearchParams(searchParams);
-                            params.delete('minPrice');
-                            params.delete('maxPrice');
-                            params.set('page', '1');
-                            navigate(`/collection?${params.toString()}`);
-                          }}
-                          className="mt-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          Reset Price
-                        </button>
-                      )}
-                    </div>
-                    )}
-                  </div>
-
-                  {/* COLOR FILTER */}
-                  {availableColors.length > 0 && (
+                  <div className="space-y-6">
                     <div>
-                      <button 
-                        onClick={() => toggleFilterSection('color')}
-                        className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                      <button
+                        onClick={() => toggleFilterSection('category')}
+                        className="flex items-center justify-between w-full mb-6 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
                       >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Color</p>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.color ? 'rotate-180' : ''}`}>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Category</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.category ? 'rotate-180' : ''}`}>
                           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      {expandedFilters.color && (
-                      <div className="space-y-4 animate-in fade-in duration-200 mt-4">
-                        {availableColors.map(color => (
-                          <label key={color} className="flex items-center gap-4 cursor-pointer group">
-                            <div className="relative flex items-center justify-center">
+                      {expandedFilters.category && (
+                        <ul className="space-y-1 animate-in fade-in duration-200">
+                          {/* "All" option */}
+                          <li>
+                            <button
+                              onClick={() => handleCategoryClick('')}
+                              className={`group flex items-center justify-between w-full py-2 px-4 text-[11px] font-bold tracking-widest transition-all rounded-sm
+                            ${!urlCategory ? 'bg-white text-black shadow-sm border border-gray-100' : 'text-black hover:text-gray-400'}`}
+                            >
+                              ALL PIECES
+                              {!urlCategory && <span className="w-1 h-1 rounded-full bg-black" />}
+                            </button>
+                          </li>
+                          {/* Dynamic categories from DB */}
+                          {categories.map(cat => {
+                            const catName = typeof cat.name === 'string' ? cat.name : '';
+                            return (
+                              <li key={catName} className="space-y-1">
+                                <button
+                                  onClick={() => { handleCategoryClick(catName); toggleExpand(catName); }}
+                                  className={`group flex items-center justify-between w-full py-1.5 px-4 text-[11px] font-bold tracking-widest transition-all rounded-sm
+                              ${urlCategory.toLowerCase() === catName.toLowerCase() ? 'bg-white text-black shadow-sm border border-gray-100' : 'text-black hover:text-gray-400'}`}
+                                >
+                                  <div className="flex-1 flex items-center gap-2 uppercase text-left">
+                                    {urlCategory.toLowerCase() === catName.toLowerCase() && <span className="w-1 h-1 rounded-full bg-black" />}
+                                    {catName}
+                                  </div>
+                                  {cat.subcategories && cat.subcategories.length > 0 && (
+                                    <div className="p-1 flex items-center justify-center">
+                                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform duration-300 ${expandedCats.includes(catName.toLowerCase()) ? 'rotate-90' : ''}`}>
+                                        <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </button>
+
+                                {/* Subcategories (show based on manual expanded state) */}
+                                {expandedCats.includes(catName.toLowerCase()) && cat.subcategories && cat.subcategories.length > 0 && (
+                                  <div className="pl-4 py-2 space-y-1 mt-1 border-l-2 border-gray-100 ml-4 animate-slide-down">
+                                    {/* ── ALL (top) ── */}
+                                    <button
+                                      onClick={() => handleSubcategoryClick('')}
+                                      className={`relative flex items-center gap-2 w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
+                                    ${!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase()
+                                          ? 'text-black font-black'
+                                          : 'text-gray-500 hover:text-black'}`}
+                                    >
+                                      {!urlSubcategory && urlCategory.toLowerCase() === catName.toLowerCase() && (
+                                        <span className="w-1 h-1 rounded-full bg-black shadow-sm" />
+                                      )}
+                                      All {catName}
+                                    </button>
+                                    {/* ── individual subs ── */}
+                                    {cat.subcategories.map(sub => {
+                                      const subName = typeof sub === 'string' ? sub : (sub?.name || '');
+                                      return (
+                                        <button
+                                          key={subName}
+                                          onClick={() => handleSubcategoryClick(subName)}
+                                          className={`relative block w-full text-left py-1.5 px-3 text-[9px] uppercase tracking-[0.2em] transition-all
+                                          ${urlSubcategory.toLowerCase() === subName.toLowerCase() ? 'text-black font-black' : 'text-gray-500 hover:text-black'}`}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            {urlSubcategory.toLowerCase() === subName.toLowerCase() && <span className="w-1 h-1 rounded-full bg-black shadow-sm" />}
+                                            {subName}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div>
+                      <button
+                        onClick={() => toggleFilterSection('price')}
+                        className="flex items-center justify-between w-full mb-6 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                      >
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Price Range</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.price ? 'rotate-180' : ''}`}>
+                          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {expandedFilters.price && (
+                        <div className="animate-in fade-in duration-200">
+                          {/* Single Handle Slider (Max Price) */}
+                          <div className="relative pt-2 pb-6 px-2">
+                            <div className="relative h-1 w-full bg-gray-100 rounded-full">
+                              <div
+                                className="absolute h-1 bg-black rounded-full"
+                                style={{
+                                  left: '0%',
+                                  right: `${100 - (((maxPrice || priceMax) - priceMin) / (priceMax - priceMin) * 100)}%`
+                                }}
+                              />
                               <input
-                                type="checkbox"
-                                checked={selectedColors.includes(color)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedColors([...selectedColors, color]);
+                                type="range"
+                                min={priceMin}
+                                max={priceMax}
+                                step={priceStep}
+                                value={maxPrice || priceMax}
+                                onChange={e => setMaxPrice(Number(e.target.value))}
+                                className="absolute inset-0 w-full h-1 bg-transparent appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-100 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            {/* Minimum Price Box (Read Only if needed, or just let them type) */}
+                            <div className="flex-1 relative">
+                              <input
+                                type="number"
+                                placeholder={`${currencySymbol} Min`}
+                                value={minPrice}
+                                onChange={e => setMinPrice(e.target.value)}
+                                className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all placeholder:text-gray-300"
+                              />
+                            </div>
+
+                            <span className="text-gray-200 font-light">—</span>
+
+                            {/* Maximum Price Box */}
+                            <div className="flex-1 relative">
+                              <input
+                                type="number"
+                                placeholder={`${currencySymbol} Max`}
+                                value={maxPrice}
+                                onChange={e => setMaxPrice(e.target.value)}
+                                className="w-full px-4 py-3 text-sm font-bold text-gray-700 border border-gray-200 rounded-sm bg-white outline-none focus:border-black transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Optional Reset Helper */}
+                          {(minPrice || maxPrice || urlMinPrice || urlMaxPrice) && (
+                            <button
+                              onClick={() => {
+                                setMinPrice('');
+                                setMaxPrice('');
+                                const params = new URLSearchParams(searchParams);
+                                params.delete('minPrice');
+                                params.delete('maxPrice');
+                                params.set('page', '1');
+                                navigate(`/collection?${params.toString()}`);
+                              }}
+                              className="mt-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              Reset Price
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* COLOR FILTER */}
+                    {availableColors.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => toggleFilterSection('color')}
+                          className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                        >
+                          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Color</p>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.color ? 'rotate-180' : ''}`}>
+                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        {expandedFilters.color && (
+                          <div className="space-y-4 animate-in fade-in duration-200 mt-4">
+                            {availableColors.map(color => (
+                              <label key={color} className="flex items-center gap-4 cursor-pointer group">
+                                <div className="relative flex items-center justify-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedColors.includes(color)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedColors([...selectedColors, color]);
+                                      } else {
+                                        setSelectedColors(selectedColors.filter(c => c !== color));
+                                      }
+                                      handlePageChange(1);
+                                    }}
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-400 transition-all checked:bg-black checked:border-black"
+                                  />
+                                  <svg
+                                    className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  >
+                                    <path d="M20 6L9 17l-5-5" />
+                                  </svg>
+                                </div>
+                                <span className="text-[13px] text-gray-700 tracking-wide font-medium group-hover:text-black transition-colors lowercase">
+                                  {color}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SIZE FILTER */}
+                    {availableSizes.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => toggleFilterSection('size')}
+                          className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                        >
+                          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Size</p>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.size ? 'rotate-180' : ''}`}>
+                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        {expandedFilters.size && (
+                          <div className="flex gap-2 flex-wrap animate-in fade-in duration-200">
+                            {availableSizes.map(size => (
+                              <button
+                                key={size}
+                                onClick={() => {
+                                  if (selectedSizes.includes(size)) {
+                                    setSelectedSizes(selectedSizes.filter(s => s !== size));
                                   } else {
-                                    setSelectedColors(selectedColors.filter(c => c !== color));
+                                    setSelectedSizes([...selectedSizes, size]);
                                   }
                                   handlePageChange(1);
                                 }}
-                                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-400 transition-all checked:bg-black checked:border-black"
-                              />
-                              <svg
-                                className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="4"
+                                className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest border rounded transition-all ${selectedSizes.includes(size)
+                                    ? 'bg-black text-white border-black'
+                                    : 'bg-white text-black border-gray-200 hover:border-black'
+                                  }`}
                               >
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            </div>
-                            <span className="text-[13px] text-gray-700 tracking-wide font-medium group-hover:text-black transition-colors lowercase">
-                              {color}
-                            </span>
-                          </label>
-                        ))}
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      )}
-                    </div>
-                  )}
+                    )}
 
-                  {/* SIZE FILTER */}
-                  {availableSizes.length > 0 && (
+                    {/* MATERIAL FILTER */}
+                    {availableMaterials.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => toggleFilterSection('material')}
+                          className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                        >
+                          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Material</p>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.material ? 'rotate-180' : ''}`}>
+                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        {expandedFilters.material && (
+                          <div className="space-y-2 animate-in fade-in duration-200">
+                            {availableMaterials.map(material => (
+                              <label key={material} className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMaterials.includes(material)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedMaterials([...selectedMaterials, material]);
+                                    } else {
+                                      setSelectedMaterials(selectedMaterials.filter(m => m !== material));
+                                    }
+                                    handlePageChange(1);
+                                  }}
+                                  className="w-4 h-4 accent-black cursor-pointer"
+                                />
+                                <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{material}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* STYLE FILTER */}
+                    {availableStyles.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => toggleFilterSection('style')}
+                          className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                        >
+                          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Style</p>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.style ? 'rotate-180' : ''}`}>
+                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        {expandedFilters.style && (
+                          <div className="space-y-2 animate-in fade-in duration-200">
+                            {availableStyles.map(style => (
+                              <label key={style} className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStyles.includes(style)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedStyles([...selectedStyles, style]);
+                                    } else {
+                                      setSelectedStyles(selectedStyles.filter(st => st !== style));
+                                    }
+                                    handlePageChange(1);
+                                  }}
+                                  className="w-4 h-4 accent-black cursor-pointer"
+                                />
+                                <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{style}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* RATING FILTER */}
                     <div>
-                      <button 
-                        onClick={() => toggleFilterSection('size')}
+                      <button
+                        onClick={() => toggleFilterSection('rating')}
                         className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
                       >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Size</p>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.size ? 'rotate-180' : ''}`}>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Rating</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.rating ? 'rotate-180' : ''}`}>
                           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      {expandedFilters.size && (
-                      <div className="flex gap-2 flex-wrap animate-in fade-in duration-200">
-                        {availableSizes.map(size => (
-                          <button
-                            key={size}
-                            onClick={() => {
-                              if (selectedSizes.includes(size)) {
-                                setSelectedSizes(selectedSizes.filter(s => s !== size));
-                              } else {
-                                setSelectedSizes([...selectedSizes, size]);
-                              }
-                              handlePageChange(1);
-                            }}
-                            className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest border rounded transition-all ${
-                              selectedSizes.includes(size)
-                                ? 'bg-black text-white border-black'
-                                : 'bg-white text-black border-gray-200 hover:border-black'
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
+                      {expandedFilters.rating && (
+                        <div className="space-y-2 animate-in fade-in duration-200">
+                          {[
+                            { value: 0, label: 'All Ratings' },
+                            { value: 4, label: '★★★★ & Up' },
+                            { value: 3, label: '★★★ & Up' },
+                            { value: 2, label: '★★ & Up' }
+                          ].map(option => (
+                            <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="radio"
+                                name="rating"
+                                checked={minRating === option.value}
+                                onChange={() => {
+                                  setMinRating(option.value);
+                                  handlePageChange(1);
+                                }}
+                                className="w-4 h-4 accent-black cursor-pointer"
+                              />
+                              <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{option.label}</span>
+                            </label>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  )}
 
-                  {/* MATERIAL FILTER */}
-                  {availableMaterials.length > 0 && (
+                    {/* IN STOCK FILTER */}
                     <div>
-                      <button 
-                        onClick={() => toggleFilterSection('material')}
+                      <button
+                        onClick={() => toggleFilterSection('stock')}
                         className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
                       >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Material</p>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.material ? 'rotate-180' : ''}`}>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Availability</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.stock ? 'rotate-180' : ''}`}>
                           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      {expandedFilters.material && (
-                      <div className="space-y-2 animate-in fade-in duration-200">
-                        {availableMaterials.map(material => (
-                          <label key={material} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={selectedMaterials.includes(material)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedMaterials([...selectedMaterials, material]);
-                                } else {
-                                  setSelectedMaterials(selectedMaterials.filter(m => m !== material));
-                                }
-                                handlePageChange(1);
-                              }}
-                              className="w-4 h-4 accent-black cursor-pointer"
-                            />
-                            <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{material}</span>
-                          </label>
-                        ))}
-                      </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* STYLE FILTER */}
-                  {availableStyles.length > 0 && (
-                    <div>
-                      <button 
-                        onClick={() => toggleFilterSection('style')}
-                        className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                      >
-                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Style</p>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.style ? 'rotate-180' : ''}`}>
-                          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-                      {expandedFilters.style && (
-                      <div className="space-y-2 animate-in fade-in duration-200">
-                        {availableStyles.map(style => (
-                          <label key={style} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={selectedStyles.includes(style)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedStyles([...selectedStyles, style]);
-                                } else {
-                                  setSelectedStyles(selectedStyles.filter(st => st !== style));
-                                }
-                                handlePageChange(1);
-                              }}
-                              className="w-4 h-4 accent-black cursor-pointer"
-                            />
-                            <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{style}</span>
-                          </label>
-                        ))}
-                      </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* RATING FILTER */}
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('rating')}
-                      className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Rating</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.rating ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.rating && (
-                    <div className="space-y-2 animate-in fade-in duration-200">
-                      {[
-                        { value: 0, label: 'All Ratings' },
-                        { value: 4, label: '★★★★ & Up' },
-                        { value: 3, label: '★★★ & Up' },
-                        { value: 2, label: '★★ & Up' }
-                      ].map(option => (
-                        <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
+                      {expandedFilters.stock && (
+                        <label className="flex items-center gap-3 cursor-pointer group animate-in fade-in duration-200">
                           <input
-                            type="radio"
-                            name="rating"
-                            checked={minRating === option.value}
-                            onChange={() => {
-                              setMinRating(option.value);
+                            type="checkbox"
+                            checked={inStockOnly}
+                            onChange={(e) => {
+                              setInStockOnly(e.target.checked);
                               handlePageChange(1);
                             }}
                             className="w-4 h-4 accent-black cursor-pointer"
                           />
-                          <span className="text-[10px] text-gray-700 group-hover:text-black transition-colors">{option.label}</span>
+                          <span className="text-[10px] font-medium text-gray-700 group-hover:text-black transition-colors">In Stock Only</span>
                         </label>
-                      ))}
+                      )}
                     </div>
-                    )}
-                  </div>
 
-                  {/* IN STOCK FILTER */}
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('stock')}
-                      className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Availability</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.stock ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.stock && (
-                    <label className="flex items-center gap-3 cursor-pointer group animate-in fade-in duration-200">
-                      <input
-                        type="checkbox"
-                        checked={inStockOnly}
-                        onChange={(e) => {
-                          setInStockOnly(e.target.checked);
-                          handlePageChange(1);
-                        }}
-                        className="w-4 h-4 accent-black cursor-pointer"
-                      />
-                      <span className="text-[10px] font-medium text-gray-700 group-hover:text-black transition-colors">In Stock Only</span>
-                    </label>
-                    )}
-                  </div>
-
-                  {/* LABEL FILTER */}
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('label')}
-                      className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Status & Labels</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.label ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.label && (
-                    <div className="space-y-2 animate-in fade-in duration-200">
-                      {[
-                        { id: 'Hot', label: '🔥 Hot Items' },
-                        { id: 'New Arrival', label: '✨ New Arrivals' },
-                        { id: 'Trending', label: '⚡ Trending Now' },
-                        { id: 'Sold Out', label: '✕ Sold Out' }
-                      ].map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => handleLabelClick(item.id)}
-                          className={`flex items-center gap-3 w-full group py-0.5`}
-                        >
-                          <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-all ${urlLabel === item.id ? 'bg-black border-black' : 'border-gray-300 group-hover:border-black'}`}>
-                            {urlLabel === item.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                          </div>
-                          <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${urlLabel === item.id ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>
-                            {item.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <button 
-                      onClick={() => toggleFilterSection('sort')}
-                      className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Sort by Selection</p>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.sort ? 'rotate-180' : ''}`}>
-                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {expandedFilters.sort && (
-                    <div className="px-0 animate-in fade-in duration-200">
-                      <select
-                        value={sort}
-                        onChange={e => { setSort(e.target.value); handlePageChange(1); }}
-                        className="w-full text-[10px] uppercase tracking-widest font-bold text-gray-900 border border-gray-200 px-4 py-3 bg-white outline-none focus:border-black transition-all cursor-pointer rounded-sm"
+                    {/* LABEL FILTER */}
+                    <div>
+                      <button
+                        onClick={() => toggleFilterSection('label')}
+                        className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
                       >
-                        <option value="newest">Recent Items</option>
-                        <option value="price_asc">Price: Low to High</option>
-                        <option value="price_desc">Price: High to Low</option>
-                        <option value="rating">Top Rated</option>
-                        <option value="name_asc">Alphabetical: A to Z</option>
-                        <option value="name_desc">Alphabetical: Z to A</option>
-                      </select>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Status & Labels</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.label ? 'rotate-180' : ''}`}>
+                          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {expandedFilters.label && (
+                        <div className="space-y-2 animate-in fade-in duration-200">
+                          {[
+                            { id: 'Hot', label: '🔥 Hot Items' },
+                            { id: 'New Arrival', label: '✨ New Arrivals' },
+                            { id: 'Trending', label: '⚡ Trending Now' },
+                            { id: 'Sold Out', label: '✕ Sold Out' }
+                          ].map(item => (
+                            <button
+                              key={item.id}
+                              onClick={() => handleLabelClick(item.id)}
+                              className={`flex items-center gap-3 w-full group py-0.5`}
+                            >
+                              <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-all ${urlLabel === item.id ? 'bg-black border-black' : 'border-gray-300 group-hover:border-black'}`}>
+                                {urlLabel === item.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                              </div>
+                              <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${urlLabel === item.id ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>
+                                {item.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    )}
+
+                    <div>
+                      <button
+                        onClick={() => toggleFilterSection('sort')}
+                        className="flex items-center justify-between w-full mb-4 pb-4 border-b border-gray-200 hover:text-gray-600 transition-colors"
+                      >
+                        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Sort by Selection</p>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${expandedFilters.sort ? 'rotate-180' : ''}`}>
+                          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {expandedFilters.sort && (
+                        <div className="px-0 animate-in fade-in duration-200">
+                          <select
+                            value={sort}
+                            onChange={e => { setSort(e.target.value); handlePageChange(1); }}
+                            className="w-full text-[10px] uppercase tracking-widest font-bold text-gray-900 border border-gray-200 px-4 py-3 bg-white outline-none focus:border-black transition-all cursor-pointer rounded-sm"
+                          >
+                            <option value="newest">Recent Items</option>
+                            <option value="price_asc">Price: Low to High</option>
+                            <option value="price_desc">Price: High to Low</option>
+                            <option value="rating">Top Rated</option>
+                            <option value="name_asc">Alphabetical: A to Z</option>
+                            <option value="name_desc">Alphabetical: Z to A</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
 
           {/* ── Product Grid ─────────────────────────────────────────────── */}
           <div className="flex-1 w-full">
             {/* Toolbar */}
             <div className="sticky top-[64px] sm:static z-40 mb-4 bg-white sm:bg-gray-50/50 -mx-6 sm:mx-0 border-y sm:border sm:rounded-xl border-gray-100 transition-all duration-300 shadow-sm sm:shadow-none">
               <div className="flex lg:hidden">
-                <button 
+                <button
                   onClick={() => setShowMobileFilters(true)}
                   className="flex-1 py-3 flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-black active:bg-gray-50 transition-colors"
                 >
@@ -863,7 +862,7 @@ export default function Collection() {
                   Filter
                 </button>
               </div>
-              
+
               <div className="hidden lg:flex items-center justify-between p-6">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">
                   {loading ? 'Sourcing catalog...' : (
@@ -909,7 +908,7 @@ export default function Collection() {
                   className="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center border border-gray-200 hover:border-gray-900 text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-all group rounded-lg">
                   <span className="group-hover:-translate-x-1 transition-transform">←</span>
                 </button>
- 
+
                 <div className="flex gap-2 sm:gap-4 overflow-x-auto px-2 max-w-[200px] sm:max-w-none no-scrollbar">
                   {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
                     <button key={p} onClick={() => handlePageChange(p, true)}
@@ -919,7 +918,7 @@ export default function Collection() {
                     </button>
                   ))}
                 </div>
- 
+
                 <button onClick={() => handlePageChange(Math.min(pages, urlPage + 1), true)}
                   disabled={urlPage === pages}
                   className="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center border border-gray-200 hover:border-gray-900 text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-all group rounded-lg">

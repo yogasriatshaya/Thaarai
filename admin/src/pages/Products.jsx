@@ -282,7 +282,7 @@ export default function Products() {
                         onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
                         className="bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-charcoal hover:border-gold-500 transition-colors cursor-pointer"
                       >
-                        {[10, 25, 50].map(v => <option key={v} value={v}>{v}</option>)}
+                        {[10, 25, 50, 1000].map(v => <option key={v} value={v}>{v === 1000 ? 'All' : v}</option>)}
                       </select>
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-tight text-gray-400">
