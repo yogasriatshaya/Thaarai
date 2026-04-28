@@ -119,29 +119,31 @@ export default function Inventory() {
         Color: 'All',
         Size: 'All',
         'Current Stock': p.stock || 0,
-        'Selled stack': soldStats[p._id] || 0
+        'Selled stack': soldStats[p._id]?.total || 0
       });
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach(v => {
           if (v.inventory && v.inventory.length > 0) {
             v.inventory.forEach(inv => {
+              const vKey = `${p._id}-${v.color}-${inv.size}`;
               productData.push({
                 Product: `   -- ${v.color} - ${inv.size}`,
                 'Sub-Category': '',
                 Color: v.color,
                 Size: inv.size,
                 'Current Stock': inv.stock || 0,
-                'Selled stack': variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || 0
+                'Selled stack': variantSoldStats[vKey]?.total || 0
               });
             });
           } else {
+            const vKey = `${p._id}-${v.color}-`;
             productData.push({
               Product: `   -- ${v.color} (No sizes)`,
               'Sub-Category': '',
               Color: v.color,
               Size: 'N/A',
               'Current Stock': 0,
-              'Selled stack': variantSoldStats[`${p._id}-${v.color}-`] || 0
+              'Selled stack': variantSoldStats[vKey]?.total || 0
             });
           }
         });
@@ -189,25 +191,27 @@ export default function Inventory() {
         p.name, 
         p.subcategory || 'N/A',
         p.stock || 0, 
-        soldStats[p._id] || 0
+        soldStats[p._id]?.total || 0
       ]);
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach(v => {
           if (v.inventory && v.inventory.length > 0) {
             v.inventory.forEach(inv => {
+              const vKey = `${p._id}-${v.color}-${inv.size}`;
               pdfProductData.push([
                 `   -- ${v.color} - ${inv.size}`,
                 '',
                 inv.stock || 0,
-                variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || 0
+                variantSoldStats[vKey]?.total || 0
               ]);
             });
           } else {
+            const vKey = `${p._id}-${v.color}-`;
             pdfProductData.push([
               `   -- ${v.color} (No sizes)`,
               '',
               0,
-              variantSoldStats[`${p._id}-${v.color}-`] || 0
+              variantSoldStats[vKey]?.total || 0
             ]);
           }
         });
@@ -217,7 +221,7 @@ export default function Inventory() {
     // Products Table
     autoTable(doc, {
       startY: 20,
-      head: [['Product', 'Sub-Category', 'Current Stock', 'Selled stack']],
+      head: [['Product', 'Sub-Category', 'Current Stock', 'Sold']],
       body: pdfProductData,
       theme: 'grid',
       headStyles: { fillColor: [139, 127, 192] },
@@ -248,10 +252,166 @@ export default function Inventory() {
     setDownloading(false);
   };
 
-  const [expandedRows, setExpandedRows] = useState({});
+  const downloadSingleProductExcel = async (p) => {
+    setDownloading(true);
+    let logs = [];
+    try {
+        const logRes = await API.get(`/inventory/logs?productId=${p._id}&limit=1000`);
+        logs = logRes.data.logs || [];
+    } catch (err) {
+        toast.error('Failed to fetch product logs');
+    }
 
-  const toggleRow = (id) => {
-     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+    const decrementLogs = logs.filter(l => l.action === 'decrement');
+    const totalSold = decrementLogs.reduce((sum, l) => sum + l.quantity, 0);
+    const allProductSoldDates = [...new Set(decrementLogs.map(l => new Date(l.createdAt).toLocaleDateString()))].join(", ");
+
+    const wb = XLSX.utils.book_new();
+    
+    // 1. Overall Summary Sheet
+    const summaryData = [{
+      Product: p.name,
+      'Sub-Category': p.subcategory || 'N/A',
+      Color: 'All',
+      Size: 'All',
+      'Current Stock': p.stock || 0,
+      'Total Sold': totalSold,
+      'Selling Dates': allProductSoldDates || '—'
+    }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Product Summary");
+
+    // 2. Group variants by Size for separate sheets
+    const sizeDataMap = {}; // { 'M': [...], 'L': [...] }
+
+    if (p.variants && p.variants.length > 0) {
+      p.variants.forEach(v => {
+        if (v.inventory && v.inventory.length > 0) {
+          v.inventory.forEach(inv => {
+            const sizeSheetName = `Size ${inv.size}`;
+            if (!sizeDataMap[sizeSheetName]) sizeDataMap[sizeSheetName] = [];
+            
+            if (sizeDataMap[sizeSheetName].length > 0) {
+              sizeDataMap[sizeSheetName].push({
+                Product: '', Color: '', Size: '', 'Current Stock': '', 'Total Sold': '', 'Selling Dates': ''
+              });
+            }
+            
+            const variantLogs = decrementLogs.filter(l => l.color === v.color && l.size === inv.size);
+            variantLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            const logsByDate = {};
+            const stockByDate = {};
+            
+            variantLogs.forEach(l => {
+              const d = new Date(l.createdAt).toLocaleDateString();
+              logsByDate[d] = (logsByDate[d] || 0) + l.quantity;
+              if (stockByDate[d] === undefined) {
+                 stockByDate[d] = l.currentStock;
+              }
+            });
+            const dates = Object.keys(logsByDate);
+
+            if (dates.length === 0) {
+              sizeDataMap[sizeSheetName].push({
+                Product: p.name,
+                Color: v.color,
+                Size: inv.size,
+                'Current Stock': inv.stock || 0,
+                'Total Sold': 0,
+                'Selling Dates': '—'
+              });
+            } else {
+              dates.forEach((date, i) => {
+                sizeDataMap[sizeSheetName].push({
+                  Product: i === 0 ? p.name : '',
+                  Color: i === 0 ? v.color : '',
+                  Size: i === 0 ? inv.size : '',
+                  'Current Stock': stockByDate[date],
+                  'Total Sold': logsByDate[date],
+                  'Selling Dates': date
+                });
+              });
+            }
+          });
+        } else {
+          const sizeSheetName = `No Size`;
+          if (!sizeDataMap[sizeSheetName]) sizeDataMap[sizeSheetName] = [];
+          
+          if (sizeDataMap[sizeSheetName].length > 0) {
+            sizeDataMap[sizeSheetName].push({
+              Product: '', Color: '', Size: '', 'Current Stock': '', 'Total Sold': '', 'Selling Dates': ''
+            });
+          }
+          
+          const variantLogs = decrementLogs.filter(l => l.color === v.color);
+          variantLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          
+          const logsByDate = {};
+          const stockByDate = {};
+          
+          variantLogs.forEach(l => {
+            const d = new Date(l.createdAt).toLocaleDateString();
+            logsByDate[d] = (logsByDate[d] || 0) + l.quantity;
+            if (stockByDate[d] === undefined) {
+               stockByDate[d] = l.currentStock;
+            }
+          });
+          const dates = Object.keys(logsByDate);
+
+          if (dates.length === 0) {
+            sizeDataMap[sizeSheetName].push({
+              Product: p.name,
+              Color: v.color,
+              Size: 'N/A',
+              'Current Stock': v.stock || 0,
+              'Total Sold': 0,
+              'Selling Dates': '—'
+            });
+          } else {
+            dates.forEach((date, i) => {
+              sizeDataMap[sizeSheetName].push({
+                Product: i === 0 ? p.name : '',
+                Color: i === 0 ? v.color : '',
+                Size: i === 0 ? 'N/A' : '',
+                'Current Stock': stockByDate[date],
+                'Total Sold': logsByDate[date],
+                'Selling Dates': date
+              });
+            });
+          }
+        }
+      });
+    }
+
+    // Append a sheet for each size
+    Object.keys(sizeDataMap).forEach(sheetName => {
+       const ws = XLSX.utils.json_to_sheet(sizeDataMap[sheetName]);
+       // Excel sheet names are limited to 31 characters
+       const safeSheetName = sheetName.substring(0, 31);
+       XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+    });
+
+    const fileName = `${p.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_Inventory.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    setDownloading(false);
+  };
+
+  const [expandedRows, setExpandedRows] = useState({});
+  const [activeVariantTab, setActiveVariantTab] = useState({});
+
+  const toggleRow = (p) => {
+     setExpandedRows(prev => {
+        const nextState = !prev[p._id];
+        // If closing the row, clear its color filter
+        if (!nextState) {
+           setActiveVariantTab(tabs => ({ ...tabs, [p._id]: null }));
+        } else {
+           if (p.colors && p.colors.length > 0) {
+              setActiveVariantTab(tabs => ({ ...tabs, [p._id]: null }));
+           }
+        }
+        return { ...prev, [p._id]: nextState };
+     });
   };
 
   const [confirmModal, setConfirmModal] = useState({ open: false, data: null });
@@ -379,7 +539,7 @@ export default function Inventory() {
                              <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-24">Category</th>
                              <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-16">Stock</th>
                              <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-16">Sold</th>
-                             <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-44">Quick Adjust</th>
+                             <th className="text-left text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-40">Quick Adjust</th>
                              <th className="text-center text-xs tracking-wider uppercase font-sans text-gray-400 px-2 py-2.5 w-20">Action</th>
                           </tr>
                        </thead>
@@ -387,17 +547,38 @@ export default function Inventory() {
                           {products.map(p => (
                              <React.Fragment key={p._id}>
                                <tr className="border-b border-gray-50 text-[11px] hover:bg-gray-50 transition-colors font-sans">
-                                  <td className="px-2 py-3 overflow-hidden cursor-pointer" onClick={() => toggleRow(p._id)}>
+                                  <td className="px-2 py-3 overflow-hidden cursor-pointer select-none" onClick={() => toggleRow(p)}>
                                      <div className="flex items-center gap-2">
                                          <span className="text-gray-400">{expandedRows[p._id] ? '▼' : '▶'}</span>
                                          <div className="flex flex-col min-w-0">
-                                            <p className="font-bold text-charcoal truncate" title={p.name}>{p.name}</p>
+                                            <div className="flex items-center gap-2">
+                                               <p className="font-bold text-charcoal truncate" title={p.name}>{p.name}</p>
+                                               <button onClick={(e) => { e.stopPropagation(); downloadSingleProductExcel(p); }} className="text-gray-400 hover:text-blue-600 transition-colors p-0.5 rounded cursor-pointer shrink-0 disabled:opacity-50" title={`Download ${p.name} Report`} disabled={downloading}>
+                                                  <Download size={14} />
+                                               </button>
+                                            </div>
                                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                                {p.colors && p.colors.length > 0 && (
-                                                  <div className="flex gap-1">
-                                                     {p.colors.map(c => (
-                                                        <span key={c} className="bg-gray-100 text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded text-gray-500">{c}</span>
-                                                     ))}
+                                                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                                     {p.colors.map(c => {
+                                                        const isSelected = activeVariantTab[p._id] === c;
+                                                        return (
+                                                          <button 
+                                                            key={c}
+                                                            onClick={(e) => {
+                                                               e.stopPropagation();
+                                                               if (!expandedRows[p._id]) setExpandedRows(prev => ({ ...prev, [p._id]: true }));
+                                                               setActiveVariantTab(prev => ({ 
+                                                                  ...prev, 
+                                                                  [p._id]: prev[p._id] === c ? null : c 
+                                                               }));
+                                                            }}
+                                                            className={`select-none text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded transition-all focus:outline-none ${isSelected ? 'bg-charcoal text-white ring-1 ring-charcoal' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                                          >
+                                                              {c}
+                                                          </button>
+                                                        );
+                                                     })}
                                                   </div>
                                                )}
                                                {p.colors?.length > 0 && p.sizes?.length > 0 && <span className="text-gray-200">|</span>}
@@ -414,7 +595,7 @@ export default function Inventory() {
                                   </td>
                                   <td className="px-2 py-3 text-gray-500 truncate" title={p.subcategory || '—'}>{p.subcategory || '—'}</td>
                                   <td className="px-2 py-3 text-center"><span className={`${(p.stock || 0) <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{p.stock || 0}</span></td>
-                                  <td className="px-2 py-3 text-center text-gold-600 font-bold">{soldStats[p._id] || 0}</td>
+                                  <td className="px-2 py-3 text-center text-gold-600 font-bold">{soldStats[p._id]?.total || 0}</td>
                                   <td className="px-2 py-3">
                                      <span className="text-gray-400 text-xs italic">Expand to adjust sizes</span>
                                   </td>
@@ -422,7 +603,11 @@ export default function Inventory() {
                                      {/* Empty action column for parent product */}
                                   </td>
                                </tr>
-                               {expandedRows[p._id] && p.variants && p.variants.map((v, i) => (
+                               {expandedRows[p._id] && p.variants && p.variants.filter(v => {
+                                  const hasColors = p.colors && p.colors.length > 0;
+                                  if (!hasColors) return true;
+                                  return activeVariantTab[p._id] && v.color && v.color.toLowerCase() === activeVariantTab[p._id].toLowerCase();
+                               }).map((v, i) => (
                                  (v.inventory && v.inventory.length > 0) ? (
                                    v.inventory.map(inv => {
                                       if (showLowStock && inv.stock > 10) return null; // Hide healthy sizes if filtering
@@ -435,7 +620,7 @@ export default function Inventory() {
                                            </td>
                                            <td className="px-2 py-2 text-gray-500">—</td>
                                            <td className="px-2 py-2 text-center"><span className={`${inv.stock <= 5 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{inv.stock}</span></td>
-                                           <td className="px-2 py-2 text-center text-gold-600 font-bold">{variantSoldStats[`${p._id}-${v.color}-${inv.size}`] || '—'}</td>
+                                           <td className="px-2 py-2 text-center text-gold-600 font-bold">{variantSoldStats[`${p._id}-${v.color}-${inv.size}`]?.total || '—'}</td>
                                            <td className="px-2 py-2">
                                               <div className="flex items-center gap-1">
                                                  <input type="number" placeholder="Qty" value={adjustQty[vKey] || ''} onChange={e => setAdjustQty({ ...adjustQty, [vKey]: e.target.value })} className="border border-gray-200 rounded px-1 py-1 w-10 text-center text-[10px] focus:border-gold-500 focus:outline-none font-sans" />

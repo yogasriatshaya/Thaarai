@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getProductPrice } from '../utils/priceUtils';
+import API from '../api';
 import CountrySwitcher from './CountrySwitcher';
 import AuthDrawer from './AuthDrawer';
 import LogoutConfirmModal from './LogoutConfirmModal';
@@ -39,6 +40,14 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [activeCoupons, setActiveCoupons] = useState([]);
+
+  useEffect(() => {
+    API.get('/coupons/active').then(res => {
+      if (res.data?.success) setActiveCoupons(res.data.coupons);
+    }).catch(() => {});
+  }, []);
+
   const [visible, setVisible] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -109,7 +118,16 @@ export default function Navbar() {
       >
         <div className={`py-2 px-4 text-center bg-[#FFDAB9] ${location.pathname.includes('/collection') ? 'hidden sm:block' : ''}`}>
           <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-black">
-            Fashion Frenzy: Up to 60% off on all styles &nbsp;·&nbsp; Free Shipping Over {currencySymbol}{country === 'US' ? '50' : '500'}
+            {activeCoupons.length > 0 ? (
+               <span>
+                 HOT OFFER: USE CODE <span className="underline font-black px-1">{activeCoupons[0].code}</span> 
+                 {activeCoupons[0].title ? ` - ${activeCoupons[0].title}` : ` FOR ${activeCoupons[0].discountType === 'percentage' ? activeCoupons[0].discountValue + '%' : currencySymbol + (country === 'US' ? (activeCoupons[0].discountValueUSD || activeCoupons[0].discountValue) : activeCoupons[0].discountValue)} OFF`}
+                 &nbsp;·&nbsp;
+                 FREE SHIPPING OVER {currencySymbol}{country === 'US' ? '50' : '500'}
+               </span>
+            ) : (
+               `Fashion Frenzy: Up to 60% off on all styles · Free Shipping Over ${currencySymbol}${country === 'US' ? '50' : '500'}`
+            )}
           </p>
         </div>
 
@@ -301,8 +319,8 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Country Switcher */}
-            <div className="hidden sm:block">
+            {/* Country Switcher (Visible on both mobile and desktop) */}
+            <div className="flex items-center">
               <CountrySwitcher />
             </div>
 
@@ -343,7 +361,7 @@ export default function Navbar() {
         <div className={`absolute top-0 left-0 w-full sm:w-[450px] h-[100dvh] bg-white shadow-2xl flex flex-col transform transition-transform duration-500 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           {/* Drawer Header */}
           <div className="p-8 pb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold tracking-widest text-black">SHOP</h2>
+            <img src="/tharrai-logo.png" alt="Thaarai" className="h-8 w-auto object-contain" />
             <button
               onClick={() => setMobileOpen(false)}
               className="p-1 hover:opacity-50 transition-all border border-transparent"
@@ -352,6 +370,12 @@ export default function Navbar() {
                 <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
+          </div>
+
+          {/* Mobile Country/Currency Picker */}
+          <div className="px-8 py-2 border-b border-gray-50 flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Regional Settings</span>
+            <CountrySwitcher />
           </div>
 
           <div className="flex-1 overflow-y-auto px-10 py-6 custom-scrollbar pb-20">
@@ -529,6 +553,7 @@ export default function Navbar() {
         isOpen={showLogoutModal} 
         onConfirm={() => {
           logout();
+          navigate('/');
           setShowLogoutModal(false);
           setMobileOpen(false);
         }}

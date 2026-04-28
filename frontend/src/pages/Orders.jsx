@@ -6,7 +6,7 @@ import { formatPrice } from '../utils/priceUtils';
 import ConfirmModal from '../components/ConfirmModal';
 import { useShop } from '../context/ShopContext';
 export function Orders() {
-  const { getFullImgUrl, settings } = useShop();
+  const { getFullImgUrl, settings, products } = useShop();
   const orderFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -245,12 +245,30 @@ export function Orders() {
                       return (
                         <div key={index} className="flex flex-col sm:flex-row gap-6 p-4 sm:p-6 border-b border-gray-100 last:border-0 relative hover:bg-gray-50/50 transition-colors">
                           {/* Image */}
-                          <div className="w-20 h-28 sm:w-20 sm:h-28 shrink-0 overflow-hidden relative group">
+                          <div className="w-20 h-28 sm:w-20 sm:h-28 shrink-0 overflow-hidden relative group bg-white border border-gray-100 rounded-sm">
                             <img 
-                              src={getFullImgUrl(item.image)} 
+                              src={(() => {
+                                 // Prioritize pulling correct image from live catalog
+                                 const productObj = products?.find(p => String(p._id) === String(item.productId));
+                                 if (productObj) {
+                                    const variant = productObj.variants?.find(v => v.color?.toLowerCase() === item.color?.toLowerCase());
+                                    if (variant?.images?.[0]) return getFullImgUrl(variant.images[0]);
+                                    if (productObj.images?.[0]) return getFullImgUrl(productObj.images[0]);
+                                 }
+                                 // Fallback to saved image or logo
+                                 if (item.image) return getFullImgUrl(item.image);
+                                 return orderFallback || '/tharrai-logo.png';
+                              })()} 
                               alt={item.name} 
                               className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300"
-                              onError={e => { if (orderFallback && e.target.src !== orderFallback) e.target.src = orderFallback; else e.target.style.display = 'none'; }}
+                              onError={e => { 
+                                 const fallbackSrc = orderFallback || '/tharrai-logo.png';
+                                 if (e.target.src !== fallbackSrc && !e.target.src.includes('tharrai-logo.png')) {
+                                    e.target.src = fallbackSrc; 
+                                 } else {
+                                    e.target.style.display = 'none';
+                                 }
+                              }}
                             />
                           </div>
                           

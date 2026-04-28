@@ -45,7 +45,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center mb-6 group">
-              <img src="/logo.svg" alt="Thaarai" className="h-12 w-auto object-contain transition-all duration-500 rounded-sm mix-blend-multiply" />
+              <img src="/tharrai-logo.png" alt="Thaarai" className="h-12 w-auto object-contain transition-all duration-500 rounded-sm mix-blend-multiply" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6 font-light">
               Style, innovation, and individuality. We blend inspiration from culture and creativity with bold ideas and timeless aesthetics.

@@ -512,6 +512,7 @@ export default function AuthDrawer({ isOpen, onClose }) {
         isOpen={showLogoutConfirm} 
         onConfirm={() => {
           logout();
+          navigate('/');
           setShowLogoutConfirm(false);
           onClose();
         }}

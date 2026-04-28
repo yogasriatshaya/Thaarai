@@ -15,6 +15,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import { Login, Register } from './pages/Auth';
 import { Orders, OrderSuccess } from './pages/Orders';
+import Account from './pages/Account';
 import { AdminLogin, AdminDashboard } from './pages/Admin';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -124,6 +125,7 @@ const AppContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/account" element={<Account />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/admin" element={<AdminLogin />} />

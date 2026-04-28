@@ -126,7 +126,7 @@ export function Login() {
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <Link to="/" className="inline-flex items-center gap-4 mb-12 group">
           <div className="w-12 h-12 bg-white shadow-xl flex items-center justify-center rounded-2xl group-hover:rotate-12 transition-transform duration-500">
-            <img src="/thaarai-logo.png" alt="Thaarai" className="h-8 w-auto object-contain" />
+            <img src="/tharrai-logo.png" alt="Thaarai" className="h-8 w-auto object-contain" />
           </div>
           <div>
             <span className="font-serif text-2xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>
@@ -137,8 +137,8 @@ export function Login() {
         {view === 'login' ? (
           <div className="animate-fade-in">
             <div className="mb-10">
-              <h1 className="font-serif text-4xl text-gray-900 font-bold mb-3">Welcome Back</h1>
-              <p className="text-gray-500 text-sm">Please enter your details to sign in</p>
+              <h1 className="font-serif text-4xl text-gray-900 font-bold mb-3 uppercase tracking-wider">Sign In</h1>
+              <p className="text-gray-500 text-sm">Please enter your details to access your account</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -411,7 +411,7 @@ export function Register() {
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <Link to="/" className="inline-flex items-center gap-4 mb-12 group">
            <div className="w-12 h-12 bg-white shadow-xl flex items-center justify-center rounded-2xl group-hover:-rotate-12 transition-transform duration-500 border border-gray-50">
-            <img src="/thaarai-logo.png" alt="Thaarai" className="h-8 w-auto object-contain" />
+            <img src="/tharrai-logo.png" alt="Thaarai" className="h-8 w-auto object-contain" />
           </div>
           <div>
             <span className="font-serif text-2xl font-bold tracking-tight text-gray-900 block leading-none">THAARAI</span>

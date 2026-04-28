@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import API from '../api';
 import ProductCard from '../components/ProductCard';
 import { useShop } from '../context/ShopContext';
@@ -35,6 +35,8 @@ const CartIcon = () => (
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const colorQuery = searchParams.get('color');
   const navigate = useNavigate();
   const { addToCart, getFullImgUrl, isWishlisted, toggleWishlist, user, token, settings } = useShop();
   const { formatPrice, country, currencySymbol } = useCurrency();
@@ -138,7 +140,16 @@ export default function ProductDetail() {
       if (localProduct) {
         setProduct(localProduct);
         if (localProduct.sizes?.length > 0) setSelectedSize(localProduct.sizes[0]);
-        if (localProduct.colors?.length > 0) setSelectedColor(localProduct.colors[0]);
+        
+        if (colorQuery && localProduct.variants?.some(v => v.color === colorQuery)) {
+          setSelectedColor(colorQuery);
+        } else if (colorQuery && localProduct.colors?.includes(colorQuery)) {
+          setSelectedColor(colorQuery);
+        } else if (localProduct.variants?.length > 0) {
+          setSelectedColor(localProduct.variants[0].color);
+        } else if (localProduct.colors?.length > 0) {
+          setSelectedColor(localProduct.colors[0]);
+        }
 
         // Pull related from locals only
         const relatedLocals = localProducts.filter(p => p.category === localProduct.category && p._id !== id);
@@ -153,8 +164,16 @@ export default function ProductDetail() {
       const realProduct = r.data.product;
       setProduct(realProduct);
       if (realProduct.sizes?.length > 0) setSelectedSize(realProduct.sizes[0]);
-      if (realProduct.variants?.length > 0) setSelectedColor(realProduct.variants[0].color);
-      else if (realProduct.colors?.length > 0) setSelectedColor(realProduct.colors[0]);
+      
+      if (colorQuery && realProduct.variants?.some(v => v.color === colorQuery)) {
+        setSelectedColor(colorQuery);
+      } else if (colorQuery && realProduct.colors?.includes(colorQuery)) {
+        setSelectedColor(colorQuery);
+      } else if (realProduct.variants?.length > 0) {
+        setSelectedColor(realProduct.variants[0].color);
+      } else if (realProduct.colors?.length > 0) {
+        setSelectedColor(realProduct.colors[0]);
+      }
       return API.get(`/products?category=${realProduct.category}&limit=6`);
     }).then(r => {
       let realRelated = r.data.products?.filter(p => p._id !== id) || [];

@@ -6,6 +6,7 @@ const ShopContext = createContext();
 
 export const ShopProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(!!localStorage.getItem('token'));
   const [cartData, setCartData] = useState(JSON.parse(localStorage.getItem('thaarai_guest_cart')) || {});
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -84,11 +85,14 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
+      setLoadingUser(true);
       API.get('/users/profile').then(r => {
         setUser(r.data.user);
         if (r.data.user?.wishlist) setWishlist(r.data.user.wishlist);
-      }).catch(() => logout());
+      }).catch(() => logout()).finally(() => setLoadingUser(false));
       API.get('/cart').then(r => setCartData(r.data.cartData || {})).catch(() => { });
+    } else {
+      setLoadingUser(false);
     }
   }, [token]);
 
@@ -146,12 +150,19 @@ export const ShopProvider = ({ children }) => {
     setUser(userData);
   };
 
+  const updateUser = (userData) => {
+    setUser(prev => ({ ...prev, ...userData }));
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setToken('');
     setUser(null);
     setCartData({});
     setWishlist(JSON.parse(localStorage.getItem('wishlist')) || []);
+    
+    // Force a complete browser redirect to home page to clear all memory & session states
+    window.location.href = '/';
   };
 
   const addToCart = async (productId, size, color) => {
@@ -236,7 +247,7 @@ export const ShopProvider = ({ children }) => {
 
   return (
     <ShopContext.Provider value={{
-      user, products, categories, cartData, setCartData,
+      user, loadingUser, updateUser, products, categories, cartData, setCartData,
       addToCart, updateCartQty, removeFromCart, cartCount,
       setProducts, BACKEND_URL, getFullImgUrl, cartTotal,
       wishlist, toggleWishlist, isWishlisted, settings,

@@ -40,13 +40,25 @@ export default function Checkout() {
   const [discount, setDiscount] = useState(0);
   const [couponId, setCouponId] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState([]);
+
+  useEffect(() => {
+    // Fetch active coupons
+    API.get('/coupons/active').then(res => {
+      if (res.data && res.data.success) {
+        setActiveCoupons(res.data.coupons);
+      }
+    }).catch(err => console.error("Failed to load coupons", err));
+  }, []);
 
   const validateField = (name, value) => {
     let error = '';
     const val = value.trim();
     
     if (!val) {
-      error = `${name.replace(/([A-Z])/g, ' $1')} is required`;
+      if (name !== 'addressLine2') {
+        error = `${name.replace(/([A-Z])/g, ' $1')} is required`;
+      }
     } else {
       if (name === 'fullName' && val.length > 40) error = 'Full name cannot exceed 40 characters';
       if (name === 'email') {
@@ -212,9 +224,9 @@ export default function Checkout() {
     const orderItems = cartItems.map(i => {
       let imageUrl = '';
       const cartVariant = i.variants?.find(v => v.color === i.color);
-      const displayImage = cartVariant?.image ? cartVariant.image : i.images?.[0];
+      const displayImage = cartVariant?.images?.[0] ? cartVariant.images[0] : i.images?.[0];
       if (displayImage) {
-        imageUrl = getFullImgUrl(displayImage);
+        imageUrl = displayImage; // Store the raw relative path instead of evaluating full url at checkout time
       }
       // Use offer price if active, otherwise use regular price
       const itemPrice = getOfferActive(i, country) ? getOfferPrice(i, country) : getProductPrice(i, country);
@@ -509,10 +521,41 @@ export default function Checkout() {
               <div className="border-t border-gray-100 pt-4">
                 <div className="flex gap-2">
                   <input type="text" maxLength={15} value={couponCode} onChange={e => setCouponCode(e.target.value.substring(0, 15).toUpperCase())} placeholder="PROMO CODE" className="flex-1 p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-sans font-bold uppercase tracking-wider focus:outline-none focus:border-purple-400 focus:bg-white" />
-                  <button type="button" disabled={couponLoading || discount > 0} onClick={handleApplyCoupon} className="bg-purple-100 text-purple-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50">
+                  <button type="button" disabled={couponLoading || discount > 0 || !couponCode} onClick={handleApplyCoupon} className="bg-purple-100 text-purple-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50">
                     {discount > 0 ? 'Applied' : 'Apply'}
                   </button>
                 </div>
+
+                {/* Active Coupons List */}
+                {activeCoupons.length > 0 && !discount && (
+                  <div className="mt-4 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Available Offers</p>
+                    <div className="flex flex-col gap-2">
+                      {activeCoupons.map(c => {
+                         const discountVal = country === 'US' ? (c.discountValueUSD || c.discountValue) : c.discountValue;
+                         const isPercent = c.discountType === 'percentage';
+                         const titleText = c.title || `${discountVal}${isPercent ? '%' : currencySymbol} OFF`;
+                         
+                         return (
+                          <div key={c._id} 
+                            className="border border-purple-100 border-dashed bg-purple-50/40 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors group"
+                            onClick={() => {
+                               setCouponCode(c.code);
+                            }}>
+                            <div className="flex-1">
+                               <div className="flex flex-wrap items-center gap-2 mb-1">
+                                 <span className="text-[11px] font-bold text-purple-700 bg-white border border-purple-100 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">{c.code}</span>
+                                 <span className="text-xs font-bold text-gray-800">{titleText}</span>
+                               </div>
+                               {c.description && <p className="text-[10px] text-gray-500 leading-tight">{c.description}</p>}
+                            </div>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-purple-400 group-hover:text-purple-600">TAP TO USE</span>
+                          </div>
+                         )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-gray-100 pt-5 space-y-3 text-sm">

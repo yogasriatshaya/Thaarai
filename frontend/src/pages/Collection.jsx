@@ -147,9 +147,32 @@ export default function Collection() {
         else if (sort === 'name_asc') filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         else if (sort === 'name_desc') filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
 
-        setProducts(filtered);
-        setTotal(filtered.length);
-        setPages(Math.ceil(filtered.length / 100));
+        // 5. Split items by colors so each color variant has its own product card
+        let displayItems = [];
+        filtered.forEach(p => {
+          if (selectedColors.length > 0) {
+            const matchedColors = p.colors?.filter(c => selectedColors.includes(c)) || [];
+            if (matchedColors.length > 0) {
+              matchedColors.forEach(color => {
+                displayItems.push({ ...p, gridId: `${p._id}_${color}`, specificDisplayColor: color });
+              });
+            } else {
+              displayItems.push({ ...p, gridId: p._id });
+            }
+          } else {
+            if (p.colors && p.colors.length > 0) {
+              p.colors.forEach(color => {
+                displayItems.push({ ...p, gridId: `${p._id}_${color}`, specificDisplayColor: color });
+              });
+            } else {
+              displayItems.push({ ...p, gridId: p._id });
+            }
+          }
+        });
+
+        setProducts(displayItems);
+        setTotal(displayItems.length);
+        setPages(Math.ceil(displayItems.length / 100));
       })
       .catch(() => {
         setProducts([]);
@@ -630,8 +653,8 @@ export default function Collection() {
                                   handlePageChange(1);
                                 }}
                                 className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest border rounded transition-all ${selectedSizes.includes(size)
-                                    ? 'bg-black text-white border-black'
-                                    : 'bg-white text-black border-gray-200 hover:border-black'
+                                  ? 'bg-black text-white border-black'
+                                  : 'bg-white text-black border-gray-200 hover:border-black'
                                   }`}
                               >
                                 {size}
@@ -896,7 +919,7 @@ export default function Collection() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-10 gap-y-8 sm:gap-y-12">
-                {products.map(p => <ProductCard key={p._id} product={p} />)}
+                {products.map(p => <ProductCard key={p.gridId || p._id} product={p} selectedColors={p.specificDisplayColor ? [p.specificDisplayColor] : selectedColors} />)}
               </div>
             )}
 

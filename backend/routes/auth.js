@@ -92,7 +92,7 @@ router.post('/verify-otp', async (req, res) => {
     res.json({ 
       success: true, 
       token, 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role } 
+      user: { _id: user._id, id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role } 
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -197,7 +197,7 @@ router.post('/login', async (req, res) => {
     await user.save();
     
     const token = generateToken(user);
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({ success: true, token, user: { _id: user._id, id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

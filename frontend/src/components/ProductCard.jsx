@@ -36,7 +36,7 @@ const Countdown = ({ endDate }) => {
   return <span>{timeLeft}</span>;
 };
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, selectedColors = [] }) {
   const navigate = useNavigate();
   const { BACKEND_URL, getFullImgUrl, wishlist, toggleWishlist, settings } = useShop();
   const { formatPrice, country } = useCurrency();
@@ -47,11 +47,33 @@ export default function ProductCard({ product }) {
   const cardFallback = settings?.productFallback ? getFullImgUrl(settings.productFallback) : '';
   
   let extractedImages = [];
-  if (product.variants && product.variants.length > 0 && product.variants[0].images && product.variants[0].images.length > 0) {
-    extractedImages = product.variants[0].images;
-  } else if (product.images && product.images.length > 0) {
-    extractedImages = product.images;
+  let variantMatched = false;
+
+  let matchingVariantColor = null;
+
+  if (selectedColors && selectedColors.length > 0 && product.variants && product.variants.length > 0) {
+    const matchingVariants = product.variants.filter(v => 
+      selectedColors.some(c => v.color && v.color.toLowerCase() === c.toLowerCase()) && v.images && v.images.length > 0
+    );
+    if (matchingVariants && matchingVariants.length > 0) {
+      extractedImages = matchingVariants.map(v => v.images).flat();
+      variantMatched = true;
+      matchingVariantColor = matchingVariants[0].color;
+    }
   }
+
+  if (!variantMatched) {
+    if (product.variants && product.variants.length > 0 && product.variants[0].images && product.variants[0].images.length > 0) {
+      extractedImages = product.variants[0].images;
+    } else if (product.images && product.images.length > 0) {
+      extractedImages = product.images;
+    }
+  }
+
+  // To prevent index out of bounds when variants change dynamically 
+  useEffect(() => {
+    setCurrentImg(0);
+  }, [selectedColors]);
 
   const images = extractedImages.length > 0 ? extractedImages : (cardFallback ? [cardFallback] : []);
 
@@ -68,7 +90,7 @@ export default function ProductCard({ product }) {
   return (
     <div 
       className="product-card group cursor-pointer" 
-      onClick={() => navigate(`/product/${product._id}`)}
+      onClick={() => navigate(`/product/${product._id}${matchingVariantColor ? `?color=${encodeURIComponent(matchingVariantColor)}` : ''}`)}
     >
       <div className="relative product-img-wrap bg-[#f0ece5] mb-1.5 overflow-hidden" style={{ aspectRatio: '3/4' }}>
         {images.length > 0 ? (

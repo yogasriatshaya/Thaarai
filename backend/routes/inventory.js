@@ -62,7 +62,8 @@ router.get('/sold-stats', authMiddleware, adminMiddleware, async (req, res) => {
             { $match: query },
             { $group: { 
                 _id: { productId: '$productId', color: '$color', size: '$size' }, 
-                totalSold: { $sum: '$quantity' } 
+                totalSold: { $sum: '$quantity' },
+                lastSoldDate: { $max: '$createdAt' }
             } }
         ]);
 
@@ -74,12 +75,22 @@ router.get('/sold-stats', authMiddleware, adminMiddleware, async (req, res) => {
             if (!pid) return;
 
             // Total per product
-            stats[pid] = (stats[pid] || 0) + item.totalSold;
+            if (!stats[pid] || new Date(item.lastSoldDate) > new Date(stats[pid].date)) {
+                stats[pid] = {
+                    total: (stats[pid]?.total || 0) + item.totalSold,
+                    date: item.lastSoldDate
+                };
+            } else {
+                stats[pid].total += item.totalSold;
+            }
 
             // Per variant (product-color-size)
             if (item._id.color && item._id.size) {
                 const vKey = `${pid}-${item._id.color}-${item._id.size}`;
-                variantStats[vKey] = (variantStats[vKey] || 0) + item.totalSold;
+                variantStats[vKey] = {
+                    total: item.totalSold,
+                    date: item.lastSoldDate
+                };
             }
         });
 

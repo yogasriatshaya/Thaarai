@@ -50,7 +50,7 @@ export function AdminLogin() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10 border border-gray-100">
         <div className="text-center mb-10">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <img src="/thaarai-logo.png" alt="Thaarai" className="h-8 w-auto transition-all duration-500 rounded-sm" />
+            <img src="/tharrai-logo.png" alt="Thaarai" className="h-8 w-auto transition-all duration-500 rounded-sm" />
             <span className="font-serif text-lg font-bold tracking-tight text-gray-900">THAARAI</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Admin Console</h1>
@@ -153,7 +153,7 @@ export function AdminDashboard() {
       <aside className="w-72 bg-white border-r border-gray-100 flex flex-col pt-8">
         <div className="px-8 mb-12">
           <div className="flex items-center gap-2">
-            <img src="/thaarai-logo.png" alt="Thaarai" className="w-8 h-8 object-contain rounded-lg" />
+            <img src="/tharrai-logo.png" alt="Thaarai" className="w-8 h-8 object-contain rounded-lg" />
             <span className="font-serif text-lg font-bold text-gray-900 tracking-tight">THAARAI <span className="text-[10px] text-purple-600 uppercase font-sans">Admin</span></span>
           </div>
         </div>

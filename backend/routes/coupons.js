@@ -49,6 +49,20 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
+// @route   GET /api/coupons/active
+// @desc    Get all active coupons for display to users
+router.get('/active', async (req, res) => {
+    try {
+        const coupons = await Coupon.find({ 
+            isActive: true, 
+            $or: [{ expiryDate: { $gt: new Date() } }, { expiryDate: null }] 
+        }).select('code title description discountType discountValue discountValueUSD minAmount minAmountUSD');
+        res.json({ success: true, coupons });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // @route   POST /api/coupons/apply
 // @desc    Validate and calculate coupon discount for customer
 router.post('/apply', authMiddleware, async (req, res) => {
