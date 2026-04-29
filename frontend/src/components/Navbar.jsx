@@ -514,7 +514,7 @@ export default function Navbar() {
                   <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-400 mb-4">Account</p>
                   <div className="space-y-3">
                     {user ? (
-                      <button onClick={() => setShowLogoutModal(true)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign Out</button>
+                      <Link to="/orders" onClick={() => setMobileOpen(false)} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">My Orders</Link>
                     ) : (
                       <button onClick={() => { setAuthDrawerOpen(true); setMobileOpen(false); }} className="text-[10px] font-bold tracking-[0.2em] uppercase text-black hover-underline block">Sign In</button>
                     )}

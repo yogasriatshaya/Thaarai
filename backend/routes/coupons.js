@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Coupon = require('../models/Coupon');
-const { adminMiddleware, authMiddleware } = require('../middleware/auth');
+const { adminMiddleware, authMiddleware, optionalAuth } = require('../middleware/auth');
 
 // @route   GET /api/coupons
 // @desc    Get all coupons for admin
@@ -65,7 +65,7 @@ router.get('/active', async (req, res) => {
 
 // @route   POST /api/coupons/apply
 // @desc    Validate and calculate coupon discount for customer
-router.post('/apply', authMiddleware, async (req, res) => {
+router.post('/apply', optionalAuth, async (req, res) => {
     try {
         const { code, totalAmount, country } = req.body;
         if (!code) return res.status(400).json({ success: false, message: 'Coupon code required' });

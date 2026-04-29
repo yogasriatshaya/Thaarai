@@ -29,7 +29,32 @@ export default function AuthDrawer({ isOpen, onClose }) {
   const [errors, setErrors] = useState({});
   const [timer, setTimer] = useState(0);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { login, user, logout } = useShop();
+  const { login, user, logout, updateUser } = useShop();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '' });
+
+  useEffect(() => {
+    if (user) {
+      setEditForm({ name: user.name || '', phone: user.phone || '', email: user.email || '' });
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async (e) => {
+    if (!editForm.name.trim()) return toast.error("Name is required");
+    setLoading(true);
+    try {
+      const res = await API.put('/users/profile', editForm);
+      if (res.data.success) {
+        updateUser(res.data.user);
+        toast.success("Profile updated");
+        setIsEditing(false);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -243,13 +268,66 @@ export default function AuthDrawer({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto px-10 py-6 custom-scrollbar">
           {user ? (
             <div className="space-y-8 animate-fade-in text-center">
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase tracking-widest text-[#999] font-bold">Signed in as</p>
-                <h3 className="text-4xl font-serif font-bold text-black">{user.name}</h3>
-                <p className="text-[13px] text-[#666] tracking-wide font-medium">{user.email}</p>
-              </div>
+              {isEditing ? (
+                <div className="space-y-6 text-left bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                  <InputGroup label="Full Name">
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full px-4 py-2 bg-white border border-gray-300 outline-none focus:border-black text-sm font-medium"
+                      placeholder="Your Name"
+                    />
+                  </InputGroup>
+                  <InputGroup label="Email Address">
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full px-4 py-2 bg-white border border-gray-300 outline-none focus:border-black text-sm font-medium"
+                      placeholder="Your Email"
+                    />
+                  </InputGroup>
+                  <InputGroup label="Phone Number">
+                    <input
+                      type="text"
+                      value={editForm.phone}
+                      onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full px-4 py-2 bg-white border border-gray-300 outline-none focus:border-black text-sm font-medium"
+                      placeholder="Your Phone"
+                    />
+                  </InputGroup>
+                  <div className="flex gap-2 pt-2">
+                    <button 
+                      onClick={handleUpdateProfile}
+                      disabled={loading}
+                      className="flex-1 py-2.5 bg-black text-white text-[11px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="flex-1 py-2.5 border border-gray-300 text-gray-500 text-[11px] font-black uppercase tracking-widest hover:bg-white transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase tracking-widest text-[#999] font-bold">Signed in as</p>
+                  <h3 className="text-4xl font-serif font-bold text-black">{user.name}</h3>
+                  <p className="text-[13px] text-[#666] tracking-wide font-medium">{user.email}</p>
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="text-[11px] font-bold uppercase tracking-widest text-[#3182ce] hover:text-blue-700 transition mt-2"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              )}
 
-              <div className="pt-4 grid grid-cols-1 gap-3">
+              <div className="pt-2 grid grid-cols-1 gap-3">
                 <button 
                   onClick={() => { navigate('/orders'); onClose(); }}
                   className="w-full py-2.5 border-2 border-black text-[13px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white transition-all duration-300"
