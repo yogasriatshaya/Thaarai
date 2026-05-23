@@ -58,8 +58,8 @@ jobs:
           context: ./frontend
           push: true
           build-args: |
-            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5001/api
-            VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5001
+            VITE_API_URL=${{ secrets.BACKEND_PUBLIC_URL }}/api
+            VITE_BACKEND_URL=${{ secrets.BACKEND_PUBLIC_URL }}/
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-frontend:latest
 
       - name: Build & Push Admin
@@ -68,8 +68,8 @@ jobs:
           context: ./admin
           push: true
           build-args: |
-            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5001/api
-            VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5001
+            VITE_API_URL=${{ secrets.BACKEND_PUBLIC_URL }}/api
+            VITE_BACKEND_URL=${{ secrets.BACKEND_PUBLIC_URL }}/
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-admin:latest
 
   vulnerability-scan:
