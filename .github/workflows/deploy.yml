@@ -27,7 +27,7 @@ jobs:
       - name: Dockerfile Lint (Hadolint)
         uses: hadolint/hadolint-action@v3.3.0
         with:
-          dockerfile: backend/Dockerfile
+          dockerfile: frontend/Dockerfile
           ignore: DL3008,DL3018 # Alpine specific ignores
         continue-on-error: true
 
@@ -62,36 +62,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
-      - name: Deploy via SSH
+      - name: Deploy Frontend via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: 18.119.119.132
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mkdir -p ~/thaarai-app
-            cd ~/thaarai-app
-            # The compose file is sent via SCP in a separate step or just kept here
-            # For simplicity, we can just echo the compose file into the server if it's small, 
-            # but ideally we transfer it.
-            
-      - name: Transfer Docker Compose
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "~/thaarai-app"
-
-      - name: Restart Frontend Service
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/thaarai-app
-            # Pull only the frontend image and restart the frontend service
-            docker compose pull frontend || true
-            docker compose up -d frontend
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
+            docker rm -f thaarai-frontend || true
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-frontend:latest
+            docker run -d \
+              --name thaarai-frontend \
+              --restart unless-stopped \
+              -p 80:80 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/thaarai-frontend:latest
