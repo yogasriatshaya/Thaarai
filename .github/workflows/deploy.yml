@@ -58,16 +58,42 @@ jobs:
     name: Deploy Frontend to AWS EC2
     needs: build-and-push
     runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.EC2_SSH_HOST }}
+      SSH_USERNAME: ${{ secrets.EC2_SSH_USERNAME }}
+      SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      SSH_PASSPHRASE: ${{ secrets.EC2_SSH_PASSPHRASE }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
 
+      - name: Validate SSH configuration
+        shell: bash
+        run: |
+          if [ -z "$SSH_HOST" ]; then
+            echo "EC2_SSH_HOST is missing"
+            exit 1
+          fi
+
+          if [ -z "$SSH_USERNAME" ]; then
+            echo "EC2_SSH_USERNAME is missing"
+            exit 1
+          fi
+
+          if [ -z "$SSH_KEY" ]; then
+            echo "EC2_SSH_KEY is missing"
+            exit 1
+          fi
+
       - name: Deploy Frontend via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 18.119.119.132
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ env.SSH_KEY }}
+          passphrase: ${{ env.SSH_PASSPHRASE }}
+          debug: true
+          script_stop: true
           script: |
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
             docker rm -f thaarai-frontend || true
