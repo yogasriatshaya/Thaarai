@@ -123,49 +123,44 @@ export default function TrackOrder() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pt-20 pb-24 px-6 text-black">
-      <div className="max-w-5xl mx-auto w-full">
+    <div className="min-h-screen bg-gray-50/30 flex flex-col justify-center py-16 px-6 text-black font-sans">
+      <div className="max-w-md mx-auto w-full">
         
         {!order ? (
-          <div className="max-w-md mx-auto animate-fade-in">
-            <div className="text-center mb-12">
-                <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-gray-400 mb-2 block">Track Order</span>
-                <h1 className="font-serif text-4xl font-black italic tracking-tight text-black">Order Status</h1>
-                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest mt-2">Enter your details to track your order.</p>
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-none border border-gray-100 shadow-xl shadow-gray-100/40 animate-fade-in w-full">
+            <div className="text-center mb-8">
+                <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-gray-400 mb-1.5 block">Track Journey</span>
+                <h1 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Order Status</h1>
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mt-1">Enter details to track your package.</p>
             </div>
-            <form onSubmit={handleTrack} className="space-y-12">
-              <div className="space-y-12">
-                <div className="space-y-1">
+            <form onSubmit={handleTrack} className="space-y-5">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Order ID</label>
-                  <div className="flex items-end border-b border-black group focus-within:border-gray-300 transition-all h-14 pb-1">
-                    <span className="text-gray-200 font-sans text-xl pr-3 pb-1 transition-colors group-focus-within:text-black select-none">#</span>
-                    <input 
-                      required 
-                      value={orderId.replace(/#/g, '')} 
-                      onChange={e => setOrderId(e.target.value.toUpperCase())} 
-                      placeholder="Enter Order ID" 
-                      className="w-full bg-transparent outline-none font-sans text-xl font-medium tracking-[0.2em] lining-nums placeholder:text-gray-100 transition-all uppercase leading-none" 
-                    />
-                  </div>
+                  <input 
+                    required 
+                    value={orderId.replace(/#/g, '')} 
+                    onChange={e => setOrderId(e.target.value.toUpperCase())} 
+                    placeholder="ENTER ORDER ID" 
+                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none font-sans text-sm font-bold tracking-widest placeholder:text-gray-300 transition-all uppercase" 
+                  />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Email Address</label>
-                  <div className="flex items-end border-b border-black group focus-within:border-gray-300 transition-all h-14 pb-1">
-                    <input 
-                      required 
-                      type="email" 
-                      value={email} 
-                      onChange={e => setEmail(e.target.value.toLowerCase())} 
-                      placeholder="your@email.com" 
-                      className="w-full bg-transparent outline-none font-sans text-xl font-medium tracking-wider placeholder:text-gray-100 transition-all lowercase leading-none" 
-                    />
-                  </div>
+                  <input 
+                    required 
+                    type="email" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value.toLowerCase())} 
+                    placeholder="your@email.com" 
+                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black outline-none font-sans text-sm placeholder:text-gray-300 transition-all" 
+                  />
                 </div>
               </div>
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-4 bg-black text-white text-[12px] font-bold uppercase tracking-[0.4em] hover:bg-gray-800 transition-all shadow-xl disabled:opacity-50"
+                className="w-full py-3 bg-black text-white text-[11px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all rounded-none shadow-lg shadow-black/10 disabled:opacity-50"
               >
                 {loading ? 'Tracking...' : 'Track My Order'}
               </button>

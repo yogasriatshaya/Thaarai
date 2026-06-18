@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import API from '../api';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../utils/priceUtils';
@@ -608,44 +608,197 @@ export function Orders() {
 
 export function OrderSuccess() {
   const { state } = useLocation();
+  const navigate = useNavigate();
+  const { setCartData } = useShop();
+
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState(null);
+  const [countdown, setCountdown] = useState(5);
+
   const orderId = state?.orderId || '';
+  const order = state?.order || null;
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const sessionId = queryParams.get('session_id');
+
+    if (sessionId && !orderId) {
+      setVerifying(true);
+      API.post('/orders/stripe/verify', { sessionId })
+        .then((res) => {
+          if (res.data.success) {
+            setCartData({});
+            // Navigate to same page but clean URL and set state
+            navigate('/order-success', {
+              replace: true,
+              state: {
+                orderId: res.data.orderId || res.data.order?._id,
+                order: res.data.order,
+              },
+            });
+          } else {
+            setError(res.data.message || 'Payment verification failed.');
+          }
+        })
+        .catch((err) => {
+          setError(err.response?.data?.message || 'Failed to verify payment.');
+        })
+        .finally(() => {
+          setVerifying(false);
+        });
+    }
+  }, [orderId, navigate, setCartData]);
+
+  // Countdown and redirect logic
+  useEffect(() => {
+    if (orderId && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (orderId && countdown === 0) {
+      navigate('/orders');
+    }
+  }, [orderId, countdown, navigate]);
+
+  if (verifying) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="text-center max-w-xl bg-white border border-gray-100 p-12 md:p-16 shadow-2xl rounded-xl">
+          <p className="text-gray-500 mb-4">Verifying your payment, please wait...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="text-center max-w-xl bg-white border border-gray-100 p-12 md:p-16 shadow-2xl rounded-xl">
+          <p className="text-red-500 font-bold mb-4">Verification Error</p>
+          <p className="text-gray-500 mb-8">{error}</p>
+          <Link to="/cart" className="btn-primary bg-purple-600 hover:bg-purple-700 shadow-purple-600/20">Back to Cart</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const getCurrencySymbol = (currencyCode) => {
+    if (currencyCode?.toUpperCase() === 'USD') return '$';
+    return '₹'; // Default to INR
+  };
+
+  const currencySymbol = getCurrencySymbol(order?.currency);
+  const displayAmount = order?.totalAmount !== undefined ? order.totalAmount : 0;
+  const paymentMethodDisplay = order?.paymentMethod 
+    ? (order.paymentMethod.toLowerCase() === 'cod' ? 'Cash on Delivery' : order.paymentMethod.charAt(0).toUpperCase() + order.paymentMethod.slice(1))
+    : 'Stripe';
+
+  const shortOrderId = orderId ? `#${orderId.slice(-8).toUpperCase()}` : 'INV-PENDING';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-      <div className="text-center max-w-xl bg-white border border-gray-100 p-12 md:p-16 shadow-2xl relative overflow-hidden group rounded-xl">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.4)]" />
+    <div className="min-h-[85vh] bg-gray-50 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="max-w-3xl w-full bg-white rounded-none shadow-xl overflow-hidden border border-gray-100 grid grid-cols-1 md:grid-cols-12">
         
-        <div className="w-16 h-16 bg-green-50 border border-green-100 flex items-center justify-center mx-auto mb-8 rounded-xl ring-8 ring-green-50/50">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
+        {/* Left Column - Success Message & Details (7 cols) */}
+        <div className="p-6 sm:p-8 md:col-span-7 flex flex-col justify-between">
+          <div className="text-center md:text-left">
+            {/* Checkmark icon */}
+            <div className="w-12 h-12 bg-green-50/50 border border-green-100/60 flex items-center justify-center rounded-full mx-auto md:mx-0 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
 
-        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-green-600 mb-4">Order Confirmed</p>
-        <h1 className="font-serif text-4xl text-gray-900 font-bold mb-6 tracking-tight">Thank You!</h1>
-        
-        {orderId && (
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-8 max-w-sm mx-auto">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Your Order ID</p>
-            <p className="font-sans font-bold text-gray-900 break-all select-all cursor-pointer hover:text-purple-600 transition-colors"
-               onClick={() => {
-                 navigator.clipboard.writeText(orderId);
-                 toast.success('Order ID copied!');
-               }}>
-              {orderId}
+            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight mb-1 uppercase font-serif">
+              Payment Success!
+            </h1>
+            <p className="text-gray-500 text-xs mb-4">
+              Your order has been successfully placed. A confirmation email has been sent.
             </p>
-            <p className="text-[10px] text-gray-400 mt-2 italic">Save this for guest tracking</p>
+
+            {/* Details Table */}
+            <div className="border border-gray-100 rounded-none overflow-hidden mb-4">
+              <div className="divide-y divide-gray-100 text-xs">
+                <div className="flex justify-between p-3 bg-gray-50/50">
+                  <span className="text-gray-400">Invoice Number</span>
+                  <span className="font-bold text-gray-800">{shortOrderId}</span>
+                </div>
+                <div className="flex justify-between p-3">
+                  <span className="text-gray-400">Payment Method</span>
+                  <span className="font-bold text-gray-800">{paymentMethodDisplay}</span>
+                </div>
+                <div className="flex justify-between p-3 bg-gray-50/50">
+                  <span className="text-gray-400">Paid Amount</span>
+                  <span className="font-bold text-gray-800">{currencySymbol}{displayAmount}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
 
-        <p className="text-gray-500 leading-relaxed mb-10 max-w-sm mx-auto text-sm font-light">
-          Your acquisition is being prepared with precision. A confirmation will be sent to your email shortly.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/track-order" className="btn-primary min-w-[180px] bg-purple-600 hover:bg-purple-700 shadow-purple-600/20">Track Journey</Link>
-          <Link to="/collection" className="btn-ghost min-w-[180px] border-gray-200">Continue Shopping</Link>
+          <div className="space-y-2">
+            <button
+              onClick={() => navigate('/orders')}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shadow-lg shadow-blue-600/20"
+            >
+              Go to Dashboard
+            </button>
+            <p className="text-center text-[10px] text-gray-400 italic">
+              Redirecting to your dashboard in {countdown} seconds...
+            </p>
+          </div>
         </div>
+
+        {/* Right Column - Summary & Checklist (5 cols) */}
+        <div className="bg-[#FAF7F2] p-6 sm:p-8 md:col-span-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-gray-100">
+          <div>
+            <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-amber-800/80 mb-1 block">
+              Thaarai Luxury Studio
+            </span>
+            <h2 className="font-serif text-lg font-bold text-gray-900 mb-4 tracking-tight uppercase">
+              Order Summary
+            </h2>
+
+            <div className="mb-4">
+              <span className="text-[9px] uppercase font-bold tracking-wider text-gray-400 block mb-0.5">
+                Total Paid
+              </span>
+              <span className="text-2xl font-extrabold text-gray-900 font-sans">
+                {currencySymbol}{displayAmount}
+              </span>
+              <p className="text-[11px] text-amber-800/60 mt-0.5 italic">
+                Handcrafted luxury items.
+              </p>
+            </div>
+
+            <div className="border-t border-amber-900/10 pt-4">
+              <h3 className="text-[9px] uppercase font-bold tracking-wider text-amber-800/80 mb-3">
+                What's Included
+              </h3>
+              <ul className="space-y-2 text-[11px] text-gray-600 font-medium">
+                {[
+                  'Handcrafted Premium Quality',
+                  'Custom Stitching & Perfect Fit',
+                  'Secure & Insured Handoff',
+                  '7-Day Easy Returns Policy',
+                  '24/7 Dedicated Support Desk',
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="text-amber-600">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-wider pt-4 border-t border-amber-900/5 mt-4 font-sans">
+            <span>SSL Secured Payment</span>
+            <span className="text-amber-800/60">Saved Locally ✓</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -471,6 +471,43 @@ router.post('/razorpay/verify', optionalAuth, async (req, res) => {
   }
 });
 
+// Verify Stripe payment
+router.post('/stripe/verify', optionalAuth, async (req, res) => {
+  try {
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid') {
+      const order = await Order.findOneAndUpdate(
+        { stripeSessionId: sessionId },
+        { paymentStatus: 'paid' },
+        { new: true }
+      ).populate('userId', 'email');
+
+      if (order) {
+        // Dispatch Order Confirmed Email
+        sendOrderEmailObj(order, 'create');
+
+        // Clear cart for logged in user
+        if (order.userId) {
+          await User.findByIdAndUpdate(order.userId._id, { cartData: {} });
+        }
+         res.json({ success: true, orderId: order._id, order });
+      } else {
+        res.status(404).json({ success: false, message: 'Order not found' });
+      }
+    } else {
+      res.status(400).json({ success: false, message: 'Payment verification failed' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Guest Track Order
 router.post('/tracking', async (req, res) => {
   try {

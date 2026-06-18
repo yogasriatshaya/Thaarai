@@ -292,11 +292,12 @@ export default function Checkout() {
             const verifyRes = await API.post('/orders/razorpay/verify', { ...response, orderId });
             if (verifyRes.data.success) {
               setCartData({});
-              if (token) {
-                navigate('/orders');
-              } else {
-                navigate('/track-order', { state: { orderId, email: form.email } });
-              }
+              navigate('/order-success', {
+                state: { 
+                  orderId, 
+                  order: { totalAmount: total, currency, paymentMethod: 'razorpay', guestEmail: form.email } 
+                }
+              });
               toast.success('Payment successful!');
             }
           },
@@ -313,11 +314,12 @@ export default function Checkout() {
 
       if (res.data.success) {
         setCartData({});
-        if (token) {
-          navigate('/orders');
-        } else {
-          navigate('/track-order', { state: { orderId: res.data.order._id, email: form.email } });
-        }
+        navigate('/order-success', {
+          state: {
+            orderId: res.data.order._id,
+            order: res.data.order
+          }
+        });
         toast.success('Order placed successfully!');
       }
     } catch (err) {
