@@ -615,8 +615,25 @@ export function OrderSuccess() {
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(5);
 
-  const orderId = state?.orderId || '';
-  const order = state?.order || null;
+  const queryParams = new URLSearchParams(window.location.search);
+  const urlOrderId = queryParams.get('id') || '';
+
+  const orderId = urlOrderId || state?.orderId || '';
+  const [order, setOrder] = useState(state?.order || null);
+
+  useEffect(() => {
+    if (orderId && !order) {
+      API.get(`/orders/${orderId}`)
+        .then((res) => {
+          if (res.data.success) {
+            setOrder(res.data.order);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch order details:', err);
+        });
+    }
+  }, [orderId, order]);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
@@ -628,11 +645,12 @@ export function OrderSuccess() {
         .then((res) => {
           if (res.data.success) {
             setCartData({});
-            // Navigate to same page but clean URL and set state
-            navigate('/order-success', {
+            const finalOrderId = res.data.orderId || res.data.order?._id;
+            // Navigate to same page but clean URL (keeping id) and set state
+            navigate(`/order-success?id=${finalOrderId}`, {
               replace: true,
               state: {
-                orderId: res.data.orderId || res.data.order?._id,
+                orderId: finalOrderId,
                 order: res.data.order,
               },
             });
@@ -731,7 +749,7 @@ export function OrderSuccess() {
                 </div>
                 <div className="flex justify-between p-3 bg-gray-50/50">
                   <span className="text-gray-400">Paid Amount</span>
-                  <span className="font-bold text-gray-800">{currencySymbol}{displayAmount}</span>
+                  <span className="font-bold text-green-600">{currencySymbol}{displayAmount}</span>
                 </div>
               </div>
             </div>
@@ -740,7 +758,7 @@ export function OrderSuccess() {
           <div className="space-y-2">
             <button
               onClick={() => navigate('/orders')}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shadow-lg shadow-blue-600/20"
+              className="w-full py-3 bg-[#1A4BA8] hover:bg-[#143D8C] text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shadow-lg shadow-blue-800/10"
             >
               Go to Dashboard
             </button>
@@ -751,12 +769,12 @@ export function OrderSuccess() {
         </div>
 
         {/* Right Column - Summary & Checklist (5 cols) */}
-        <div className="bg-[#FAF7F2] p-6 sm:p-8 md:col-span-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-gray-100">
+        <div className="bg-[#0B2240] p-6 sm:p-8 md:col-span-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-white/10">
           <div>
-            <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-amber-800/80 mb-1 block">
+            <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-amber-400/80 mb-1 block">
               Thaarai Luxury Studio
             </span>
-            <h2 className="font-serif text-lg font-bold text-gray-900 mb-4 tracking-tight uppercase">
+            <h2 className="font-serif text-lg font-bold text-white mb-4 tracking-tight uppercase">
               Order Summary
             </h2>
 
@@ -764,19 +782,19 @@ export function OrderSuccess() {
               <span className="text-[9px] uppercase font-bold tracking-wider text-gray-400 block mb-0.5">
                 Total Paid
               </span>
-              <span className="text-2xl font-extrabold text-gray-900 font-sans">
+              <span className="text-2xl font-extrabold text-white font-sans">
                 {currencySymbol}{displayAmount}
               </span>
-              <p className="text-[11px] text-amber-800/60 mt-0.5 italic">
+              <p className="text-[11px] text-amber-100/60 mt-0.5 italic">
                 Handcrafted luxury items.
               </p>
             </div>
 
-            <div className="border-t border-amber-900/10 pt-4">
-              <h3 className="text-[9px] uppercase font-bold tracking-wider text-amber-800/80 mb-3">
+            <div className="border-t border-white/10 pt-4">
+              <h3 className="text-[9px] uppercase font-bold tracking-wider text-amber-400/80 mb-3">
                 What's Included
               </h3>
-              <ul className="space-y-2 text-[11px] text-gray-600 font-medium">
+              <ul className="space-y-2 text-[11px] text-gray-200 font-medium">
                 {[
                   'Handcrafted Premium Quality',
                   'Custom Stitching & Perfect Fit',
@@ -785,7 +803,7 @@ export function OrderSuccess() {
                   '24/7 Dedicated Support Desk',
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2">
-                    <span className="text-amber-600">✓</span>
+                    <span className="text-white">✓</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -793,9 +811,9 @@ export function OrderSuccess() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-wider pt-4 border-t border-amber-900/5 mt-4 font-sans">
+          <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-wider pt-4 border-t border-white/10 mt-4 font-sans">
             <span>SSL Secured Payment</span>
-            <span className="text-amber-800/60">Saved Locally ✓</span>
+            <span className="text-white">Saved Locally ✓</span>
           </div>
         </div>
 

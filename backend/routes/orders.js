@@ -641,6 +641,23 @@ router.get('/my-orders', authMiddleware, async (req, res) => {
   }
 });
 
+// Get single order details (for success page or detail view)
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    
+    // Security check: if order has a userId, only that user can view it (if logged in)
+    if (order.userId && (!req.user || String(order.userId) !== String(req.user.id))) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to this order' });
+    }
+    
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Cancel an order (user action)
 router.put('/:id/cancel', authMiddleware, async (req, res) => {
   try {
