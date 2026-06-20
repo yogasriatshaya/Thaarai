@@ -210,10 +210,12 @@ router.post('/create', optionalAuth, checkMaintenance, async (req, res) => {
 router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
   try {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const mongoose = require('mongoose');
     const { items, address, totalAmount, couponId, currency, orderCountry, guestEmail, guestPhone,
             subtotal, taxAmount, taxName, taxPercentage, shippingAmount, discountAmount } = req.body;
 
     const stripeCurrency = (currency || 'INR').toLowerCase();
+    const orderId = new mongoose.Types.ObjectId();
     
     const sessionConfig = {
       payment_method_types: ['card'],
@@ -226,7 +228,7 @@ router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
         quantity: i.quantity
       })),
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-success?session_id={CHECKOUT_SESSION_ID}&id=${orderId}`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cart`,
       metadata: { 
         userId: req.user ? req.user.id : 'guest', 
@@ -322,6 +324,7 @@ router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
     }
 
     const order = await Order.create({
+      _id: orderId,
       userId: req.user ? req.user.id : null,
       isGuest: !req.user,
       guestEmail: req.user ? null : (guestEmail || ''),

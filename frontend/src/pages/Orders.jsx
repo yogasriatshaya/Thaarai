@@ -740,29 +740,13 @@ export function OrderSuccess() {
             <div className="border border-gray-100 rounded-none overflow-hidden mb-4">
               <div className="divide-y divide-gray-100 text-xs">
                 <div className="flex justify-between p-3 bg-gray-50/50">
-                  <span className="text-gray-400">Order ID (URL ID)</span>
-                  <span className="font-bold text-gray-800 break-all select-all">{orderId}</span>
-                </div>
-                <div className="flex justify-between p-3">
                   <span className="text-gray-400">Invoice Number</span>
                   <span className="font-bold text-gray-800">{shortOrderId}</span>
                 </div>
-                <div className="flex justify-between p-3 bg-gray-50/50">
+                <div className="flex justify-between p-3">
                   <span className="text-gray-400">Payment Method</span>
                   <span className="font-bold text-gray-800">{paymentMethodDisplay}</span>
                 </div>
-                {order?.stripeSessionId && (
-                  <div className="flex justify-between p-3">
-                    <span className="text-gray-400">Stripe Session ID</span>
-                    <span className="font-bold text-gray-800 break-all select-all">{order.stripeSessionId}</span>
-                  </div>
-                )}
-                {order?.razorpayOrderId && (
-                  <div className="flex justify-between p-3">
-                    <span className="text-gray-400">Razorpay Order ID</span>
-                    <span className="font-bold text-gray-800 break-all select-all">{order.razorpayOrderId}</span>
-                  </div>
-                )}
                 <div className="flex justify-between p-3 bg-gray-50/50">
                   <span className="text-gray-400">Paid Amount</span>
                   <span className="font-bold text-green-600">{currencySymbol}{displayAmount}</span>
