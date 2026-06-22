@@ -210,12 +210,10 @@ router.post('/create', optionalAuth, checkMaintenance, async (req, res) => {
 router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
   try {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    const mongoose = require('mongoose');
     const { items, address, totalAmount, couponId, currency, orderCountry, guestEmail, guestPhone,
             subtotal, taxAmount, taxName, taxPercentage, shippingAmount, discountAmount } = req.body;
 
     const stripeCurrency = (currency || 'INR').toLowerCase();
-    const orderId = new mongoose.Types.ObjectId();
     
     const sessionConfig = {
       payment_method_types: ['card'],
@@ -228,7 +226,7 @@ router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
         quantity: i.quantity
       })),
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-success?session_id={CHECKOUT_SESSION_ID}&id=${orderId}`,
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cart`,
       metadata: { 
         userId: req.user ? req.user.id : 'guest', 
@@ -324,7 +322,6 @@ router.post('/stripe', optionalAuth, checkMaintenance, async (req, res) => {
     }
 
     const order = await Order.create({
-      _id: orderId,
       userId: req.user ? req.user.id : null,
       isGuest: !req.user,
       guestEmail: req.user ? null : (guestEmail || ''),
@@ -639,23 +636,6 @@ router.get('/my-orders', authMiddleware, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
     res.json({ success: true, orders });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Get single order details (for success page or detail view)
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    
-    // Security check: if order has a userId, only that user can view it (if logged in)
-    if (order.userId && (!req.user || String(order.userId) !== String(req.user.id))) {
-      return res.status(403).json({ success: false, message: 'Unauthorized access to this order' });
-    }
-    
-    res.json({ success: true, order });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

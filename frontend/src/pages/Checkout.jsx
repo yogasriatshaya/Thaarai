@@ -292,7 +292,7 @@ export default function Checkout() {
             const verifyRes = await API.post('/orders/razorpay/verify', { ...response, orderId });
             if (verifyRes.data.success) {
               setCartData({});
-              navigate(`/order-success?id=${orderId}`, {
+              navigate('/order-success', {
                 state: { 
                   orderId, 
                   order: { totalAmount: total, currency, paymentMethod: 'razorpay', guestEmail: form.email } 
@@ -314,7 +314,7 @@ export default function Checkout() {
 
       if (res.data.success) {
         setCartData({});
-        navigate(`/order-success?id=${res.data.order._id}`, {
+        navigate('/order-success', {
           state: {
             orderId: res.data.order._id,
             order: res.data.order

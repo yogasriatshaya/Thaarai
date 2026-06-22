@@ -615,25 +615,8 @@ export function OrderSuccess() {
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(5);
 
-  const queryParams = new URLSearchParams(window.location.search);
-  const urlOrderId = queryParams.get('id') || '';
-
-  const orderId = urlOrderId || state?.orderId || '';
-  const [order, setOrder] = useState(state?.order || null);
-
-  useEffect(() => {
-    if (orderId && !order) {
-      API.get(`/orders/${orderId}`)
-        .then((res) => {
-          if (res.data.success) {
-            setOrder(res.data.order);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to fetch order details:', err);
-        });
-    }
-  }, [orderId, order]);
+  const orderId = state?.orderId || '';
+  const order = state?.order || null;
 
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
@@ -645,12 +628,11 @@ export function OrderSuccess() {
         .then((res) => {
           if (res.data.success) {
             setCartData({});
-            const finalOrderId = res.data.orderId || res.data.order?._id;
-            // Navigate to same page but clean URL (keeping id) and set state
-            navigate(`/order-success?id=${finalOrderId}`, {
+            // Navigate to same page but clean URL and set state
+            navigate('/order-success', {
               replace: true,
               state: {
-                orderId: finalOrderId,
+                orderId: res.data.orderId || res.data.order?._id,
                 order: res.data.order,
               },
             });
